@@ -3,6 +3,16 @@
 
 import { useState } from "react"
 import { useRouter } from "next/navigation"
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
+import { Button } from "@/components/ui/button"
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table"
 
 interface PublikasiItem {
   id: number
@@ -81,7 +91,7 @@ export default function PublikasiPage() {
     const newItem = {
       id: Date.now(),
       ...formData,
-      unit: userUnit, // tambahkan unit dari localStorage
+      unit: userUnit,
     }
 
     const updatedData = [...data, newItem]
@@ -103,30 +113,120 @@ export default function PublikasiPage() {
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
         <h1 className="text-2xl font-bold text-blue-700">Publikasi & Media</h1>
-        <button
-          onClick={() => setShowModal(true)}
-          className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-        >
-          + Tambah Publikasi
-        </button>
+        <Dialog open={showModal} onOpenChange={setShowModal}>
+          <DialogTrigger asChild>
+            <Button className="bg-blue-600 hover:bg-blue-700">+ Tambah Publikasi</Button>
+          </DialogTrigger>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+  <DialogHeader>
+    <DialogTitle>Tambah Publikasi</DialogTitle>
+  </DialogHeader>
+  <form onSubmit={handleSubmit} className="space-y-4">
+    <div className="space-y-2">
+      <label className="block text-sm font-medium text-gray-700">Judul</label>
+      <input
+        type="text"
+        name="judul"
+        value={formData.judul}
+        onChange={handleChange}
+        required
+        className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+      />
+    </div>
+
+    <div className="space-y-2">
+      <label className="block text-sm font-medium text-gray-700">Tanggal</label>
+      <input
+        type="date"
+        name="tanggal"
+        value={formData.tanggal}
+        onChange={handleChange}
+        required
+        className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+      />
+    </div>
+
+    <div className="space-y-2">
+      <label className="block text-sm font-medium text-gray-700">Jenis Media</label>
+      <select
+        name="jenis"
+        value={formData.jenis}
+        onChange={handleChange}
+        className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+      >
+        {jenisMediaOptions.map((option) => (
+          <option key={option} value={option}>
+            {option}
+          </option>
+        ))}
+      </select>
+    </div>
+
+    <div className="space-y-2">
+      <label className="block text-sm font-medium text-gray-700">Link</label>
+      <input
+        type="url"
+        name="link"
+        value={formData.link}
+        onChange={handleChange}
+        placeholder="https://example.com" 
+        className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+      />
+    </div>
+
+    {formData.jenis === "Instagram" && (
+      <>
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">Likes</label>
+          <input
+            type="number"
+            name="likes"
+            value={formData.likes}
+            onChange={handleChange}
+            className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+
+        <div className="space-y-2">
+          <label className="block text-sm font-medium text-gray-700">Views</label>
+          <input
+            type="number"
+            name="views"
+            value={formData.views}
+            onChange={handleChange}
+            className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+          />
+        </div>
+      </>
+    )}
+
+    <div className="flex justify-end gap-3 pt-2">
+      <Button variant="outline" onClick={() => setShowModal(false)} type="button">
+        Batal
+      </Button>
+      <Button type="submit">Simpan</Button>
+    </div>
+  </form>
+</DialogContent>
+        </Dialog>
       </div>
 
       {/* Table */}
       <div className="overflow-x-auto mb-8">
-        <table className="min-w-full bg-white shadow-md rounded-xl overflow-hidden">
-          <thead className="bg-blue-100 text-sm text-gray-700">
-            <tr>
-              <th className="px-4 py-2 text-left">No</th>
-              <th className="px-4 py-2 text-left">Judul</th>
-              <th className="px-4 py-2 text-left">Tanggal</th>
-              <th className="px-4 py-2 text-left">Jenis Media</th>
-              <th className="px-4 py-2 text-right">Likes</th>
-              <th className="px-4 py-2 text-right">Views</th>
-              <th className="px-4 py-2 text-right">Engagement</th>
-              <th className="px-4 py-2 text-center">Link</th>
-            </tr>
-          </thead>
-          <tbody className="text-sm">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>No</TableHead>
+              <TableHead>Judul</TableHead>
+              <TableHead>Tanggal</TableHead>
+              <TableHead>Jenis Media</TableHead>
+              <TableHead className="text-right">Likes</TableHead>
+              <TableHead className="text-right">Views</TableHead>
+              <TableHead className="text-right">Engagement</TableHead>
+              <TableHead className="text-center">Link</TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
             {data.map((item, index) => {
               const isInstagram = item.jenis === 'Instagram'
               const engagement =
@@ -135,131 +235,25 @@ export default function PublikasiPage() {
                   : '-'
 
               return (
-                <tr key={item.id} className="border-t">
-                  <td className="px-4 py-2">{index + 1}</td>
-                  <td className="px-4 py-2">{item.judul}</td>
-                  <td className="px-4 py-2">{item.tanggal}</td>
-                  <td className="px-4 py-2">{item.jenis}</td>
-                  <td className="px-4 py-2 text-right">{isInstagram ? item.likes : '-'}</td>
-                  <td className="px-4 py-2 text-right">{isInstagram ? item.views : '-'}</td>
-                  <td className="px-4 py-2 text-right">{engagement}</td>
-                  <td className="px-4 py-2 text-center">
+                <TableRow key={item.id}>
+                  <TableCell>{index + 1}</TableCell>
+                  <TableCell>{item.judul}</TableCell>
+                  <TableCell>{item.tanggal}</TableCell>
+                  <TableCell>{item.jenis}</TableCell>
+                  <TableCell className="text-right">{isInstagram ? item.likes : '-'}</TableCell>
+                  <TableCell className="text-right">{isInstagram ? item.views : '-'}</TableCell>
+                  <TableCell className="text-right">{engagement}</TableCell>
+                  <TableCell className="text-center">
                     <a href={item.link} className="text-blue-600 underline">
                       Lihat
                     </a>
-                  </td>
-                </tr>
+                  </TableCell>
+                </TableRow>
               )
             })}
-          </tbody>
-        </table>
+          </TableBody>
+        </Table>
       </div>
-
-      {/* Modal Form */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white p-6 rounded-xl shadow-lg w-full max-w-2xl max-h-[90vh] overflow-y-auto">
-            <h2 className="text-xl font-semibold mb-4">Tambah Publikasi</h2>
-            <form onSubmit={handleSubmit}>
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Judul</label>
-                  <input
-                    type="text"
-                    name="judul"
-                    value={formData.judul}
-                    onChange={handleChange}
-                    required
-                    className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Tanggal</label>
-                  <input
-                    type="date"
-                    name="tanggal"
-                    value={formData.tanggal}
-                    onChange={handleChange}
-                    required
-                    className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Jenis Media</label>
-                  <select
-                    name="jenis"
-                    value={formData.jenis}
-                    onChange={handleChange}
-                    className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
-                  >
-                    {jenisMediaOptions.map((option) => (
-                      <option key={option} value={option}>
-                        {option}
-                      </option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="md:col-span-2">
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Link</label>
-                  <input
-                    type="url"
-                    name="link"
-                    value={formData.link}
-                    onChange={handleChange}
-                    placeholder="https://example.com"    
-                    className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
-                  />
-                </div>
-
-                {formData.jenis === "Instagram" && (
-                  <>
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Likes</label>
-                      <input
-                        type="number"
-                        name="likes"
-                        value={formData.likes}
-                        onChange={handleChange}
-                        className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">Views</label>
-                      <input
-                        type="number"
-                        name="views"
-                        value={formData.views}
-                        onChange={handleChange}
-                        className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
-                      />
-                    </div>
-                  </>
-                )}
-              </div>
-
-              <div className="flex justify-end gap-3 mt-6">
-                <button
-                  type="button"
-                  onClick={() => setShowModal(false)}
-                  className="px-4 py-2 border rounded hover:bg-gray-100"
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-                >
-                  Simpan
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
     </div>
   )
 }

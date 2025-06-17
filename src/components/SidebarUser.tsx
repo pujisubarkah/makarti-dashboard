@@ -1,6 +1,7 @@
-'use client'
+// components/SidebarUser.tsx
+"use client"
 
-import { usePathname } from 'next/navigation'
+import Link from "next/link"
 import {
   LayoutDashboard,
   Newspaper,
@@ -68,19 +69,20 @@ const menuItems = [
 ]
 
 export function SidebarUser() {
-
-
   return (
     <aside className="w-64 bg-white border-r h-screen p-4 sticky top-0 overflow-y-auto shadow-md">
       <h1 className="text-xl font-bold mb-6 text-blue-700">🌟 MAKARTI</h1>
-      {menuItems.map((section) => (
-        <div key={section.label} className="mb-4">
-          <div className="flex items-center text-sm font-semibold text-gray-600 mb-2">
-            <section.icon className="mr-2 w-4 h-4" />
-            {section.label}
-          </div>
-        </div>
-      ))}
+      {menuItems.map((item) => {
+        const Icon = item.icon
+        return (
+          <Link key={item.href} href={item.href} className="block">
+            <div className="flex items-center text-sm font-semibold text-gray-600 mb-2 hover:text-blue-600 transition-colors">
+              <Icon className="mr-2 w-4 h-4" />
+              <span>{item.label}</span>
+            </div>
+          </Link>
+        )
+      })}
     </aside>
   )
 }

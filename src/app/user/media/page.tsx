@@ -117,42 +117,45 @@ export default function PublikasiPage() {
           <DialogTrigger asChild>
             <Button className="bg-blue-600 hover:bg-blue-700">+ Tambah Publikasi</Button>
           </DialogTrigger>
-        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+       <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
   <DialogHeader>
-    <DialogTitle>Tambah Publikasi</DialogTitle>
+    <DialogTitle className="text-blue-700">Tambah Publikasi</DialogTitle>
   </DialogHeader>
   <form onSubmit={handleSubmit} className="space-y-4">
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">Judul</label>
+    {/* Judul */}
+    <div className="space-y-1">
+      <label className="block text-sm font-medium text-blue-600">Judul</label>
       <input
         type="text"
         name="judul"
         value={formData.judul}
         onChange={handleChange}
         required
-        className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+        className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
     </div>
 
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">Tanggal</label>
+    {/* Tanggal */}
+    <div className="space-y-1">
+      <label className="block text-sm font-medium text-blue-600">Tanggal</label>
       <input
         type="date"
         name="tanggal"
         value={formData.tanggal}
         onChange={handleChange}
         required
-        className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+        className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
     </div>
 
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">Jenis Media</label>
+    {/* Jenis Media */}
+    <div className="space-y-1">
+      <label className="block text-sm font-medium text-blue-600">Jenis Media</label>
       <select
         name="jenis"
         value={formData.jenis}
         onChange={handleChange}
-        className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+        className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
       >
         {jenisMediaOptions.map((option) => (
           <option key={option} value={option}>
@@ -162,49 +165,64 @@ export default function PublikasiPage() {
       </select>
     </div>
 
-    <div className="space-y-2">
-      <label className="block text-sm font-medium text-gray-700">Link</label>
+    {/* Link */}
+    <div className="space-y-1">
+      <label className="block text-sm font-medium text-blue-600">Link</label>
       <input
         type="url"
         name="link"
         value={formData.link}
         onChange={handleChange}
         placeholder="https://example.com" 
-        className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+        className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
       />
     </div>
 
+    {/* Conditional Instagram Fields */}
     {formData.jenis === "Instagram" && (
       <>
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">Likes</label>
+        {/* Likes */}
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-blue-600">Likes</label>
           <input
             type="number"
             name="likes"
             value={formData.likes}
             onChange={handleChange}
-            className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
 
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-gray-700">Views</label>
+        {/* Views */}
+        <div className="space-y-1">
+          <label className="block text-sm font-medium text-blue-600">Views</label>
           <input
             type="number"
             name="views"
             value={formData.views}
             onChange={handleChange}
-            className="w-full border px-3 py-2 rounded focus:ring-2 focus:ring-blue-500"
+            className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
         </div>
       </>
     )}
 
+    {/* Tombol Simpan & Batal */}
     <div className="flex justify-end gap-3 pt-2">
-      <Button variant="outline" onClick={() => setShowModal(false)} type="button">
+      <Button
+        variant="outline"
+        onClick={() => setShowModal(false)}
+        type="button"
+        className="text-gray-700 border-gray-300 hover:bg-gray-100"
+      >
         Batal
       </Button>
-      <Button type="submit">Simpan</Button>
+      <Button
+        type="submit"
+        className="bg-blue-600 hover:bg-blue-700 text-white"
+      >
+        Simpan
+      </Button>
     </div>
   </form>
 </DialogContent>

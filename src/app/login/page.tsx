@@ -22,28 +22,25 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative min-h-screen w-full">
-      {/* Gambar Background */}
-      <Image
-        src="/bigger.jpg"
-        alt="Background"
-        fill
-        className="object-cover"
-        priority
-      />
+    <div className="flex min-h-screen bg-gray-100">
+      {/* Gambar kiri */}
+      <div className="hidden md:block w-1/2 relative">
+        <Image
+          src="/bigger.jpg"
+          alt="Login Illustration"
+          layout="fill"
+          objectFit="cover"
+          priority
+        />
+      </div>
 
-      {/* Overlay gelap */}
-      <div className="absolute inset-0 bg-black bg-opacity-40" />
-
-      {/* Form login agak ke kanan */}
-      <div className="absolute inset-0 flex items-center justify-end pr-16">
-        <div className="bg-black bg-opacity-60 backdrop-blur-md p-8 rounded-xl shadow-xl w-full max-w-md z-10 text-white">
-          <h1 className="text-2xl font-bold text-center text-white mb-6">Login Makarti</h1>
+      {/* Form kanan */}
+      <div className="w-full md:w-1/2 flex items-center justify-center p-8">
+        <div className="bg-white p-8 rounded-lg shadow-md w-full max-w-md">
+          <h1 className="text-2xl font-bold text-center text-blue-600 mb-6">Login Makarti</h1>
 
           {error && (
-            <div className="bg-red-500 bg-opacity-80 text-white px-4 py-2 rounded mb-4 text-sm">
-              {error}
-            </div>
+            <div className="bg-red-100 text-red-700 px-4 py-2 rounded mb-4 text-sm">{error}</div>
           )}
 
           <form onSubmit={handleLogin} className="space-y-4">
@@ -51,27 +48,25 @@ export default function LoginPage() {
               <label className="block text-sm font-medium mb-1">Username</label>
               <input
                 type="text"
-                className="w-full border border-gray-500 rounded px-3 py-2 bg-transparent text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded px-3 py-2"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
-                placeholder="Masukkan username"
               />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Password</label>
               <input
                 type="password"
-                className="w-full border border-gray-500 rounded px-3 py-2 bg-transparent text-white placeholder-gray-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+                className="w-full border border-gray-300 rounded px-3 py-2"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
-                placeholder="Masukkan password"
               />
             </div>
             <button
               type="submit"
-              className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700 transition-all"
+              className="w-full bg-blue-600 text-white py-2 rounded hover:bg-blue-700"
             >
               Login
             </button>

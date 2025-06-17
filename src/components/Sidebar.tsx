@@ -5,50 +5,63 @@ import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
 import {
   Lightbulb,
+  LayoutDashboard,
   Megaphone,
   Users,
   BookOpenCheck,
-  LayoutDashboard,
+  PieChart
 } from "lucide-react"
 
 const menuItems = [
   {
+    title: "Dashboard",
+    icon: LayoutDashboard,
+    children: [
+      { title: "Ringkasan MAKARTI", href: "/dashboard" },
+    ],
+  },
+  {
     title: "Inovasi",
     icon: Lightbulb,
     children: [
-      { title: "Daftar Ide Inovasi", href: "/inovasi" },
-      { title: "Progres Implementasi", href: "/inovasi/progres" },
-      { title: "Uji Coba & Dampak", href: "/inovasi/dampak" },
+      { title: "Kinerja Inovasi", href: "/inovasi/kinerja" },
+      { title: "SKP Transformasional", href: "/inovasi/skp" },
+      { title: "Jumlah Produk", href: "/inovasi/produk" },
     ],
   },
   {
     title: "Komunikasi & Branding",
     icon: Megaphone,
     children: [
-      { title: "Strategi Komunikasi", href: "/komunikasi/strategi" },
-      { title: "Kegiatan Branding", href: "/komunikasi/branding" },
-      { title: "Publikasi & Media", href: "/komunikasi/media" },
+      { title: "Postingan Media", href: "/komunikasi/media" },
+      { title: "Jumlah Sosialisasi", href: "/komunikasi/sosialisasi" },
     ],
   },
   {
     title: "Networking",
     icon: Users,
     children: [
-      { title: "Kolaborasi Antar Unit", href: "/networking/internal" },
-      { title: "Keterlibatan Eksternal", href: "/networking/eksternal" },
-      { title: "Forum & Event", href: "/networking/forum" },
+      { title: "Instansi yang Dikunjungi", href: "/networking/kunjungan" },
+      { title: "Kegiatan Koordinasi", href: "/networking/koordinasi" },
     ],
   },
   {
     title: "Learning",
     icon: BookOpenCheck,
     children: [
-      { title: "Pelatihan Pegawai", href: "/learning/pelatihan" },
-      { title: "Pembelajaran Organisasi", href: "/learning/organisasi" },
-      { title: "Umpan Balik & Refleksi", href: "/learning/feedback" },
+      { title: "Jumlah Pelatihan", href: "/learning/pelatihan" },
+      { title: "Jumlah Peserta", href: "/learning/peserta" },
+    ],
+  },
+  {
+    title: "Serapan Anggaran",
+    icon: PieChart,
+    children: [
+      { title: "Grafik Serapan", href: "/serapan" },
     ],
   },
 ]
+
 
 export function Sidebar() {
   const pathname = usePathname()

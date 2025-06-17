@@ -1,8 +1,9 @@
 import './globals.css'
 import { Poppins } from 'next/font/google'
 import { Toaster } from 'sonner'
-import { Sidebar } from '@/components/Sidebar' // pastikan path ini sesuai
-import Header from '@/components/header' // import header
+import { Sidebar } from '@/components/Sidebar'
+import Header from '@/components/header'
+import Footer from '@/components/footer'
 
 const poppins = Poppins({
   subsets: ['latin'],
@@ -20,9 +21,10 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
     <html lang="en" className={poppins.variable}>
       <body className="flex min-h-screen bg-gray-50 text-gray-900">
         <Sidebar />
-        <div className="flex flex-col flex-1 overflow-hidden">
+        <div className="flex flex-col flex-1">
           <Header />
           <main className="flex-1 p-6 overflow-y-auto">{children}</main>
+          <Footer />
         </div>
         <Toaster richColors position="top-center" />
       </body>

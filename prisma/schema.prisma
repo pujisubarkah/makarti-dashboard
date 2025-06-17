@@ -13,3 +13,47 @@ datasource db {
   provider = "postgresql"
   url      = env("DATABASE_URL")
 }
+
+model Publikasi {
+  id        Int      @id @default(autoincrement())
+  judul     String
+  tanggal   DateTime
+  jenis     String   // e.g., Media Online, Instagram, dll
+  unit      String
+  link      String
+  likes     Int?     // opsional
+  views     Int?     // opsional
+  createdAt DateTime @default(now())
+}
+
+model Sosialisasi {
+  id        Int      @id @default(autoincrement())
+  nama      String
+  tanggal   DateTime
+  jenis     String   // Webinar, Tatap Muka, Live IG, FGD
+  platform  String
+  unit      String
+  peserta   Int
+  createdAt DateTime @default(now())
+}
+
+model Networking {
+  id          Int      @id @default(autoincrement())
+  instansi    String
+  jenis       String   // Kunjungan, Kerjasama, Koordinasi
+  tanggal     DateTime
+  status      String   // Selesai, MoU Ditandatangani, Menunggu Tindak Lanjut
+  unit        String
+  createdAt   DateTime @default(now())
+}
+
+model Koordinasi {
+  id           Int      @id @default(autoincrement())
+  tanggal      DateTime
+  instansi     String
+  jenisInstansi String  // Pusat / Daerah / Akademisi
+  topik        String
+  catatan      String?
+  unit         String   // Unit kerja penginput
+  createdAt    DateTime @default(now())
+}

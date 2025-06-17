@@ -1,8 +1,7 @@
 // app/user/koordinasi/tambah/page.tsx
 "use client"
 
-import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
+import { useState } from "react"
 import {
   Dialog,
   DialogContent,
@@ -30,13 +29,44 @@ interface KoordinasiItem {
   jenisInstansi: string
   topik: string
   catatan: string
-  unit: string | null
 }
 
 export default function TambahKoordinasiPage() {
-  const router = useRouter()
+  // Dummy initial data
+  const initialData: KoordinasiItem[] = [
+    {
+      id: 1,
+      tanggal: "2025-05-15",
+      instansi: "Kementerian PANRB",
+      jenisInstansi: "Pusat",
+      topik: "Koordinasi Indikator SPBE",
+      catatan: "Disepakati timeline pelaporan"
+    },
+    {
+      id: 2,
+      tanggal: "2025-05-18",
+      instansi: "Pemprov DKI Jakarta",
+      jenisInstansi: "Daerah",
+      topik: "Sinkronisasi RB",
+      catatan: "Menunggu dokumen pendukung"
+    },
+    {
+      id: 3,
+      tanggal: "2025-05-20",
+      instansi: "Universitas Indonesia",
+      jenisInstansi: "Akademisi",
+      topik: "Kerjasama Riset",
+      catatan: "MoU dalam proses penyusunan"
+    }
+  ]
+
+  // Load data from localStorage if available
+  const [data, setData] = useState<KoordinasiItem[]>(() => {
+    const saved = localStorage.getItem("koordinasiData")
+    return saved ? JSON.parse(saved) : initialData
+  })
+
   const [showModal, setShowModal] = useState(false)
-  const [data, setData] = useState<KoordinasiItem[]>([])
 
   const [formData, setFormData] = useState({
     tanggal: "",
@@ -46,17 +76,7 @@ export default function TambahKoordinasiPage() {
     catatan: "",
   })
 
-  const userUnit = typeof window !== 'undefined' ? localStorage.getItem("userUnit") : null
-
   const jenisOptions = ["Pusat", "Daerah", "Akademisi"]
-
-  // Load data from localStorage on component mount
-  useEffect(() => {
-    const savedData = localStorage.getItem("koordinasiData")
-    if (savedData) {
-      setData(JSON.parse(savedData))
-    }
-  }, [])
 
   const handleChange = (
     e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
@@ -71,22 +91,15 @@ export default function TambahKoordinasiPage() {
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
-    if (!userUnit) {
-      alert("Tidak dapat menentukan unit kerja")
-      return
-    }
-
     const newItem = {
       id: Date.now(),
-      ...formData,
-      unit: userUnit,
+      ...formData
     }
 
     const updatedData = [...data, newItem]
     setData(updatedData)
     localStorage.setItem("koordinasiData", JSON.stringify(updatedData))
 
-    // Reset form and close modal
     setFormData({
       tanggal: "",
       instansi: "",
@@ -100,50 +113,43 @@ export default function TambahKoordinasiPage() {
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-blue-700">Data Koordinasi</h1>
+        <h1 className="text-2xl font-bold text-blue-700">Koordinasi</h1>
         <Dialog open={showModal} onOpenChange={setShowModal}>
           <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">+ Tambah Data</Button>
+            <Button className="bg-blue-600 hover:bg-blue-700">+ Tambah Kegiatan</Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto p-6 bg-white rounded-xl shadow-lg">
+          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-blue-700 text-xl font-semibold">
-                Tambah Kegiatan Koordinasi
-              </DialogTitle>
+              <DialogTitle className="text-blue-700">Tambah Kegiatan Koordinasi</DialogTitle>
             </DialogHeader>
-
-            <form onSubmit={handleSubmit} className="space-y-5 mt-2">
+            <form onSubmit={handleSubmit} className="space-y-4">
               {/* Tanggal */}
               <div className="space-y-1">
-                <Label htmlFor="tanggal" className="text-sm font-medium text-gray-700">Tanggal</Label>
+                <Label>Tanggal</Label>
                 <Input
-                  id="tanggal"
                   type="date"
                   name="tanggal"
                   value={formData.tanggal}
                   onChange={handleChange}
                   required
-                  className="border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
                 />
               </div>
 
               {/* Instansi */}
               <div className="space-y-1">
-                <Label htmlFor="instansi" className="text-sm font-medium text-gray-700">Instansi / Pihak Terkait</Label>
+                <Label>Instansi / Pihak Terkait</Label>
                 <Input
-                  id="instansi"
                   name="instansi"
                   value={formData.instansi}
                   onChange={handleChange}
                   required
-                  placeholder="Contoh: Universitas Indonesia"
-                  className="border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                  placeholder="Contoh: Kementerian PANRB"
                 />
               </div>
 
               {/* Jenis Instansi */}
               <div className="space-y-1">
-                <Label htmlFor="jenisInstansi" className="text-sm font-medium text-gray-700">Jenis Instansi</Label>
+                <Label>Jenis Instansi</Label>
                 <Select
                   name="jenisInstansi"
                   value={formData.jenisInstansi}
@@ -151,10 +157,10 @@ export default function TambahKoordinasiPage() {
                     setFormData((prev) => ({ ...prev, jenisInstansi: value }))
                   }
                 >
-                  <SelectTrigger id="jenisInstansi" className="border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200">
+                  <SelectTrigger>
                     <SelectValue placeholder="Pilih jenis instansi" />
                   </SelectTrigger>
-                  <SelectContent className="bg-white border border-gray-200 rounded-md shadow-lg">
+                  <SelectContent>
                     {jenisOptions.map((option) => (
                       <SelectItem key={option} value={option}>
                         {option}
@@ -164,50 +170,45 @@ export default function TambahKoordinasiPage() {
                 </Select>
               </div>
 
-              {/* Topik Koordinasi */}
+              {/* Topik */}
               <div className="space-y-1">
-                <Label htmlFor="topik" className="text-sm font-medium text-gray-700">Topik Koordinasi</Label>
+                <Label>Topik Koordinasi</Label>
                 <Input
-                  id="topik"
                   name="topik"
                   value={formData.topik}
                   onChange={handleChange}
                   required
-                  placeholder="Contoh: Sinkronisasi indikator reformasi birokrasi"
-                  className="border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                  placeholder="Contoh: Sinkronisasi indikator SPBE"
                 />
               </div>
 
               {/* Catatan */}
               <div className="space-y-1">
-                <Label htmlFor="catatan" className="text-sm font-medium text-gray-700">Catatan</Label>
+                <Label>Catatan</Label>
                 <Input
-                  id="catatan"
                   name="catatan"
                   value={formData.catatan}
                   onChange={handleChange}
-                  placeholder="Contoh: Disepakati penyelarasan indikator RKT"
-                  className="border-gray-300 focus:border-blue-500 focus:ring focus:ring-blue-200"
+                  placeholder="Contoh: Disepakati timeline pelaporan"
                 />
               </div>
 
-              {/* Tombol Submit & Batal */}
-    <div className="flex justify-end gap-3 mt-6">
-      <Button
-        variant="outline"
-        onClick={() => setShowModal(false)}
-        type="button"
-        className="text-gray-700 border-gray-300 hover:bg-gray-100"
-      >
-        Batal
-      </Button>
-      <Button type="submit" className="bg-blue-600 hover:bg-blue-700 text-white">
-        Simpan
-      </Button>
-    </div>
+              {/* Tombol Simpan & Batal */}
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => setShowModal(false)}
+                  type="button"
+                >
+                  Batal
+                </Button>
+                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+                  Simpan
+                </Button>
+              </div>
             </form>
-  </DialogContent>
-</Dialog>
+          </DialogContent>
+        </Dialog>
       </div>
 
       {/* Tabel Daftar Kegiatan */}

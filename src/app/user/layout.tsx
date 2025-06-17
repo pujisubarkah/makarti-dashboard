@@ -1,9 +1,12 @@
-import SidebarUser from '@/components/SidebarUser'
+// app/admin/layout.tsx
+"use client"
+
+import { SidebarUser } from '@/components/SidebarUser'
 import Header from '@/components/header'
 import Footer from '@/components/footer'
 import { Toaster } from 'sonner'
 
-export default function UserLayout({ children }: { children: React.ReactNode }) {
+export default function AdminLayout({ children }: { children: React.ReactNode }) {
   return (
     <div className="flex min-h-screen bg-gray-50 text-gray-900">
       <SidebarUser />

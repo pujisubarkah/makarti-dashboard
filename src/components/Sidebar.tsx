@@ -24,40 +24,40 @@ const menuItems = [
     title: "Inovasi",
     icon: Lightbulb,
     children: [
-      { title: "Kinerja Inovasi", href: "/inovasi/kinerja" },
-      { title: "SKP Transformasional", href: "/inovasi/skp" },
-      { title: "Jumlah Produk", href: "/inovasi/produk" },
+      { title: "Kinerja Inovasi", href: "/admin/inovasi/kinerja" },
+      { title: "SKP Transformasional", href: "/admin/inovasi/skp" },
+      { title: "Jumlah Produk", href: "/admin/inovasi/produk" },
     ],
   },
   {
     title: "Komunikasi & Branding",
     icon: Megaphone,
     children: [
-      { title: "Postingan Media", href: "/komunikasi/media" },
-      { title: "Jumlah Sosialisasi", href: "/komunikasi/sosialisasi" },
+      { title: "Postingan Media", href: "/admin/komunikasi/media" },
+      { title: "Jumlah Sosialisasi", href: "/admin/komunikasi/sosialisasi" },
     ],
   },
   {
     title: "Networking",
     icon: Users,
     children: [
-      { title: "Instansi yang Dikunjungi", href: "/networking/kunjungan" },
-      { title: "Kegiatan Koordinasi", href: "/networking/koordinasi" },
+      { title: "Instansi yang Dikunjungi", href: "/admin/networking/kunjungan" },
+      { title: "Kegiatan Koordinasi", href: "/admin/networking/koordinasi" },
     ],
   },
   {
     title: "Learning",
     icon: BookOpenCheck,
     children: [
-      { title: "Jumlah Pelatihan", href: "/learning/pelatihan" },
-      { title: "Jumlah Peserta", href: "/learning/peserta" },
+      { title: "Jumlah Pelatihan", href: "/admin/learning/pelatihan" },
+      { title: "Jumlah Peserta", href: "/admin/learning/peserta" },
     ],
   },
   {
     title: "Serapan Anggaran",
     icon: PieChart,
     children: [
-      { title: "Grafik Serapan", href: "/serapan" },
+      { title: "Grafik Serapan", href: "/admin/serapan" },
     ],
   },
 ]

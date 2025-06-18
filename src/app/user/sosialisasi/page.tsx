@@ -1,8 +1,7 @@
 // app/user/sosialisasi/page.tsx
 "use client"
 
-import { useState } from "react"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
 import {
   Dialog,
   DialogContent,
@@ -33,7 +32,7 @@ interface SosialisasiItem {
 }
 
 export default function SosialisasiPage() {
-  const router = useRouter()
+  // const router = useRouter()
 
   // Dummy initial data
   const initialData: SosialisasiItem[] = [
@@ -55,11 +54,8 @@ export default function SosialisasiPage() {
     },
   ]
 
-  // Ambil data dari localStorage jika tersedia
-  const [data, setData] = useState<SosialisasiItem[]>(() => {
-    const saved = localStorage.getItem("sosialisasiData")
-    return saved ? JSON.parse(saved) : initialData
-  })
+  // State for data, initialized with initialData
+  const [data, setData] = useState<SosialisasiItem[]>(initialData)
 
   const [showModal, setShowModal] = useState(false)
 
@@ -71,19 +67,20 @@ export default function SosialisasiPage() {
     peserta: 0,
   })
 
-  const userUnit = typeof window !== 'undefined' ? localStorage.getItem("userUnit") : null
+  const [userUnit, setUserUnit] = useState<string | null>(null)
+
+  // Load data and userUnit from localStorage on client side
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("sosialisasiData")
+      if (saved) {
+        setData(JSON.parse(saved))
+      }
+      setUserUnit(localStorage.getItem("userUnit"))
+    }
+  }, [])
 
   const jenisOptions = ["Webinar", "Tatap Muka", "Live IG", "FGD"]
-
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
-  ) => {
-    const { name, value } = e.target
-    setFormData((prev) => ({
-      ...prev,
-      [name]: name === "peserta" ? parseInt(value) || 0 : value,
-    }))
-  }
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
@@ -101,7 +98,9 @@ export default function SosialisasiPage() {
 
     const updatedData = [...data, newItem]
     setData(updatedData)
-    localStorage.setItem("sosialisasiData", JSON.stringify(updatedData))
+    if (typeof window !== "undefined") {
+      localStorage.setItem("sosialisasiData", JSON.stringify(updatedData))
+    }
 
     setFormData({
       nama: "",
@@ -113,135 +112,143 @@ export default function SosialisasiPage() {
     setShowModal(false)
   }
 
-  return (
-    <div className="p-6">
-      <div className="flex justify-between items-center mb-6">
-        <h1 className="text-2xl font-bold text-blue-700">Sosialisasi</h1>
-        <Dialog open={showModal} onOpenChange={setShowModal}>
-          <DialogTrigger asChild>
-            <Button className="bg-blue-600 hover:bg-blue-700">+ Tambah Kegiatan</Button>
-          </DialogTrigger>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
-            <DialogHeader>
-              <DialogTitle className="text-blue-700">Tambah Kegiatan Sosialisasi</DialogTitle>
-            </DialogHeader>
-            <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Nama */}
-              <div className="space-y-1">
-                <Label>Nama Kegiatan</Label>
-                <Input
-                  name="nama"
-                  value={formData.nama}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
+// Handle input changes for form fields
+const handleChange = (
+  e: React.ChangeEvent<HTMLInputElement>
+) => {
+  const { name, value, type } = e.target;
+  setFormData((prev) => ({
+    ...prev,
+    [name]: type === "number" ? Number(value) : value,
+  }));
+};
 
-              {/* Tanggal */}
-              <div className="space-y-1">
-                <Label>Tanggal</Label>
-                <Input
-                  type="date"
-                  name="tanggal"
-                  value={formData.tanggal}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
+return (
+  <div className="p-6">
+    <Dialog open={showModal} onOpenChange={setShowModal}>
+      <DialogTrigger asChild>
+        <Button className="bg-blue-600 hover:bg-blue-700">+ Tambah Kegiatan</Button>
+      </DialogTrigger>
+      <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="text-blue-700">Tambah Kegiatan Sosialisasi</DialogTitle>
+        </DialogHeader>
+        <form onSubmit={handleSubmit} className="space-y-4">
+          {/* Nama */}
+          <div className="space-y-1">
+            <Label>Nama Kegiatan</Label>
+            <Input
+              name="nama"
+              value={formData.nama}
+              onChange={handleChange}
+              required
+            />
+          </div>
 
-              {/* Jenis */}
-              <div className="space-y-1">
-                <Label>Jenis Kegiatan</Label>
-                <Select
-                  name="jenis"
-                  value={formData.jenis}
-                  onValueChange={(value) =>
-                    setFormData((prev) => ({ ...prev, jenis: value }))
-                  }
-                >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih jenis kegiatan" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {jenisOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
+          {/* Tanggal */}
+          <div className="space-y-1">
+            <Label>Tanggal</Label>
+            <Input
+              type="date"
+              name="tanggal"
+              value={formData.tanggal}
+              onChange={handleChange}
+              required
+            />
+          </div>
 
-              {/* Platform */}
-              <div className="space-y-1">
-                <Label>Platform</Label>
-                <Input
-                  name="platform"
-                  value={formData.platform}
-                  onChange={handleChange}
-                  required
-                  placeholder="Zoom / Instagram / Offline"
-                />
-              </div>
+          {/* Jenis */}
+          <div className="space-y-1">
+            <Label>Jenis Kegiatan</Label>
+            <Select
+              name="jenis"
+              value={formData.jenis}
+              onValueChange={(value) =>
+                setFormData((prev) => ({ ...prev, jenis: value }))
+              }
+            >
+              <SelectTrigger>
+                <SelectValue placeholder="Pilih jenis kegiatan" />
+              </SelectTrigger>
+              <SelectContent>
+                {jenisOptions.map((option) => (
+                  <SelectItem key={option} value={option}>
+                    {option}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
 
-              {/* Peserta */}
-              <div className="space-y-1">
-                <Label>Jumlah Peserta</Label>
-                <Input
-                  type="number"
-                  name="peserta"
-                  value={formData.peserta}
-                  onChange={handleChange}
-                  min={0}
-                  required
-                />
-              </div>
+          {/* Platform */}
+          <div className="space-y-1">
+            <Label>Platform</Label>
+            <Input
+              name="platform"
+              value={formData.platform}
+              onChange={handleChange}
+              required
+              placeholder="Zoom / Instagram / Offline"
+            />
+          </div>
 
-              {/* Tombol Simpan & Batal */}
-              <div className="flex justify-end gap-3 pt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowModal(false)}
-                  type="button"
-                >
-                  Batal
-                </Button>
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                  Simpan
-                </Button>
-              </div>
-            </form>
-          </DialogContent>
-        </Dialog>
-      </div>
+          {/* Peserta */}
+          <div className="space-y-1">
+            <Label>Jumlah Peserta</Label>
+            <Input
+              type="number"
+              name="peserta"
+              value={formData.peserta}
+              onChange={handleChange}
+              min={0}
+              required
+            />
+          </div>
 
-      {/* Tabel Daftar Kegiatan */}
-      <div className="overflow-x-auto mb-8">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>No</TableHead>
-              <TableHead>Nama Kegiatan</TableHead>
-              <TableHead>Tanggal</TableHead>
-              <TableHead>Jenis</TableHead>
-              <TableHead>Platform</TableHead>
-              <TableHead className="text-right">Peserta</TableHead>
+          {/* Tombol Simpan & Batal */}
+          <div className="flex justify-end gap-3 pt-2">
+            <Button
+              variant="outline"
+              onClick={() => setShowModal(false)}
+              type="button"
+            >
+              Batal
+            </Button>
+            <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
+              Simpan
+            </Button>
+          </div>
+        </form>
+      </DialogContent>
+    </Dialog>
+
+    {/* Tabel Daftar Kegiatan */}
+    <div className="overflow-x-auto mb-8">
+      <Table>
+        <TableHeader>
+          <TableRow>
+            <TableHead>No</TableHead>
+            <TableHead>Nama Kegiatan</TableHead>
+            <TableHead>Tanggal</TableHead>
+            <TableHead>Jenis</TableHead>
+            <TableHead>Platform</TableHead>
+            <TableHead className="text-right">Peserta</TableHead>
+          </TableRow>
+        </TableHeader>
+        <TableBody>
+          {data.map((item, index) => (
+            <TableRow key={item.id}>
+              <TableCell>{index + 1}</TableCell>
+              <TableCell>{item.nama}</TableCell>
+              <TableCell>{item.tanggal}</TableCell>
+              <TableCell>{item.jenis}</TableCell>
+              <TableCell>{item.platform}</TableCell>
+              <TableCell className="text-right">{item.peserta}</TableCell>
             </TableRow>
-          </TableHeader>
-          <TableBody>
-            {data.map((item, index) => (
-              <TableRow key={item.id}>
-                <TableCell>{index + 1}</TableCell>
-                <TableCell>{item.nama}</TableCell>
-                <TableCell>{item.tanggal}</TableCell>
-                <TableCell>{item.jenis}</TableCell>
-                <TableCell>{item.platform}</TableCell>
-                <TableCell className="text-right">{item.peserta}</TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
+          ))}
+        </TableBody>
+      </Table>
     </div>
-  )
+  </div>
+)
 }

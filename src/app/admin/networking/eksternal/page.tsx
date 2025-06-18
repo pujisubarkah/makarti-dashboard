@@ -54,7 +54,7 @@ const dataMitra: Kemitraan[] = [
 ]
 
 export default function NetworkingInternalPage() {
-  const [data, setData] = useState(dataMitra)
+  const [data] = useState(dataMitra)
   const [selected, setSelected] = useState<Kemitraan | null>(null)
   const [open, setOpen] = useState(false)
 

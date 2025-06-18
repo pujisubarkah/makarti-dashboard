@@ -5,11 +5,10 @@ import { cn } from "@/lib/utils" // pastikan kamu punya util ini, atau ganti man
 
 interface ProgressProps extends React.HTMLAttributes<HTMLDivElement> {
   value?: number
-  max?: number
 }
 
 const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
-  ({ className, value, max = 100, ...props }, ref) => {
+  ({ className, value, ...props }, ref) => {
     return (
       <div
         ref={ref}
@@ -24,7 +23,6 @@ const Progress = React.forwardRef<HTMLDivElement, ProgressProps>(
     )
   }
 )
-
 Progress.displayName = "Progress"
 
 export { Progress }

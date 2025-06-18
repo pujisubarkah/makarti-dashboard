@@ -1,6 +1,6 @@
 "use client"
 
-import { Bell, UserCircle2 } from "lucide-react"
+import { Bell } from "lucide-react"
 import Image from "next/image"
 
 export default function Header() {

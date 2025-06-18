@@ -2,7 +2,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import {
   Dialog,
   DialogContent,
@@ -34,7 +33,6 @@ interface KoordinasiItem {
 }
 
 export default function TambahKoordinasiPage() {
-  const router = useRouter()
   const [showModal, setShowModal] = useState(false)
   const [data, setData] = useState<KoordinasiItem[]>([])
 

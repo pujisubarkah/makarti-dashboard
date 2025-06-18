@@ -1,7 +1,7 @@
 // app/user/koordinasi/tambah/page.tsx
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import {
   Dialog,
   DialogContent,
@@ -60,11 +60,18 @@ export default function TambahKoordinasiPage() {
     }
   ]
 
-  // Load data from localStorage if available
-  const [data, setData] = useState<KoordinasiItem[]>(() => {
-    const saved = localStorage.getItem("koordinasiData")
-    return saved ? JSON.parse(saved) : initialData
-  })
+  // Load data from localStorage if available (client-side only)
+  const [data, setData] = useState<KoordinasiItem[]>(initialData)
+
+  // Hydrate from localStorage on client
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("koordinasiData")
+      if (saved) {
+        setData(JSON.parse(saved))
+      }
+    }
+  }, [])
 
   const [showModal, setShowModal] = useState(false)
 

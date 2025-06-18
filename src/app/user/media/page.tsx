@@ -1,7 +1,7 @@
 // app/publikasi/page.tsx
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import {
@@ -48,13 +48,19 @@ export default function PublikasiPage() {
     },
   ]
 
-  // Ambil data publikasi dari localStorage jika tersedia
-  const [data, setData] = useState<PublikasiItem[]>(() => {
-    const saved = localStorage.getItem("publikasiData")
-    return saved ? JSON.parse(saved) : initialData
-  })
-
+  // State for publikasi data
+  const [data, setData] = useState<PublikasiItem[]>(initialData)
   const [showModal, setShowModal] = useState(false)
+
+  // Ambil data publikasi dari localStorage jika tersedia (client-side only)
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      const saved = localStorage.getItem("publikasiData")
+      if (saved) {
+        setData(JSON.parse(saved))
+      }
+    }
+  }, [])
 
   // Form State
   const [formData, setFormData] = useState({
@@ -65,8 +71,14 @@ export default function PublikasiPage() {
     likes: 0,
     views: 0,
   })
+  const [userUnit, setUserUnit] = useState<string | null>(null)
 
-  const userUnit = typeof window !== 'undefined' ? localStorage.getItem("userUnit") : null
+  React.useEffect(() => {
+    if (typeof window !== "undefined") {
+      setUserUnit(localStorage.getItem("userUnit"))
+    }
+  }, [])
+  //  const userUnit = typeof window !== 'undefined' ? localStorage.getItem("userUnit") : null
 
   const jenisMediaOptions = ["Media Online", "Instagram", "Media Massa", "Website"]
 

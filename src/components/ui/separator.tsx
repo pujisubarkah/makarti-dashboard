@@ -2,9 +2,7 @@
 import * as React from "react"
 import { cn } from "@/lib/utils" // pastikan kamu punya fungsi cn atau hapus kalau gak ada
 
-export interface SeparatorProps extends React.HTMLAttributes<HTMLDivElement> {}
-
-const Separator = React.forwardRef<HTMLDivElement, SeparatorProps>(
+const Separator = React.forwardRef<HTMLDivElement, React.HTMLAttributes<HTMLDivElement>>(
   ({ className, ...props }, ref) => (
     <div
       ref={ref}

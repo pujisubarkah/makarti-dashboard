@@ -17,7 +17,7 @@ const menuItems = [
     title: "Dashboard",
     icon: LayoutDashboard,
     children: [
-      { title: "Ringkasan MAKARTI", href: "/dashboard" },
+      { title: "Ringkasan MAKARTI", href: "/admin/dashboard" },
     ],
   },
   {

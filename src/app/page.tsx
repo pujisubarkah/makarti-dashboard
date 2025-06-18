@@ -3,39 +3,62 @@
 import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import Image from 'next/image'
+import { Eye, EyeOff } from 'lucide-react'
 
 export default function LoginPage() {
   const router = useRouter()
   const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
+  const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
 
-  const handleLogin = (e: React.FormEvent) => {
+  const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault()
-    if (username === 'admin' && password === 'admin') {
-      router.push('/admin/dashboard')
-    } else if (username === 'user' && password === 'user') {
-      router.push('/user/dashboard')
-    } else {
-      setError('Username atau password salah')
+    setError('')
+
+    try {
+      const res = await fetch('/api/login', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ username, password }),
+      })
+
+      const data = await res.json()
+
+      if (!res.ok) {
+        setError(data.message || 'Gagal login')
+        return
+      }
+
+      // ✅ Simpan ke localStorage
+      localStorage.setItem('username', data.user.username)
+      localStorage.setItem('role_id', data.user.role_id.toString())
+      localStorage.setItem('id', data.user.id || '')
+
+      // ✅ Redirect berdasarkan role
+      if (data.user.role_id === 1) {
+        router.push('/admin/dashboard')
+      } else {
+        router.push('/user/dashboard')
+      }
+
+    } catch (err) {
+      setError('Terjadi kesalahan server')
     }
   }
 
   return (
     <div className="relative min-h-screen w-full">
-      {/* Gambar Background */}
-        <Image
-          src="/bigger.jpg"
-          alt="Background"
-          fill
-          className="object-cover object-top"
-          priority
-        />
-
-        {/* Overlay gelap */}
+      <Image
+        src="/bigger.jpg"
+        alt="Background"
+        fill
+        className="object-cover object-top"
+        priority
+      />
       <div className="absolute inset-0 bg-black bg-opacity-40" />
-
-      {/* Form login di sebelah kiri - ukuran lebih kecil */}
       <div className="absolute inset-0 flex items-center justify-start pl-12">
         <div className="bg-black bg-opacity-60 backdrop-blur-md p-6 rounded-xl shadow-xl w-full max-w-sm z-10 text-white">
           <div className="text-center mb-5">
@@ -55,38 +78,43 @@ export default function LoginPage() {
               <label className="block text-xs font-medium mb-1 text-blue-100">Username</label>
               <input
                 type="text"
-                className="w-full border border-blue-300 border-opacity-30 rounded-lg px-3 py-2 bg-white bg-opacity-10 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all text-sm"
                 value={username}
                 onChange={(e) => setUsername(e.target.value)}
                 required
                 placeholder="Masukkan username"
+                className="w-full rounded-lg px-3 py-2 bg-white bg-opacity-10 text-white border border-blue-300 border-opacity-30 text-sm focus:ring-2 focus:ring-blue-400"
               />
             </div>
-            
-            <div>
+
+            <div className="relative">
               <label className="block text-xs font-medium mb-1 text-blue-100">Password</label>
               <input
-                type="password"
-                className="w-full border border-blue-300 border-opacity-30 rounded-lg px-3 py-2 bg-white bg-opacity-10 text-white placeholder-blue-200 focus:outline-none focus:ring-2 focus:ring-blue-400 focus:border-transparent transition-all text-sm"
+                type={showPassword ? 'text' : 'password'}
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 placeholder="Masukkan password"
+                className="w-full rounded-lg px-3 py-2 bg-white bg-opacity-10 text-white border border-blue-300 border-opacity-30 text-sm focus:ring-2 focus:ring-blue-400 pr-10"
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword(!showPassword)}
+                className="absolute right-3 top-9 text-white opacity-70 hover:opacity-100"
+              >
+                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+              </button>
             </div>
 
             <button
               type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-2.5 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] text-sm"
+              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-2.5 rounded-lg shadow-lg transition-all duration-300 transform hover:scale-[1.02] text-sm"
             >
-              Masuk 
+              Masuk
             </button>
           </form>
 
           <div className="mt-4 text-center">
-            <p className="text-blue-200 text-xs">
-              Demo: admin/admin atau user/user
-            </p>
+            <p className="text-blue-200 text-xs">Demo: admin/admin atau user/user</p>
           </div>
         </div>
       </div>

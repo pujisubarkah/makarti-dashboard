@@ -1,12 +1,5 @@
-// This is your Prisma schema file,
-// learn more about it in the docs: https://pris.ly/d/prisma-schema
-
-// Looking for ways to speed up your queries, or scale easily with your serverless or edge functions?
-// Try Prisma Accelerate: https://pris.ly/cli/accelerate-init
-// prisma/schema.prisma
-
 generator client {
-  provider = "prisma-client-js"
+  provider        = "prisma-client-js"
   previewFeatures = ["multiSchema"]
 }
 
@@ -16,100 +9,67 @@ datasource db {
   schemas  = ["makarti"]
 }
 
-model Publikasi {
-  id        Int      @id @default(autoincrement())
-  judul     String
-  tanggal   DateTime
-  jenis     String   // e.g., Media Online, Instagram, dll
-  unit      String
-  link      String
-  likes     Int?     // opsional
-  views     Int?     // opsional
-  createdAt DateTime @default(now())
-
-  @@schema("makarti")
-}
-
-model Sosialisasi {
-  id        Int      @id @default(autoincrement())
-  nama      String
-  tanggal   DateTime
-  jenis     String   // Webinar, Tatap Muka, Live IG, FGD
-  platform  String
-  unit      String
-  peserta   Int
-  createdAt DateTime @default(now())
-
-  @@schema("makarti")
-}
-
-model Networking {
-  id          Int      @id @default(autoincrement())
-  instansi    String
-  jenis       String   // Kunjungan, Kerjasama, Koordinasi
-  tanggal     DateTime
-  status      String   // Selesai, MoU Ditandatangani, Menunggu Tindak Lanjut
-  unit        String
-  createdAt   DateTime @default(now())
+model Inovasi {
+  id            Int      @id @default(autoincrement())
+  judul         String
+  pengusul      String
+  tahap         String
+  tanggal       DateTime
+  indikator     String
+  unit_kerja_id Int?
+  users         users?   @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("makarti")
 }
 
 model Koordinasi {
-  id           Int      @id @default(autoincrement())
-  tanggal      DateTime
-  instansi     String
-  jenisInstansi String  // Pusat / Daerah / Akademisi
-  topik        String
-  catatan      String?
-  unit         String   // Unit kerja penginput
-  createdAt    DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  tanggal       DateTime
+  instansi      String
+  jenisInstansi String
+  topik         String
+  catatan       String?
+  unit_kerja_id Int
+  createdAt     DateTime @default(now())
+  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("makarti")
+}
+
+model Networking {
+  id            Int      @id @default(autoincrement())
+  instansi      String
+  jenis         String
+  tanggal       DateTime
+  status        String
+  unit_kerja_id Int
+  createdAt     DateTime @default(now())
+  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("makarti")
 }
 
 model Pelatihan {
-  id        Int      @id @default(autoincrement())
-  nama      String
-  unit      String
-  judul     String
-  jam       Int
-  tanggal   DateTime
+  id            Int      @id @default(autoincrement())
+  nama          String
+  unit_kerja_id Int
+  judul         String
+  jam           Int
+  tanggal       DateTime
+  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("makarti")
 }
 
 model Penyelenggaraan {
-  id              Int     @id @default(autoincrement())
-  namaKegiatan    String
-  tanggal         DateTime
-  jenis           String
-  penyelenggara   String
-  jumlahPeserta   Int
-
-  @@schema("makarti")
-}
-
-model Inovasi {
-  id              Int     @id @default(autoincrement())
-  judul           String
-  pengusul        String
-  tahap           String
-  tanggal         DateTime
-  indikator       String
-
-  @@schema("makarti")
-}
-
-model SkpTransformasional {
-  id             Int      @id @default(autoincrement())
-  pegawai        String
-  unit           String
-  inovasi        String
-  target         String
-  status         String   // Contoh: Sudah Implementasi, On Progress, Dalam Rencana
-  dampak         String?
-  createdAt      DateTime @default(now())
+  id            Int      @id @default(autoincrement())
+  namaKegiatan  String
+  tanggal       DateTime
+  jenis         String
+  penyelenggara String
+  jumlahPeserta Int
+  unit_kerja_id Int?
+  users         users?   @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("makarti")
 }
@@ -117,12 +77,87 @@ model SkpTransformasional {
 model ProdukInovasi {
   id            Int      @id @default(autoincrement())
   nama          String
-  unit          String   // Contoh: Pusat A, Pusat B
-  jenis         String   // Contoh: Aplikasi Digital, SOP, Dashboard, dll
-  status        String   // Contoh: Aktif Digunakan, Uji Coba, Arsip
+  jenis         String
+  status        String
   tanggalRilis  DateTime
   keterangan    String?
+  unit_kerja_id Int?
+  users         users?   @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("makarti")
 }
 
+model Publikasi {
+  id            Int      @id @default(autoincrement())
+  judul         String
+  tanggal       DateTime
+  jenis         String
+  unit_kerja_id Int
+  link          String
+  likes         Int?
+  views         Int?
+  createdAt     DateTime @default(now())
+  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("makarti")
+}
+
+model SkpTransformasional {
+  id            Int      @id @default(autoincrement())
+  pegawai       String
+  unit_kerja_id Int
+  inovasi       String
+  target        String
+  status        String
+  dampak        String?
+  createdAt     DateTime @default(now())
+  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("makarti")
+}
+
+model Sosialisasi {
+  id            Int      @id @default(autoincrement())
+  nama          String
+  tanggal       DateTime
+  jenis         String
+  platform      String
+  unit_kerja_id Int
+  peserta       Int
+  createdAt     DateTime @default(now())
+  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("makarti")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model role_user {
+  id         Int      @id @default(autoincrement())
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  role_user  String?
+  users      users[]
+
+  @@schema("makarti")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model users {
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
+  unit_kerja          String?
+  username            String                @db.VarChar
+  password            String?               @db.VarChar
+  id                  Int                   @id @unique @default(autoincrement())
+  role_id             Int?
+  Inovasi             Inovasi[]
+  Koordinasi          Koordinasi[]
+  Networking          Networking[]
+  Pelatihan           Pelatihan[]
+  Penyelenggaraan     Penyelenggaraan[]
+  ProdukInovasi       ProdukInovasi[]
+  Publikasi           Publikasi[]
+  SkpTransformasional SkpTransformasional[]
+  Sosialisasi         Sosialisasi[]
+  role_user           role_user?            @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("makarti")
+}

@@ -40,7 +40,7 @@ export default function LoginPage() {
         <div className="bg-black bg-opacity-60 backdrop-blur-md p-6 rounded-xl shadow-xl w-full max-w-sm z-10 text-white">
           <div className="text-center mb-5">
             <h1 className="text-2xl font-bold text-white mb-1">Selamat Datang</h1>
-            <p className="text-blue-200 text-xs">Masuk ke Dashboard MAKARTI</p>
+            <p className="text-blue-200 text-x10">MAKARTI 5.0</p>
           </div>
 
           {error && (
@@ -79,7 +79,7 @@ export default function LoginPage() {
               type="submit"
               className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-2.5 rounded-lg shadow-lg hover:shadow-xl transition-all duration-300 transform hover:scale-[1.02] text-sm"
             >
-              Masuk Dashboard
+              Masuk 
             </button>
           </form>
 

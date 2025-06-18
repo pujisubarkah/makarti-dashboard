@@ -2,7 +2,6 @@
 "use client"
 
 import { useState, useEffect } from "react"
-import { useRouter } from "next/navigation"
 import {
   Dialog,
   DialogContent,
@@ -33,7 +32,6 @@ interface NetworkingItem {
 }
 
 export default function TambahNetworkingPage() {
-  const router = useRouter()
   const [showModal, setShowModal] = useState(false)
   const [data, setData] = useState<NetworkingItem[]>([])
 

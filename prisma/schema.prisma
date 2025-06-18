@@ -57,3 +57,51 @@ model Koordinasi {
   unit         String   // Unit kerja penginput
   createdAt    DateTime @default(now())
 }
+
+model Pelatihan {
+  id        Int      @id @default(autoincrement())
+  nama      String
+  unit      String
+  judul     String
+  jam       Int
+  tanggal   DateTime
+}
+
+model Penyelenggaraan {
+  id              Int     @id @default(autoincrement())
+  namaKegiatan    String
+  tanggal         DateTime
+  jenis           String
+  penyelenggara   String
+  jumlahPeserta   Int
+}
+
+model Inovasi {
+  id              Int     @id @default(autoincrement())
+  judul           String
+  pengusul        String
+  tahap           String
+  tanggal         DateTime
+  indikator       String
+}
+
+model SkpTransformasional {
+  id             Int      @id @default(autoincrement())
+  pegawai        String
+  unit           String
+  inovasi        String
+  target         String
+  status         String   // Contoh: Sudah Implementasi, On Progress, Dalam Rencana
+  dampak         String?
+  createdAt      DateTime @default(now())
+}
+
+model ProdukInovasi {
+  id            Int      @id @default(autoincrement())
+  nama          String
+  unit          String   // Contoh: Pusat A, Pusat B
+  jenis         String   // Contoh: Aplikasi Digital, SOP, Dashboard, dll
+  status        String   // Contoh: Aktif Digunakan, Uji Coba, Arsip
+  tanggalRilis  DateTime
+  keterangan    String?
+}

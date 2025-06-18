@@ -2,7 +2,6 @@
 "use client"
 
 import { useState } from "react"
-import { useRouter } from "next/navigation"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import {
@@ -26,7 +25,6 @@ interface PublikasiItem {
 }
 
 export default function PublikasiPage() {
-  const router = useRouter()
 
   // Dummy initial data
   const initialData: PublikasiItem[] = [

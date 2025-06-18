@@ -71,7 +71,7 @@ const menuItems = [
 export function SidebarUser() {
   return (
     <aside className="w-64 bg-white border-r h-screen p-4 sticky top-0 overflow-y-auto shadow-md">
-      <h1 className="text-xl font-bold mb-6 text-blue-700">🌟 MAKARTI</h1>
+      <h1 className="text-xl font-bold mb-6 text-blue-700">🌟 MAKARTI 5.0</h1>
       {menuItems.map((item) => {
         const Icon = item.icon
         return (

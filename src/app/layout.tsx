@@ -9,8 +9,8 @@ const poppins = Poppins({
 })
 
 export const metadata = {
-  title: 'Makarti Dashboard',
-  description: 'Sistem Informasi Pengukuran Indeks Kualitas Kebijakan',
+  title: 'MAKARTI 5.0 - Bigger, Better, Smarter',
+  description: 'Sistem Informasi Monitoring Kinerja LANRI Berbasis Data',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

@@ -24,15 +24,15 @@ export default function LoginPage() {
   return (
     <div className="relative min-h-screen w-full">
       {/* Gambar Background */}
-      <Image
-        src="/bigger.jpg"
-        alt="Background"
-        fill
-        className="object-cover"
-        priority
-      />
+        <Image
+          src="/bigger.jpg"
+          alt="Background"
+          fill
+          className="object-cover object-top"
+          priority
+        />
 
-      {/* Overlay gelap */}
+        {/* Overlay gelap */}
       <div className="absolute inset-0 bg-black bg-opacity-40" />
 
       {/* Form login di sebelah kiri - ukuran lebih kecil */}
@@ -40,7 +40,7 @@ export default function LoginPage() {
         <div className="bg-black bg-opacity-60 backdrop-blur-md p-6 rounded-xl shadow-xl w-full max-w-sm z-10 text-white">
           <div className="text-center mb-5">
             <h1 className="text-2xl font-bold text-white mb-1">Selamat Datang</h1>
-            <p className="text-blue-200 text-x10">MAKARTI 5.0</p>
+            <p className="text-blue-200 text-4xl font-extrabold">MAKARTI 5.0</p>
           </div>
 
           {error && (

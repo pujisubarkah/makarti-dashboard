@@ -44,7 +44,7 @@ export default function LoginPage() {
         router.push('/user/dashboard')
       }
 
-    } catch (err) {
+    } catch {
       setError('Terjadi kesalahan server')
     }
   }

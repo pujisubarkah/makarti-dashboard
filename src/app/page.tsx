@@ -113,9 +113,7 @@ export default function LoginPage() {
             </button>
           </form>
 
-          <div className="mt-4 text-center">
-            <p className="text-blue-200 text-xs">Demo: admin/admin atau user/user</p>
-          </div>
+       
         </div>
       </div>
     </div>

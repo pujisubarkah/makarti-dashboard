@@ -132,7 +132,7 @@ model Sosialisasi {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model pegawai {
-  id            BigInt   @id @default(autoincrement())
+  id            Int      @id @default(autoincrement())
   created_at    DateTime @default(now()) @db.Timestamptz(6)
   nip           String?  @default("18") @db.VarChar
   nama          String?  @default("225") @db.VarChar

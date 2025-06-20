@@ -62,14 +62,14 @@ model Pelatihan {
 }
 
 model Penyelenggaraan {
-  id            Int      @id @default(autoincrement())
-  namaKegiatan  String
-  tanggal       DateTime
-  jenis         String
-  penyelenggara String
-  jumlahPeserta Int
-  unit_kerja_id Int?
-  users         users?   @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                          Int                         @id @default(autoincrement())
+  namaKegiatan                String
+  tanggal                     DateTime
+  jenis_bangkom_id            Int
+  jumlahPeserta               Int
+  unit_kerja_id               Int?
+  jenis_bangkom_non_pelatihan jenis_bangkom_non_pelatihan @relation(fields: [jenis_bangkom_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users                       users?                      @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("makarti")
 }
@@ -131,6 +131,16 @@ model Sosialisasi {
 }
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model jenis_bangkom_non_pelatihan {
+  id              Int               @id @default(autoincrement())
+  created_at      DateTime          @default(now()) @db.Timestamptz(6)
+  jenis_bangkom   String?
+  Penyelenggaraan Penyelenggaraan[]
+
+  @@schema("makarti")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model pegawai {
   id            Int      @id @default(autoincrement())
   created_at    DateTime @default(now()) @db.Timestamptz(6)
@@ -161,6 +171,7 @@ model users {
   password            String?               @db.VarChar
   id                  Int                   @id @unique @default(autoincrement())
   role_id             Int?
+  alias               String?               @db.VarChar(255)
   Inovasi             Inovasi[]
   Koordinasi          Koordinasi[]
   Networking          Networking[]

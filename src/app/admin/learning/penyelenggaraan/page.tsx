@@ -1,160 +1,191 @@
 'use client'
 
 import {
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-  Legend,
-  ResponsiveContainer,
   BarChart,
   Bar,
   XAxis,
   YAxis,
   CartesianGrid,
+  Tooltip,
+  ResponsiveContainer,
+  Cell,
+  PieChart,
+  Pie,
+  Legend,
 } from 'recharts'
+import { format, differenceInDays } from 'date-fns'
+import { parseISO } from 'date-fns/parseISO'
 
-const dataSosialisasi = [
+const rawData = [
   {
     id: 1,
-    nama: 'Webinar SPBE dan Inovasi Digital',
-    tanggal: '2025-05-10',
-    jenis: 'Webinar',
-    platform: 'Zoom',
+    instansi: 'Kementerian Keuangan',
+    tanggalMulai: '2025-01-05',
+    tanggalSelesai: '2025-01-10',
+    jumlahPeserta: 30,
     unit: 'Unit A',
-    peserta: 200,
   },
   {
     id: 2,
-    nama: 'Sosialisasi Reformasi Birokrasi',
-    tanggal: '2025-05-12',
-    jenis: 'Tatap Muka',
-    platform: 'Kantor LAN Pusat',
+    instansi: 'Kementerian PANRB',
+    tanggalMulai: '2025-02-01',
+    tanggalSelesai: '2025-02-04',
+    jumlahPeserta: 20,
     unit: 'Unit B',
-    peserta: 80,
   },
   {
     id: 3,
-    nama: 'Live Instagram ASN BerAKHLAK',
-    tanggal: '2025-05-14',
-    jenis: 'Live IG',
-    platform: '@lanri_official',
+    instansi: 'Pemprov Jabar',
+    tanggalMulai: '2025-03-01',
+    tanggalSelesai: '2025-03-07',
+    jumlahPeserta: 50,
     unit: 'Unit C',
-    peserta: 500,
   },
   {
     id: 4,
-    nama: 'FGD Strategi Inovasi Pelayanan',
-    tanggal: '2025-05-16',
-    jenis: 'FGD',
-    platform: 'Offline',
+    instansi: 'Universitas Indonesia',
+    tanggalMulai: '2025-04-10',
+    tanggalSelesai: '2025-04-12',
+    jumlahPeserta: 40,
     unit: 'Unit A',
-    peserta: 30,
   },
   {
     id: 5,
-    nama: 'Sosialisasi Sistem Merit ASN',
-    tanggal: '2025-05-18',
-    jenis: 'Webinar',
-    platform: 'Teams',
+    instansi: 'BPS Pusat',
+    tanggalMulai: '2025-05-15',
+    tanggalSelesai: '2025-05-20',
+    jumlahPeserta: 35,
     unit: 'Unit B',
-    peserta: 150,
   },
   {
     id: 6,
-    nama: 'Workshop Digitalisasi Pelayanan',
-    tanggal: '2025-05-20',
-    jenis: 'Tatap Muka',
-    platform: 'Auditorium LAN',
+    instansi: 'Kemendagri',
+    tanggalMulai: '2025-06-01',
+    tanggalSelesai: '2025-06-08',
+    jumlahPeserta: 45,
     unit: 'Unit C',
-    peserta: 120,
   },
 ]
 
-const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6']
+const unitColorMap: Record<string, string> = {
+  'Unit A': '#60a5fa',
+  'Unit B': '#34d399',
+  'Unit C': '#fbbf24',
+}
 
-const jenisCount = dataSosialisasi.reduce((acc, item) => {
-  acc[item.jenis] = (acc[item.jenis] || 0) + 1
-  return acc
-}, {} as Record<string, number>)
+const COLORS = ['#60a5fa', '#34d399', '#facc15', '#f472b6', '#8b5cf6', '#06b6d4']
 
-const pieData = Object.entries(jenisCount).map(([key, value]) => ({
-  name: key,
-  value,
-}))
+const ganttData = rawData.map((item) => {
+  const start = parseISO(item.tanggalMulai).getTime()
+  const end = parseISO(item.tanggalSelesai).getTime()
+  const durasi = differenceInDays(new Date(end), new Date(start)) + 1
+  return {
+    ...item,
+    start,
+    durasi,
+  }
+})
 
-const totalPeserta = dataSosialisasi.reduce((sum, item) => sum + item.peserta, 0)
+export default function BangkomGanttChart() {
+  // Calculate summary values
+  const totalKegiatan = rawData.length
+  const totalPeserta = rawData.reduce((sum, item) => sum + item.jumlahPeserta, 0)
+  const unitSet = new Set(rawData.map(item => item.unit))
+  const totalUnit = unitSet.size
+  const avgDurasi =
+    rawData.length > 0
+      ? Math.round(
+          rawData.reduce(
+            (sum, item) =>
+              sum +
+              (differenceInDays(
+                parseISO(item.tanggalSelesai),
+                parseISO(item.tanggalMulai)
+              ) +
+                1),
+            0
+          ) / rawData.length
+        )
+      : 0
 
-// Calculate unit statistics
-const unitStats = Object.entries(
-  dataSosialisasi.reduce((acc, item) => {
-    if (!acc[item.unit]) {
-      acc[item.unit] = { totalPeserta: 0, totalKegiatan: 0 }
-    }
-    acc[item.unit].totalPeserta += item.peserta
-    acc[item.unit].totalKegiatan += 1
-    return acc
-  }, {} as Record<string, { totalPeserta: number; totalKegiatan: number }>)
-).map(([unit, stats]) => ({
-  unit,
-  totalPeserta: stats.totalPeserta,
-  totalKegiatan: stats.totalKegiatan,
-  rataRataPeserta: stats.totalPeserta / stats.totalKegiatan
-})).sort((a, b) => b.totalPeserta - a.totalPeserta).slice(0, 3)
+  // Calculate unit statistics
+  const unitStats = Object.entries(
+    rawData.reduce((acc, item) => {
+      if (!acc[item.unit]) {
+        acc[item.unit] = { totalPeserta: 0, totalKegiatan: 0 }
+      }
+      acc[item.unit].totalPeserta += item.jumlahPeserta
+      acc[item.unit].totalKegiatan += 1
+      return acc
+    }, {} as Record<string, { totalPeserta: number; totalKegiatan: number }>)
+  ).map(([unit, stats]) => ({
+    unit,
+    totalPeserta: stats.totalPeserta,
+    totalKegiatan: stats.totalKegiatan,
+    rataRataPeserta: stats.totalPeserta / stats.totalKegiatan
+  })).sort((a, b) => b.totalPeserta - a.totalPeserta).slice(0, 3)
 
-const summaryCards = [
-  { 
-    label: 'Total Kegiatan', 
-    value: dataSosialisasi.length,
-    icon: '📢',
-    color: 'blue',
-    bgGradient: 'from-blue-500 to-blue-600',
-    bgLight: 'bg-blue-100',
-    textColor: 'text-blue-600',
-    textDark: 'text-blue-800',
-    borderColor: 'border-blue-500'
-  },
-  { 
-    label: 'Total Peserta', 
-    value: totalPeserta,
-    icon: '👥',
-    color: 'green',
-    bgGradient: 'from-green-500 to-green-600',
-    bgLight: 'bg-green-100',
-    textColor: 'text-green-600',
-    textDark: 'text-green-800',
-    borderColor: 'border-green-500'
-  },
-  { 
-    label: 'Kegiatan Daring', 
-    value: dataSosialisasi.filter(d => d.jenis === 'Webinar' || d.jenis === 'Live IG').length,
-    icon: '💻',
-    color: 'purple',
-    bgGradient: 'from-purple-500 to-purple-600',
-    bgLight: 'bg-purple-100',
-    textColor: 'text-purple-600',
-    textDark: 'text-purple-800',
-    borderColor: 'border-purple-500'
-  },
-  { 
-    label: 'Kegiatan Luring', 
-    value: dataSosialisasi.filter(d => d.jenis === 'Tatap Muka' || d.jenis === 'FGD').length,
-    icon: '🏢',
-    color: 'orange',
-    bgGradient: 'from-orange-500 to-orange-600',
-    bgLight: 'bg-orange-100',
-    textColor: 'text-orange-600',
-    textDark: 'text-orange-800',
-    borderColor: 'border-orange-500'
-  },
-]
+  // Enhanced summary cards
+  const summaryCards = [
+    {
+      label: 'Total Penyelenggaraan',
+      value: totalKegiatan,
+      icon: '📚',
+      color: 'blue',
+      bgGradient: 'from-blue-500 to-blue-600',
+      bgLight: 'bg-blue-100',
+      textColor: 'text-blue-600',
+      textDark: 'text-blue-800',
+      borderColor: 'border-blue-500'
+    },
+    {
+      label: 'Total Peserta',
+      value: totalPeserta,
+      icon: '👥',
+      color: 'green',
+      bgGradient: 'from-green-500 to-green-600',
+      bgLight: 'bg-green-100',
+      textColor: 'text-green-600',
+      textDark: 'text-green-800',
+      borderColor: 'border-green-500'
+    },
+    {
+      label: 'Jumlah Unit',
+      value: totalUnit,
+      icon: '🏢',
+      color: 'yellow',
+      bgGradient: 'from-yellow-500 to-yellow-600',
+      bgLight: 'bg-yellow-100',
+      textColor: 'text-yellow-600',
+      textDark: 'text-yellow-800',
+      borderColor: 'border-yellow-500'
+    },
+    {
+      label: 'Rata-rata Durasi',
+      value: `${avgDurasi} hari`,
+      icon: '⏰',
+      color: 'purple',
+      bgGradient: 'from-purple-500 to-purple-600',
+      bgLight: 'bg-purple-100',
+      textColor: 'text-purple-600',
+      textDark: 'text-purple-800',
+      borderColor: 'border-purple-500'
+    },
+  ]
 
-export default function SosialisasiPage() {
+  // Data for pie chart
+  const pieData = Object.entries(
+    rawData.reduce((acc, item) => {
+      acc[item.unit] = (acc[item.unit] || 0) + item.jumlahPeserta
+      return acc
+    }, {} as Record<string, number>)
+  ).map(([unit, peserta]) => ({ name: unit, value: peserta }))
+
   return (
     <div className="p-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard Sosialisasi & Komunikasi</h1>
-        <p className="text-blue-600">Pantau dan kelola kegiatan sosialisasi di seluruh unit kerja</p>
+        <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard Penyelenggaraan Bangkom</h1>
+        <p className="text-blue-600">Pantau dan kelola penyelenggaraan program bangkom di seluruh unit kerja</p>
       </div>
 
       {/* Enhanced Summary Cards */}
@@ -185,14 +216,14 @@ export default function SosialisasiPage() {
                   <div 
                     className={`bg-gradient-to-r ${card.bgGradient} h-2 rounded-full transition-all duration-500`}
                     style={{ 
-                      width: `${Math.min((card.value / Math.max(...summaryCards.map(c => c.value))) * 100, 100)}%` 
+                      width: `${Math.min((parseFloat(card.value.toString()) / Math.max(...summaryCards.map(c => parseFloat(c.value.toString()) || 0))) * 100, 100)}%` 
                     }}
                   ></div>
                 </div>
                 <div className="flex items-center justify-between text-xs text-gray-600 mt-2">
                   <span>Performance</span>
                   <span className={`font-medium ${card.textColor}`}>
-                    {card.value > 0 ? '📈 Aktif' : '⏳ Monitoring'}
+                    {parseFloat(card.value.toString()) > 0 ? '📈 Aktif' : '⏳ Monitoring'}
                   </span>
                 </div>
               </div>
@@ -282,45 +313,44 @@ export default function SosialisasiPage() {
         </div>
       </div>
 
-      {/* Communication Statistics */}
+      {/* Activity Statistics */}
       <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
         <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
           <span className="mr-2">📊</span>
-          Statistik Komunikasi & Sosialisasi
+          Statistik Penyelenggaraan
         </h2>
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
             <div className="text-3xl mb-2">👨‍🎓</div>
             <div className="text-2xl font-bold text-blue-600">
-              {Math.max(...dataSosialisasi.map(d => d.peserta))}
+              {Math.max(...unitStats.map(u => u.totalPeserta))}
             </div>
             <div className="text-sm text-blue-800">Peserta Tertinggi</div>
-            <div className="text-xs text-blue-600 mt-1">Best Reach</div>
+            <div className="text-xs text-blue-600 mt-1">Best Performance</div>
           </div>
           <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
             <div className="text-3xl mb-2">📈</div>
             <div className="text-2xl font-bold text-green-600">
-              {Math.max(...unitStats.map(u => u.rataRataPeserta)).toFixed(0)}
+              {Math.max(...unitStats.map(u => u.rataRataPeserta)).toFixed(1)}
             </div>
             <div className="text-sm text-green-800">Rata-rata Tertinggi</div>
             <div className="text-xs text-green-600 mt-1">Per Kegiatan</div>
           </div>
           <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
-            <div className="text-3xl mb-2">💻</div>
+            <div className="text-3xl mb-2">🎯</div>
             <div className="text-2xl font-bold text-purple-600">
-              {dataSosialisasi.filter(d => d.jenis === 'Webinar' || d.jenis === 'Live IG')
-                .reduce((sum, d) => sum + d.peserta, 0)}
+              {Math.max(...rawData.map(item => differenceInDays(parseISO(item.tanggalSelesai), parseISO(item.tanggalMulai)) + 1))}
             </div>
-            <div className="text-sm text-purple-800">Total Peserta Daring</div>
-            <div className="text-xs text-purple-600 mt-1">Online Reach</div>
+            <div className="text-sm text-purple-800">Durasi Terlama</div>
+            <div className="text-xs text-purple-600 mt-1">Hari</div>
           </div>
           <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg">
             <div className="text-3xl mb-2">🌟</div>
             <div className="text-2xl font-bold text-orange-600">
-              {unitStats.filter(u => u.totalPeserta >= 200).length}
+              {unitStats.filter(u => u.totalPeserta >= 50).length}
             </div>
             <div className="text-sm text-orange-800">Unit Aktif</div>
-            <div className="text-xs text-orange-600 mt-1">200+ peserta</div>
+            <div className="text-xs text-orange-600 mt-1">50+ peserta</div>
           </div>
         </div>
       </div>
@@ -328,8 +358,8 @@ export default function SosialisasiPage() {
       {/* Enhanced Table */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
         <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
-          <h2 className="text-xl font-bold">Detail Kegiatan Sosialisasi</h2>
-          <p className="text-blue-100 text-sm">Daftar lengkap kegiatan sosialisasi dan komunikasi</p>
+          <h2 className="text-xl font-bold">Detail Penyelenggaraan Bangkom</h2>
+          <p className="text-blue-100 text-sm">Daftar lengkap kegiatan penyelenggaraan program bangkom</p>
         </div>
         
         <div className="overflow-x-auto">
@@ -337,37 +367,49 @@ export default function SosialisasiPage() {
             <thead className="bg-gray-50 text-sm text-gray-700">
               <tr>
                 <th className="px-6 py-3 text-left font-medium">No</th>
-                <th className="px-6 py-3 text-left font-medium">Nama Kegiatan</th>
-                <th className="px-6 py-3 text-left font-medium">Tanggal</th>
-                <th className="px-6 py-3 text-left font-medium">Jenis</th>
-                <th className="px-6 py-3 text-left font-medium">Platform</th>
-                <th className="px-6 py-3 text-left font-medium">Unit</th>
-                <th className="px-6 py-3 text-right font-medium">Peserta</th>
+                <th className="px-6 py-3 text-left font-medium">Instansi</th>
+                <th className="px-6 py-3 text-left font-medium">Tanggal Mulai</th>
+                <th className="px-6 py-3 text-left font-medium">Tanggal Selesai</th>
+                <th className="px-6 py-3 text-left font-medium">Durasi</th>
+                <th className="px-6 py-3 text-right font-medium">Jumlah Peserta</th>
+                <th className="px-6 py-3 text-left font-medium">Unit Kerja</th>
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-gray-200">
-              {dataSosialisasi.map((item, index) => {
+              {rawData.map((item, idx) => {
                 const unitRank = unitStats.findIndex(u => u.unit === item.unit)
                 const isTopUnit = unitRank !== -1
+                const durasi = differenceInDays(parseISO(item.tanggalSelesai), parseISO(item.tanggalMulai)) + 1
 
                 return (
                   <tr key={item.id} className="hover:bg-blue-50 transition-colors">
-                    <td className="px-6 py-4 text-gray-600">{index + 1}</td>
-                    <td className="px-6 py-4 font-medium text-gray-800">{item.nama}</td>
-                    <td className="px-6 py-4 text-gray-600">{item.tanggal}</td>
+                    <td className="px-6 py-4 text-gray-600">{idx + 1}</td>
+                    <td className="px-6 py-4 font-medium text-gray-800">
+                      {item.instansi.includes('Kementerian') && <span className="mr-1">🏛️</span>}
+                      {item.instansi.includes('Universitas') && <span className="mr-1">🎓</span>}
+                      {item.instansi.includes('Pemprov') && <span className="mr-1">🏢</span>}
+                      {item.instansi}
+                    </td>
+                    <td className="px-6 py-4 text-gray-600">{item.tanggalMulai}</td>
+                    <td className="px-6 py-4 text-gray-600">{item.tanggalSelesai}</td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        item.jenis === 'Webinar' ? 'bg-blue-100 text-blue-800' :
-                        item.jenis === 'Live IG' ? 'bg-pink-100 text-pink-800' :
-                        item.jenis === 'Tatap Muka' ? 'bg-green-100 text-green-800' :
-                        'bg-gray-100 text-gray-800'
+                        durasi >= 7 ? 'bg-red-100 text-red-800' :
+                        durasi >= 5 ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-green-100 text-green-800'
                       }`}>
-                        {item.jenis === 'Webinar' ? '💻' :
-                         item.jenis === 'Live IG' ? '📱' :
-                         item.jenis === 'Tatap Muka' ? '🏢' : '👥'} {item.jenis}
+                        ⏰ {durasi} hari
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-gray-600">{item.platform}</td>
+                    <td className="px-6 py-4 text-right">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        item.jumlahPeserta >= 40 ? 'bg-green-100 text-green-800' :
+                        item.jumlahPeserta >= 25 ? 'bg-blue-100 text-blue-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        👥 {item.jumlahPeserta}
+                      </span>
+                    </td>
                     <td className="px-6 py-4">
                       <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                         isTopUnit 
@@ -381,15 +423,6 @@ export default function SosialisasiPage() {
                         {isTopUnit && ['🥇', '🥈', '🥉'][unitRank]} {item.unit}
                       </span>
                     </td>
-                    <td className="px-6 py-4 text-right">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        item.peserta >= 200 ? 'bg-green-100 text-green-800' :
-                        item.peserta >= 100 ? 'bg-blue-100 text-blue-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        👥 {item.peserta}
-                      </span>
-                    </td>
                   </tr>
                 )
               })}
@@ -398,13 +431,13 @@ export default function SosialisasiPage() {
         </div>
       </div>
 
-      {/* Enhanced Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      {/* Charts Grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Pie Chart */}
         <div className="bg-white shadow-lg rounded-xl p-6">
           <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
             <span className="mr-2">🥧</span>
-            Distribusi Jenis Kegiatan
+            Distribusi Peserta per Unit
           </h2>
           <div className="h-[300px]">
             <ResponsiveContainer>
@@ -427,43 +460,62 @@ export default function SosialisasiPage() {
           </div>
         </div>
 
-        {/* Bar Chart */}
+        {/* Enhanced Gantt Chart */}
         <div className="bg-white shadow-lg rounded-xl p-6">
           <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
             <span className="mr-2">📊</span>
-            Jumlah Peserta per Unit
+            Timeline Penyelenggaraan
           </h2>
           <div className="h-[300px]">
             <ResponsiveContainer>
-              <BarChart data={unitStats}>
+              <BarChart
+                layout="vertical"
+                data={ganttData}
+                margin={{ top: 20, right: 30, left: 100, bottom: 5 }}
+              >
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="unit" tick={{ fontSize: 12 }} />
-                <YAxis 
-                  label={{ value: 'Peserta', angle: -90, position: 'insideLeft' }}
+                <XAxis
+                  type="number"
+                  domain={['dataMin', 'dataMax']}
+                  tickFormatter={(value) => format(new Date(value), 'MMM dd')}
                   tick={{ fontSize: 12 }}
                 />
-                <Tooltip 
+                <YAxis 
+                  type="category" 
+                  dataKey="instansi" 
+                  tick={{ fontSize: 11 }}
+                  width={100}
+                />
+                <Tooltip
                   contentStyle={{ 
                     backgroundColor: '#f8fafc', 
                     border: '1px solid #e2e8f0',
                     borderRadius: '8px'
                   }}
-                  formatter={(value, name) => [
-                    `${value} peserta`,
-                    name === 'totalPeserta' ? 'Total Peserta' : name
-                  ]}
+                  content={({ payload }) => {
+                    if (!payload || !payload.length) return null
+                    const data = payload[0].payload
+                    const end = data.start + (data.durasi - 1) * 86400000
+                    return (
+                      <div className="bg-white border shadow p-3 text-sm rounded-lg">
+                        <div className="font-bold text-gray-800">{data.instansi}</div>
+                        <div className="text-gray-600">Mulai: {format(new Date(data.start), 'dd MMM yyyy')}</div>
+                        <div className="text-gray-600">Selesai: {format(new Date(end), 'dd MMM yyyy')}</div>
+                        <div className="text-gray-600">Durasi: {data.durasi} hari</div>
+                        <div className="text-gray-600">Unit: {data.unit}</div>
+                        <div className="text-gray-600">Peserta: {data.jumlahPeserta}</div>
+                      </div>
+                    )
+                  }}
                 />
-                <Bar 
-                  dataKey="totalPeserta" 
-                  fill="url(#colorGradient)" 
-                  radius={[4, 4, 0, 0]}
-                />
-                <defs>
-                  <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#1d4ed8" stopOpacity={0.8}/>
-                  </linearGradient>
-                </defs>
+                <Bar dataKey="durasi" barSize={15} isAnimationActive={false}>
+                  {ganttData.map((entry, index) => (
+                    <Cell
+                      key={`cell-${index}`}
+                      fill={unitColorMap[entry.unit] || '#a5b4fc'}
+                    />
+                  ))}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </div>

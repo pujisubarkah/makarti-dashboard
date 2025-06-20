@@ -51,6 +51,7 @@ const menuItems = [
     children: [
       { title: "Jumlah Pelatihan", href: "/admin/learning/pelatihan" },
       { title: "Jumlah Peserta", href: "/admin/learning/peserta" },
+      { title: "Penyelenggaraan", href: "/admin/learning/penyelenggaraan" },
     ],
   },
   {

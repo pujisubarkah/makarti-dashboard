@@ -13,6 +13,7 @@ import {
   ActivitySquare,
   FileText,
   Package,
+  PieChart,
 } from 'lucide-react'
 
 const menuItems = [
@@ -65,6 +66,11 @@ const menuItems = [
     label: 'Produk Inovasi',
     href: '/user/inovasi/produk',
     icon: Package,
+  },
+    {
+    label: 'Serapan Anggaran',
+    href: '/user/serapan',
+    icon: PieChart,
   },
 ]
 

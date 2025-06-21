@@ -2,6 +2,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { toast, Toaster } from "sonner"
 import {
   Dialog,
   DialogContent,
@@ -31,7 +32,9 @@ import {
   Instagram,
   MessageSquare,
   BarChart3,
-  PieChart as PieChartIcon
+  PieChart as PieChartIcon,
+  Plus,
+  Clock
 } from "lucide-react"
 import {
   BarChart,
@@ -56,10 +59,23 @@ interface SosialisasiItem {
   peserta: number
 }
 
-const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6']
+const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6', '#8b5cf6']
 
 export default function SosialisasiPage() {
-  // Dummy initial data
+  const [data, setData] = useState<SosialisasiItem[]>([])
+  const [showModal, setShowModal] = useState(false)
+  const [loading, setLoading] = useState(true)
+  const [isSubmitting, setIsSubmitting] = useState(false)
+
+  const [formData, setFormData] = useState({
+    nama: "",
+    tanggal: "",
+    jenis: "Webinar",
+    platform: "",
+    peserta: 0,
+  })
+
+  // Initial dummy data
   const initialData: SosialisasiItem[] = [
     {
       id: 1,
@@ -95,33 +111,45 @@ export default function SosialisasiPage() {
     },
   ]
 
-  // State for data, initialized with initialData
-  const [data, setData] = useState<SosialisasiItem[]>(initialData)
-
-  const [showModal, setShowModal] = useState(false)
-
-  const [formData, setFormData] = useState({
-    nama: "",
-    tanggal: "",
-    jenis: "Webinar",
-    platform: "",
-    peserta: 0,
-  })
-
-  const [userUnit, setUserUnit] = useState<string | null>(null)
-
-  // Load data and userUnit from localStorage on client side
+  // Load data on client side
   useEffect(() => {
-    if (typeof window !== "undefined") {
-      const saved = localStorage.getItem("sosialisasiData")
-      if (saved) {
-        setData(JSON.parse(saved))
+    const loadData = () => {
+      try {
+        if (typeof window !== "undefined") {
+          const saved = localStorage.getItem("sosialisasiData")
+          if (saved) {
+            setData(JSON.parse(saved))
+          } else {
+            setData(initialData)
+            localStorage.setItem("sosialisasiData", JSON.stringify(initialData))
+          }
+        }
+      } catch (error) {
+        console.error("Error loading data:", error)
+        setData(initialData)
+      } finally {
+        setLoading(false)
       }
-      setUserUnit(localStorage.getItem("userUnit"))
     }
+
+    loadData()
   }, [])
 
   const jenisOptions = ["Webinar", "Tatap Muka", "Live IG", "FGD"]
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Memuat data sosialisasi...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // Calculate statistics
   const totalKegiatan = data.length
@@ -206,49 +234,73 @@ export default function SosialisasiPage() {
     },
   ]
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    setIsSubmitting(true)
 
-    if (!userUnit) {
-      alert("Tidak dapat menentukan unit kerja")
-      return
+    try {
+      const newItem: SosialisasiItem = {
+        id: Date.now(),
+        nama: formData.nama,
+        tanggal: formData.tanggal,
+        jenis: formData.jenis,
+        platform: formData.platform,
+        peserta: formData.peserta,
+      }
+
+      const updatedData = [newItem, ...data]
+      setData(updatedData)
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("sosialisasiData", JSON.stringify(updatedData))
+      }
+
+      // Reset form
+      setFormData({
+        nama: "",
+        tanggal: "",
+        jenis: "Webinar",
+        platform: "",
+        peserta: 0,
+      })
+      setShowModal(false)
+
+      toast.success("Data kegiatan sosialisasi berhasil ditambahkan!")
+
+    } catch (error) {
+      console.error("Error saving data:", error)
+      toast.error("Terjadi kesalahan saat menyimpan data")
+    } finally {
+      setIsSubmitting(false)
     }
-
-    const newItem = {
-      id: Date.now(),
-      ...formData,
-      unit: userUnit,
-    }
-
-    const updatedData = [...data, newItem]
-    setData(updatedData)
-    if (typeof window !== "undefined") {
-      localStorage.setItem("sosialisasiData", JSON.stringify(updatedData))
-    }
-
-    setFormData({
-      nama: "",
-      tanggal: "",
-      jenis: "Webinar",
-      platform: "",
-      peserta: 0,
-    })
-    setShowModal(false)
   }
 
-  // Handle input changes for form fields
-  const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement>
-  ) => {
-    const { name, value, type } = e.target;
+  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value, type } = e.target
     setFormData((prev) => ({
       ...prev,
       [name]: type === "number" ? Number(value) : value,
-    }));
-  };
+    }))
+  }
 
   return (
     <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
+      {/* Sonner Toaster */}
+      <Toaster 
+        position="top-right"
+        richColors
+        closeButton
+        expand={true}
+        duration={4000}
+        toastOptions={{
+          style: {
+            background: 'white',
+            border: '1px solid #e5e7eb',
+            boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+          },
+        }}
+      />
+
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
@@ -258,7 +310,7 @@ export default function SosialisasiPage() {
         <Dialog open={showModal} onOpenChange={setShowModal}>
           <DialogTrigger asChild>
             <Button className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all">
-              <Megaphone className="w-4 h-4 mr-2" />
+              <Plus className="w-4 h-4 mr-2" />
               Tambah Kegiatan
             </Button>
           </DialogTrigger>
@@ -269,38 +321,43 @@ export default function SosialisasiPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Nama */}
               <div className="space-y-1">
-                <Label>Nama Kegiatan</Label>
+                <Label htmlFor="nama">Nama Kegiatan</Label>
                 <Input
+                  id="nama"
                   name="nama"
                   value={formData.nama}
                   onChange={handleChange}
                   required
+                  disabled={isSubmitting}
+                  placeholder="Contoh: Webinar SPBE dan Inovasi Digital"
                 />
               </div>
 
               {/* Tanggal */}
               <div className="space-y-1">
-                <Label>Tanggal</Label>
+                <Label htmlFor="tanggal">Tanggal Kegiatan</Label>
                 <Input
+                  id="tanggal"
                   type="date"
                   name="tanggal"
                   value={formData.tanggal}
                   onChange={handleChange}
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
               {/* Jenis */}
               <div className="space-y-1">
-                <Label>Jenis Kegiatan</Label>
+                <Label htmlFor="jenis">Jenis Kegiatan</Label>
                 <Select
-                  name="jenis"
                   value={formData.jenis}
                   onValueChange={(value) =>
                     setFormData((prev) => ({ ...prev, jenis: value }))
                   }
+                  disabled={isSubmitting}
                 >
-                  <SelectTrigger>
+                  <SelectTrigger id="jenis">
                     <SelectValue placeholder="Pilih jenis kegiatan" />
                   </SelectTrigger>
                   <SelectContent>
@@ -315,26 +372,31 @@ export default function SosialisasiPage() {
 
               {/* Platform */}
               <div className="space-y-1">
-                <Label>Platform</Label>
+                <Label htmlFor="platform">Platform</Label>
                 <Input
+                  id="platform"
                   name="platform"
                   value={formData.platform}
                   onChange={handleChange}
                   required
+                  disabled={isSubmitting}
                   placeholder="Zoom / Instagram / Offline"
                 />
               </div>
 
               {/* Peserta */}
               <div className="space-y-1">
-                <Label>Jumlah Peserta</Label>
+                <Label htmlFor="peserta">Jumlah Peserta</Label>
                 <Input
+                  id="peserta"
                   type="number"
                   name="peserta"
                   value={formData.peserta}
                   onChange={handleChange}
                   min={0}
                   required
+                  disabled={isSubmitting}
+                  placeholder="Contoh: 200"
                 />
               </div>
 
@@ -342,13 +404,28 @@ export default function SosialisasiPage() {
               <div className="flex justify-end gap-3 pt-2">
                 <Button
                   variant="outline"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                    setShowModal(false)
+                    toast.info("Form dibatalkan")
+                  }}
                   type="button"
+                  disabled={isSubmitting}
                 >
                   Batal
                 </Button>
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                  Simpan
+                <Button 
+                  type="submit" 
+                  className="bg-blue-600 hover:bg-blue-700"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Menyimpan...
+                    </>
+                  ) : (
+                    'Simpan'
+                  )}
                 </Button>
               </div>
             </form>
@@ -393,7 +470,7 @@ export default function SosialisasiPage() {
                   <div 
                     className={`bg-gradient-to-r ${card.bgGradient} h-2 rounded-full transition-all duration-500`}
                     style={{ 
-                      width: `${Math.min((typeof card.value === 'number' ? card.value : parseInt(card.value.replace(/,/g, ''))) / Math.max(...summaryCards.map(c => typeof c.value === 'number' ? c.value : parseInt(c.value.toString().replace(/,/g, '')))) * 100, 100)}%` 
+                      width: `${Math.min((typeof card.value === 'number' ? card.value : parseInt(card.value.toString().replace(/,/g, ''))) / Math.max(...summaryCards.map(c => typeof c.value === 'number' ? c.value : parseInt(c.value.toString().replace(/,/g, '')))) * 100, 100)}%` 
                     }}
                   ></div>
                 </div>
@@ -494,11 +571,22 @@ export default function SosialisasiPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.map((item, index) => (
+              {data
+                .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime())
+                .map((item, index) => (
                 <TableRow key={item.id} className="hover:bg-blue-50 transition-colors">
                   <TableCell className="text-gray-600">{index + 1}</TableCell>
                   <TableCell className="font-medium text-gray-800">{item.nama}</TableCell>
-                  <TableCell className="text-gray-600">{item.tanggal}</TableCell>
+                  <TableCell className="text-gray-600">
+                    <span className="inline-flex items-center">
+                      <Calendar className="w-3 h-3 mr-1 text-gray-400" />
+                      {new Date(item.tanggal).toLocaleDateString('id-ID', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
+                    </span>
+                  </TableCell>
                   <TableCell>
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                       item.jenis === 'Webinar' ? 'bg-blue-100 text-blue-800' :
@@ -518,10 +606,10 @@ export default function SosialisasiPage() {
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                       item.peserta >= 200 ? 'bg-green-100 text-green-800' :
                       item.peserta >= 100 ? 'bg-blue-100 text-blue-800' :
-                      'bg-gray-100 text-gray-800'
+                      'bg-yellow-100 text-yellow-800'
                     }`}>
                       <Users className="w-3 h-3 mr-1" />
-                      {item.peserta}
+                      {item.peserta.toLocaleString()}
                     </span>
                   </TableCell>
                 </TableRow>
@@ -529,36 +617,53 @@ export default function SosialisasiPage() {
             </TableBody>
           </Table>
         </div>
+
+        {data.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            Belum ada data kegiatan sosialisasi. Tambahkan kegiatan pertama Anda!
+          </div>
+        )}
       </div>
 
       {/* Recent Activities */}
       <div className="bg-white rounded-xl shadow-lg p-6">
         <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
-          <Calendar className="w-6 h-6 mr-2 text-purple-500" />
+          <Clock className="w-6 h-6 mr-2 text-purple-500" />
           Aktivitas Terbaru
         </h2>
         <div className="space-y-4">
-          <div className="flex items-start space-x-3 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-            <div className="bg-blue-500 rounded-full p-2">
-              <Monitor className="w-4 h-4 text-white" />
+          {data
+            .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime())
+            .slice(0, 3)
+            .map((item) => (
+            <div key={item.id} className="flex items-start space-x-3 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+              <div className="bg-blue-500 rounded-full p-2">
+                {item.jenis === 'Webinar' ? <Monitor className="w-4 h-4 text-white" /> :
+                 item.jenis === 'Live IG' ? <Instagram className="w-4 h-4 text-white" /> :
+                 item.jenis === 'Tatap Muka' ? <Building className="w-4 h-4 text-white" /> :
+                 <MessageSquare className="w-4 h-4 text-white" />}
+              </div>
+              <div className="flex-1">
+                <h3 className="font-medium text-blue-800">{item.nama}</h3>
+                <p className="text-sm text-blue-600">
+                  {item.peserta.toLocaleString()} peserta • {item.jenis}
+                </p>
+                <p className="text-xs text-blue-500 mt-1">
+                  {new Date(item.tanggal).toLocaleDateString('id-ID', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </p>
+              </div>
             </div>
-            <div className="flex-1">
-              <h3 className="font-medium text-blue-800">Webinar Transformasi Digital</h3>
-              <p className="text-sm text-blue-600">200 peserta bergabung dalam sesi pembelajaran</p>
-              <p className="text-xs text-blue-500 mt-1">2 hari yang lalu</p>
-            </div>
-          </div>
+          ))}
           
-          <div className="flex items-start space-x-3 p-4 bg-pink-50 rounded-lg border-l-4 border-pink-500">
-            <div className="bg-pink-500 rounded-full p-2">
-              <Instagram className="w-4 h-4 text-white" />
+          {data.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              Belum ada aktivitas terbaru. Tambahkan kegiatan pertama Anda!
             </div>
-            <div className="flex-1">
-              <h3 className="font-medium text-pink-800">Live Instagram ASN BerAKHLAK</h3>
-              <p className="text-sm text-pink-600">Engagement tinggi dengan 500 viewer</p>
-              <p className="text-xs text-pink-500 mt-1">1 minggu yang lalu</p>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

@@ -1,6 +1,17 @@
 import { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 
+// Interface untuk tipe data serapan anggaran
+interface SerapanAnggaranItem {
+  id: number;
+  unit_kerja_id: number;
+  bulan: string;
+  pagu_anggaran: number | bigint;
+  realisasi_pengeluaran: number | bigint;
+  created_at?: Date;
+  updated_at?: Date;
+}
+
 // Helper function untuk urutan bulan
 const getBulanUrutan = (bulan: string): number => {
   const urutanBulan = {
@@ -20,8 +31,8 @@ const getBulanUrutan = (bulan: string): number => {
   return urutanBulan[bulan as keyof typeof urutanBulan] || 0;
 };
 
-// Fungsi sort berdasarkan urutan bulan kalender
-const sortByBulanUrutan = (data: any[]) =>
+// Fungsi sort berdasarkan urutan bulan kalender - PERBAIKAN: ganti any dengan interface
+const sortByBulanUrutan = (data: SerapanAnggaranItem[]): SerapanAnggaranItem[] =>
   [...data].sort((a, b) => getBulanUrutan(a.bulan) - getBulanUrutan(b.bulan));
 
 export default async function handler(
@@ -57,7 +68,15 @@ export default async function handler(
         });
       }
 
-      const serapanData = sortByBulanUrutan(serapanDataRaw);
+      const serapanData = sortByBulanUrutan(
+        serapanDataRaw.map(item => ({
+          ...item,
+          pagu_anggaran: Number(item.pagu_anggaran),
+          realisasi_pengeluaran: Number(item.realisasi_pengeluaran),
+          created_at: item.created_at ?? undefined,
+          updated_at: item.updated_at ?? undefined,
+        }))
+      );
 
       // Ambil paguAnggaran sebagai Number
       const paguAnggaran = Number(serapanData[0]?.pagu_anggaran) || 0;
@@ -133,10 +152,9 @@ export default async function handler(
         }
       });
 
-      let updatedData;
-
+      // PERBAIKAN: Hapus variabel updatedData yang tidak digunakan
       if (existingData) {
-        updatedData = await prisma.serapan_anggaran.update({
+        await prisma.serapan_anggaran.update({
           where: { id: existingData.id },
           data: {
             pagu_anggaran: parsedPagu,
@@ -145,7 +163,7 @@ export default async function handler(
           }
         });
       } else {
-        updatedData = await prisma.serapan_anggaran.create({
+        await prisma.serapan_anggaran.create({
           data: {
             unit_kerja_id: unitKerjaId,
             bulan,
@@ -162,7 +180,15 @@ export default async function handler(
         where: { unit_kerja_id: unitKerjaId }
       });
 
-      const allData = sortByBulanUrutan(allDataRaw);
+      const allData = sortByBulanUrutan(
+        allDataRaw.map(item => ({
+          ...item,
+          pagu_anggaran: Number(item.pagu_anggaran),
+          realisasi_pengeluaran: Number(item.realisasi_pengeluaran),
+          created_at: item.created_at ?? undefined,
+          updated_at: item.updated_at ?? undefined,
+        }))
+      );
 
       const paguAnggaran = Number(allData[0]?.pagu_anggaran) || 0;
 
@@ -203,31 +229,25 @@ export default async function handler(
         capaian_realisasi: capaianRealisasi,
         detail_per_bulan
       });
-    }
 
-    if (req.method === 'PUT') {
-      const { id, bulan, pagu_anggaran, realisasi_pengeluaran } = req.body;
-
-      if (!id || !bulan || pagu_anggaran === undefined || realisasi_pengeluaran === undefined) {
-        return res.status(400).json({ message: "ID, bulan, pagu, dan realisasi diperlukan" });
-      }
-
+      const { id } = req.body;
       const parsedId = parseInt(id, 10);
       if (isNaN(parsedId)) {
         return res.status(400).json({ message: "ID harus berupa angka" });
       }
 
-      const existingEntry = await prisma.serapan_anggaran.findUnique({
-        where: { id: parsedId, unit_kerja_id: unitKerjaId }
+      const existingEntry = await prisma.serapan_anggaran.findFirst({
+        where: { 
+          id: parsedId, 
+          unit_kerja_id: unitKerjaId 
+        }
       });
 
       if (!existingEntry) {
         return res.status(404).json({ message: "Data tidak ditemukan" });
       }
 
-      const parsedPagu = parseFloat(pagu_anggaran);
-      const parsedRealisasi = parseFloat(realisasi_pengeluaran);
-
+      // parsedPagu and parsedRealisasi already declared above, reuse them here
       if (isNaN(parsedPagu) || isNaN(parsedRealisasi)) {
         return res.status(400).json({ message: "Pagu dan realisasi harus berupa angka" });
       }
@@ -246,24 +266,32 @@ export default async function handler(
         }
       });
 
-      const allDataRaw = await prisma.serapan_anggaran.findMany({
+      const allDataRawUpdate = await prisma.serapan_anggaran.findMany({
         where: { unit_kerja_id: unitKerjaId }
       });
 
-      const allData = sortByBulanUrutan(allDataRaw);
+      const allDataUpdate = sortByBulanUrutan(
+        allDataRawUpdate.map(item => ({
+          ...item,
+          pagu_anggaran: Number(item.pagu_anggaran),
+          realisasi_pengeluaran: Number(item.realisasi_pengeluaran),
+          created_at: item.created_at ?? undefined,
+          updated_at: item.updated_at ?? undefined,
+        }))
+      );
 
-      const paguAnggaran = Number(allData[0]?.pagu_anggaran || 0);
-      const totalRealisasi = allData.reduce((sum, item) => sum + Number(item.realisasi_pengeluaran || 0), 0);
-      const sisaAnggaran = paguAnggaran - totalRealisasi;
-      const capaianRealisasi = paguAnggaran > 0
-        ? parseFloat(((totalRealisasi / paguAnggaran) * 100).toFixed(2))
+      const paguAnggaranUpdate = Number(allDataUpdate[0]?.pagu_anggaran || 0);
+      const totalRealisasiUpdate = allDataUpdate.reduce((sum, item) => sum + Number(item.realisasi_pengeluaran || 0), 0);
+      const sisaAnggaranUpdate = paguAnggaranUpdate - totalRealisasiUpdate;
+      const capaianRealisasiUpdate = paguAnggaranUpdate > 0
+        ? parseFloat(((totalRealisasiUpdate / paguAnggaranUpdate) * 100).toFixed(2))
         : 0;
 
-      let realisasiKumulatif = 0;
+      let realisasiKumulatifUpdate = 0;
 
-      const detail_per_bulan = allData.map(item => {
+      const detail_per_bulan_update = allDataUpdate.map(item => {
         const realisasi = Number(item.realisasi_pengeluaran || 0);
-        realisasiKumulatif += realisasi;
+        realisasiKumulatifUpdate += realisasi;
 
         return {
           id: item.id,
@@ -273,18 +301,18 @@ export default async function handler(
           capaian_realisasi: item.pagu_anggaran > 0
             ? parseFloat(((realisasi / Number(item.pagu_anggaran)) * 100).toFixed(2))
             : 0,
-          capaian_realisasi_kumulatif: paguAnggaran > 0
-            ? parseFloat(((realisasiKumulatif / paguAnggaran) * 100).toFixed(2))
+          capaian_realisasi_kumulatif: paguAnggaranUpdate > 0
+            ? parseFloat(((realisasiKumulatifUpdate / paguAnggaranUpdate) * 100).toFixed(2))
             : 0
         };
       });
 
       return res.status(200).json({
-        pagu_anggaran: paguAnggaran,
-        total_realisasi: totalRealisasi,
-        sisa_anggaran: sisaAnggaran,
-        capaian_realisasi: capaianRealisasi,
-        detail_per_bulan
+        pagu_anggaran: paguAnggaranUpdate,
+        total_realisasi: totalRealisasiUpdate,
+        sisa_anggaran: sisaAnggaranUpdate,
+        capaian_realisasi: capaianRealisasiUpdate,
+        detail_per_bulan: detail_per_bulan_update
       });
     }
 
@@ -297,8 +325,11 @@ export default async function handler(
 
       const parsedId = parseInt(id, 10);
 
-      const existingEntry = await prisma.serapan_anggaran.findUnique({
-        where: { id: parsedId, unit_kerja_id: unitKerjaId }
+      const existingEntry = await prisma.serapan_anggaran.findFirst({
+        where: { 
+          id: parsedId, 
+          unit_kerja_id: unitKerjaId 
+        }
       });
 
       if (!existingEntry) {

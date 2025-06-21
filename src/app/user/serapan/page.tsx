@@ -412,7 +412,18 @@ export default function SerapanAnggaranPage() {
         }}
       />
 
- 
+      {/* Empty State Banner - TAMBAHKAN INI */}
+      {isEmptyData && (
+        <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+          <div className="flex items-center">
+            <AlertCircle className="text-blue-600 mr-3 w-6 h-6" />
+            <div>
+              <h3 className="text-blue-800 font-medium">Data Masih Kosong</h3>
+              <p className="text-blue-600 text-sm">Silakan tambahkan data anggaran pertama Anda untuk memulai monitoring.</p>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
@@ -567,31 +578,42 @@ export default function SerapanAnggaranPage() {
             <BarChart3 className="w-6 h-6 mr-2 text-blue-500" />
             Tren Realisasi Anggaran (Juta Rp)
           </h2>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <LineChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="bulan" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#f8fafc', 
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px'
-                  }}
-                  formatter={(value) => [`${value} Juta`, 'Realisasi']}
-                />
-                <Legend />
-                <Line 
-                  type="monotone" 
-                  dataKey="realisasi" 
-                  stroke="#34d399" 
-                  strokeWidth={3}
-                  name="Realisasi"
-                />
-              </LineChart>
-            </ResponsiveContainer>
-          </div>
+          {/* Show empty state or chart based on data */}
+          {isEmptyData ? (
+            <div className="h-[300px] flex items-center justify-center text-gray-500">
+              <div className="text-center">
+                <BarChart3 className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                <p className="text-lg font-medium">Belum Ada Data Chart</p>
+                <p className="text-sm">Tambahkan data anggaran untuk melihat grafik</p>
+              </div>
+            </div>
+          ) : (
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <LineChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="bulan" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#f8fafc', 
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px'
+                    }}
+                    formatter={(value) => [`${value} Juta`, 'Realisasi']}
+                  />
+                  <Legend />
+                  <Line 
+                    type="monotone" 
+                    dataKey="realisasi" 
+                    stroke="#34d399" 
+                    strokeWidth={3}
+                    name="Realisasi"
+                  />
+                </LineChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
 
         {/* Pie Chart */}
@@ -600,29 +622,40 @@ export default function SerapanAnggaranPage() {
             <PieChartIcon className="w-6 h-6 mr-2 text-green-500" />
             Komposisi Anggaran
           </h2>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  dataKey="value"
-                  nameKey="name"
-                  outerRadius={100}
-                  label={({ name, percent }) => 
-                    `${name}: ${(percent * 100).toFixed(1)}%`
-                  }
-                >
-                  {pieData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  formatter={(value) => formatRupiah(Number(value))}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
+          {/* Show empty state or chart based on data */}
+          {isEmptyData ? (
+            <div className="h-[300px] flex items-center justify-center text-gray-500">
+              <div className="text-center">
+                <PieChartIcon className="w-16 h-16 mx-auto mb-4 text-gray-300" />
+                <p className="text-lg font-medium">Belum Ada Data Komposisi</p>
+                <p className="text-sm">Tambahkan data anggaran untuk melihat komposisi</p>
+              </div>
+            </div>
+          ) : (
+            <div className="h-[300px]">
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    dataKey="value"
+                    nameKey="name"
+                    outerRadius={100}
+                    label={({ name, percent }) => 
+                      `${name}: ${(percent * 100).toFixed(1)}%`
+                    }
+                  >
+                    {pieData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    formatter={(value) => formatRupiah(Number(value))}
+                  />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            </div>
+          )}
         </div>
       </div>
 

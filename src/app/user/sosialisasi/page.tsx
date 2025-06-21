@@ -1,7 +1,7 @@
 // app/user/sosialisasi/page.tsx
 "use client"
 
-import { useState, useEffect } from "react"
+import { useState, useEffect, useCallback } from "react"
 import { toast, Toaster } from "sonner"
 import {
   Dialog,
@@ -75,8 +75,8 @@ export default function SosialisasiPage() {
     peserta: 0,
   })
 
-  // Initial dummy data
-  const initialData: SosialisasiItem[] = [
+  // Pindahkan initialData ke dalam useCallback untuk menghindari warning
+  const getInitialData = useCallback((): SosialisasiItem[] => [
     {
       id: 1,
       nama: "Webinar SPBE dan Inovasi Digital",
@@ -89,7 +89,7 @@ export default function SosialisasiPage() {
       id: 2,
       nama: "Sosialisasi Reformasi Birokrasi",
       tanggal: "2025-05-12",
-      jenis: "Tatap Muka",
+      jenis: "Tatap Muka", 
       platform: "Kantor LAN Pusat",
       peserta: 80,
     },
@@ -109,9 +109,9 @@ export default function SosialisasiPage() {
       platform: "Offline",
       peserta: 30,
     },
-  ]
+  ], [])
 
-  // Load data on client side
+  // Load data on client side - PERBAIKAN: tambahkan getInitialData ke dependencies
   useEffect(() => {
     const loadData = () => {
       try {
@@ -120,12 +120,14 @@ export default function SosialisasiPage() {
           if (saved) {
             setData(JSON.parse(saved))
           } else {
+            const initialData = getInitialData()
             setData(initialData)
             localStorage.setItem("sosialisasiData", JSON.stringify(initialData))
           }
         }
       } catch (error) {
         console.error("Error loading data:", error)
+        const initialData = getInitialData()
         setData(initialData)
       } finally {
         setLoading(false)
@@ -133,7 +135,7 @@ export default function SosialisasiPage() {
     }
 
     loadData()
-  }, [])
+  }, [getInitialData]) // Tambahkan dependency
 
   const jenisOptions = ["Webinar", "Tatap Muka", "Live IG", "FGD"]
 

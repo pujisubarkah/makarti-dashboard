@@ -26,7 +26,6 @@ import {
   Calendar,
   TrendingUp,
   GraduationCap,
-  Monitor,
   BarChart3,
   PieChart as PieChartIcon,
   Award,

@@ -13,7 +13,13 @@ import {
   Clock,
   BarChart3,
   PieChart,
-  Activity
+  Activity,
+  Zap,
+  Star,
+  Brain,
+  Rocket,
+  Trophy,
+  Lightbulb
 } from "lucide-react";
 import {
   BarChart,
@@ -29,6 +35,8 @@ import {
   Legend,
   LineChart,
   Line,
+  RadialBarChart,
+  RadialBar,
 } from 'recharts'
 
 const unitData = {
@@ -41,12 +49,55 @@ const unitData = {
     kegiatanBerlangsung: 3,
 };
 
+// Data Bigger Better Smarter
+const biggerBetterSmarterData = {
+    bigger: {
+        dampakLuas: 85, // Persentase dampak yang meluas
+        kolaborasiEksternal: 12, // Jumlah kerjasama eksternal
+        penerimaManfaat: 2500, // Jumlah penerima manfaat
+        jangkauanWilayah: 15 // Jumlah wilayah/unit yang terdampak
+    },
+    better: {
+        efisiensiProses: 78, // Peningkatan efisiensi (%)
+        kualitasLayanan: 92, // Skor kualitas layanan
+        kepuasanPengguna: 88, // Skor kepuasan pengguna
+        pengurangan_waktu: 45 // Pengurangan waktu proses (%)
+    },
+    smarter: {
+        otomatisasi: 65, // Tingkat otomatisasi (%)
+        digitalisasi: 82, // Tingkat digitalisasi (%)
+        dataAnalytics: 70, // Penggunaan data analytics (%)
+        aiImplementation: 35 // Implementasi AI/ML (%)
+    }
+};
+
 const activityData = [
-  { bulan: 'Jan', inovasi: 3, komunikasi: 5, learning: 2 },
-  { bulan: 'Feb', inovasi: 4, komunikasi: 6, learning: 3 },
-  { bulan: 'Mar', inovasi: 5, komunikasi: 8, learning: 4 },
-  { bulan: 'Apr', inovasi: 3, komunikasi: 7, learning: 5 },
+  { bulan: 'Jan', bigger: 75, better: 80, smarter: 60 },
+  { bulan: 'Feb', bigger: 78, better: 85, smarter: 65 },
+  { bulan: 'Mar', bigger: 82, better: 88, smarter: 70 },
+  { bulan: 'Apr', bigger: 85, better: 92, smarter: 75 },
 ]
+
+const biggerBetterSmarterProgress = [
+    { 
+        name: 'BIGGER', 
+        value: 85, 
+        fill: '#3b82f6',
+        description: 'Dampak & Jangkauan'
+    },
+    { 
+        name: 'BETTER', 
+        value: 92, 
+        fill: '#10b981',
+        description: 'Kualitas & Efisiensi'
+    },
+    { 
+        name: 'SMARTER', 
+        value: 75, 
+        fill: '#8b5cf6',
+        description: 'Teknologi & Inovasi'
+    },
+];
 
 const performanceData = [
   { name: 'Target Tercapai', value: 75, color: '#34d399' },
@@ -107,6 +158,61 @@ export default function UnitKerjaDashboard() {
             textDark: 'text-orange-800',
             borderColor: 'border-orange-500',
             description: "Inovasi aktif"
+        },
+    ];
+
+    // Bigger Better Smarter Cards
+    const biggerBetterSmarterCards = [
+        {
+            title: "BIGGER",
+            subtitle: "Dampak & Jangkauan",
+            metrics: [
+                { label: "Dampak Luas", value: `${biggerBetterSmarterData.bigger.dampakLuas}%` },
+                { label: "Kolaborasi Eksternal", value: biggerBetterSmarterData.bigger.kolaborasiEksternal },
+                { label: "Penerima Manfaat", value: `${biggerBetterSmarterData.bigger.penerimaManfaat.toLocaleString()} orang` },
+                { label: "Jangkauan Wilayah", value: `${biggerBetterSmarterData.bigger.jangkauanWilayah} unit` }
+            ],
+            icon: <Rocket className="w-8 h-8" />,
+            color: 'blue',
+            bgGradient: 'from-blue-500 to-blue-600',
+            bgLight: 'bg-blue-50',
+            textColor: 'text-blue-600',
+            borderColor: 'border-blue-500',
+            overallScore: 85
+        },
+        {
+            title: "BETTER",
+            subtitle: "Kualitas & Efisiensi",
+            metrics: [
+                { label: "Efisiensi Proses", value: `+${biggerBetterSmarterData.better.efisiensiProses}%` },
+                { label: "Kualitas Layanan", value: `${biggerBetterSmarterData.better.kualitasLayanan}/100` },
+                { label: "Kepuasan Pengguna", value: `${biggerBetterSmarterData.better.kepuasanPengguna}%` },
+                { label: "Pengurangan Waktu", value: `${biggerBetterSmarterData.better.pengurangan_waktu}%` }
+            ],
+            icon: <Star className="w-8 h-8" />,
+            color: 'green',
+            bgGradient: 'from-green-500 to-green-600',
+            bgLight: 'bg-green-50',
+            textColor: 'text-green-600',
+            borderColor: 'border-green-500',
+            overallScore: 92
+        },
+        {
+            title: "SMARTER",
+            subtitle: "Teknologi & Inovasi",
+            metrics: [
+                { label: "Otomatisasi", value: `${biggerBetterSmarterData.smarter.otomatisasi}%` },
+                { label: "Digitalisasi", value: `${biggerBetterSmarterData.smarter.digitalisasi}%` },
+                { label: "Data Analytics", value: `${biggerBetterSmarterData.smarter.dataAnalytics}%` },
+                { label: "AI Implementation", value: `${biggerBetterSmarterData.smarter.aiImplementation}%` }
+            ],
+            icon: <Brain className="w-8 h-8" />,
+            color: 'purple',
+            bgGradient: 'from-purple-500 to-purple-600',
+            bgLight: 'bg-purple-50',
+            textColor: 'text-purple-600',
+            borderColor: 'border-purple-500',
+            overallScore: 75
         },
     ];
 
@@ -207,6 +313,73 @@ export default function UnitKerjaDashboard() {
                 ))}
             </section>
 
+            {/* Bigger Better Smarter Section */}
+            <section className="space-y-6">
+                <div className="flex items-center space-x-3 mb-6">
+                    <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-3 rounded-full">
+                        <Trophy className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-800">Bigger Better Smarter</h2>
+                        <p className="text-gray-600">Transformasi menuju pelayanan yang lebih besar, baik, dan cerdas</p>
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {biggerBetterSmarterCards.map((card, idx) => (
+                        <div
+                            key={idx}
+                            className={`bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border-l-4 ${card.borderColor} hover:scale-105 group overflow-hidden`}
+                        >
+                            <div className="p-6">
+                                {/* Header */}
+                                <div className="flex items-center justify-between mb-6">
+                                    <div>
+                                        <h3 className={`text-2xl font-bold ${card.textColor}`}>
+                                            {card.title}
+                                        </h3>
+                                        <p className="text-sm text-gray-600">{card.subtitle}</p>
+                                    </div>
+                                    <div className={`${card.bgLight} p-3 rounded-full group-hover:scale-110 transition-transform`}>
+                                        <div className={card.textColor}>
+                                            {card.icon}
+                                        </div>
+                                    </div>
+                                </div>
+
+                                {/* Overall Score */}
+                                <div className="mb-6">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-sm font-medium text-gray-700">Overall Score</span>
+                                        <span className={`text-2xl font-bold ${card.textColor}`}>
+                                            {card.overallScore}%
+                                        </span>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-3">
+                                        <div 
+                                            className={`bg-gradient-to-r ${card.bgGradient} h-3 rounded-full transition-all duration-500`}
+                                            style={{ width: `${card.overallScore}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+
+                                {/* Metrics */}
+                                <div className="space-y-3">
+                                    {card.metrics.map((metric, metricIdx) => (
+                                        <div key={metricIdx} className="flex items-center justify-between">
+                                            <span className="text-xs text-gray-600">{metric.label}</span>
+                                            <span className={`text-sm font-semibold ${card.textColor}`}>
+                                                {metric.value}
+                                            </span>
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </section>
+
             {/* Performance Cards */}
             <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 {performanceCards.map((card, idx) => (
@@ -260,15 +433,15 @@ export default function UnitKerjaDashboard() {
 
             {/* Charts Section */}
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Activity Chart */}
+                {/* Bigger Better Smarter Trend */}
                 <section className="bg-white rounded-xl shadow-lg p-6">
                     <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
-                        <BarChart3 className="w-6 h-6 mr-2 text-blue-500" />
-                        Aktivitas Bulanan
+                        <Lightbulb className="w-6 h-6 mr-2 text-blue-500" />
+                        Tren Bigger Better Smarter
                     </h2>
                     <div className="h-[300px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <BarChart data={activityData}>
+                            <LineChart data={activityData}>
                                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                                 <XAxis dataKey="bulan" tick={{ fontSize: 12 }} />
                                 <YAxis tick={{ fontSize: 12 }} />
@@ -280,79 +453,98 @@ export default function UnitKerjaDashboard() {
                                     }}
                                 />
                                 <Legend />
-                                <Bar dataKey="inovasi" fill="#60a5fa" radius={[2, 2, 0, 0]} />
-                                <Bar dataKey="komunikasi" fill="#34d399" radius={[2, 2, 0, 0]} />
-                                <Bar dataKey="learning" fill="#fbbf24" radius={[2, 2, 0, 0]} />
-                            </BarChart>
+                                <Line 
+                                    type="monotone" 
+                                    dataKey="bigger" 
+                                    stroke="#3b82f6" 
+                                    strokeWidth={3}
+                                    name="BIGGER"
+                                />
+                                <Line 
+                                    type="monotone" 
+                                    dataKey="better" 
+                                    stroke="#10b981" 
+                                    strokeWidth={3}
+                                    name="BETTER"
+                                />
+                                <Line 
+                                    type="monotone" 
+                                    dataKey="smarter" 
+                                    stroke="#8b5cf6" 
+                                    strokeWidth={3}
+                                    name="SMARTER"
+                                />
+                            </LineChart>
                         </ResponsiveContainer>
                     </div>
                 </section>
 
-                {/* Performance Pie Chart */}
+                {/* Radial Progress Chart */}
                 <section className="bg-white rounded-xl shadow-lg p-6">
                     <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
-                        <PieChart className="w-6 h-6 mr-2 text-green-500" />
-                        Distribusi Kinerja
+                        <Zap className="w-6 h-6 mr-2 text-green-500" />
+                        Progress Overview
                     </h2>
                     <div className="h-[300px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <RechartsPieChart>
-                                <Pie
-                                    data={performanceData}
-                                    dataKey="value"
-                                    nameKey="name"
-                                    outerRadius={100}
-                                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                                >
-                                    {performanceData.map((entry, index) => (
-                                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                            <RadialBarChart cx="50%" cy="50%" innerRadius="20%" outerRadius="90%" data={biggerBetterSmarterProgress}>
+                                <RadialBar dataKey="value" cornerRadius={10}>
+                                    {biggerBetterSmarterProgress.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.fill} />
                                     ))}
-                                </Pie>
-                                <Tooltip />
-                                <Legend />
-                            </RechartsPieChart>
+                                </RadialBar>
+                                <Legend iconSize={12} wrapperStyle={{ fontSize: '12px' }} />
+                                <Tooltip 
+                                    formatter={(value, name) => [`${value}%`, name]}
+                                    contentStyle={{ 
+                                        backgroundColor: '#f8fafc', 
+                                        border: '1px solid #e2e8f0',
+                                        borderRadius: '8px'
+                                    }}
+                                />
+                            </RadialBarChart>
                         </ResponsiveContainer>
                     </div>
                 </section>
             </div>
 
-            {/* Recent Activities */}
+            {/* Recent Activities with BBS Focus */}
             <section className="bg-white rounded-xl shadow-lg p-6">
                 <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
                     <Activity className="w-6 h-6 mr-2 text-purple-500" />
-                    Aktivitas Terbaru
+                    Pencapaian Bigger Better Smarter Terbaru
                 </h2>
                 <div className="space-y-4">
                     <div className="flex items-start space-x-3 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
                         <div className="bg-blue-500 rounded-full p-2">
-                            <Award className="w-4 h-4 text-white" />
+                            <Rocket className="w-4 h-4 text-white" />
                         </div>
                         <div className="flex-1">
-                            <h3 className="font-medium text-blue-800">Inovasi Digital Baru</h3>
-                            <p className="text-sm text-blue-600">Implementasi sistem manajemen dokumen digital</p>
-                            <p className="text-xs text-blue-500 mt-1">2 hari yang lalu</p>
+                            <h3 className="font-medium text-blue-800">BIGGER: Ekspansi Layanan</h3>
+                            <p className="text-sm text-blue-600">Memperluas jangkauan layanan ke 15 unit kerja baru</p>
+                            <p className="text-xs text-blue-500 mt-1">Target: 2.500 penerima manfaat • 2 hari yang lalu</p>
                         </div>
                     </div>
                     
                     <div className="flex items-start space-x-3 p-4 bg-green-50 rounded-lg border-l-4 border-green-500">
                         <div className="bg-green-500 rounded-full p-2">
-                            <CheckCircle className="w-4 h-4 text-white" />
+                            <Star className="w-4 h-4 text-white" />
                         </div>
                         <div className="flex-1">
-                            <h3 className="font-medium text-green-800">Target Tercapai</h3>
-                            <p className="text-sm text-green-600">Menyelesaikan 8 dari 10 target kegiatan bulan ini</p>
-                            <p className="text-xs text-green-500 mt-1">5 hari yang lalu</p>
+                            <h3 className="font-medium text-green-800">BETTER: Peningkatan Kualitas</h3>
+                            <p className="text-sm text-green-600">Kepuasan pengguna meningkat 88% dengan efisiensi proses 78%</p>
+                            <p className="text-xs text-green-500 mt-1">Pengurangan waktu proses 45% • 5 hari yang lalu</p>
                         </div>
                     </div>
                     
-                    <div className="flex items-start space-x-3 p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-500">
-                        <div className="bg-yellow-500 rounded-full p-2">
-                            <Calendar className="w-4 h-4 text-white" />
+                    <div className="flex items-start space-x-3 p-4 bg-purple-50 rounded-lg border-l-4 border-purple-500">
+                        <div className="bg-purple-500 rounded-full p-2">
+                            <Brain className="w-4 h-4 text-white" />
                         </div>
                         <div className="flex-1">
-                            <h3 className="font-medium text-yellow-800">Workshop Mendatang</h3>
-                            <p className="text-sm text-yellow-600">Pelatihan teknologi baru untuk semua pegawai</p>
-                            <p className="text-xs text-yellow-500 mt-1">Minggu depan</p>
+                            <h3 className="font-medium text-purple-800">SMARTER: Transformasi Digital</h3>
+                            <p className="text-sm text-purple-600">Implementasi AI mencapai 35% dengan digitalisasi 82%</p>
+                            <p className="text-xs text-purple-500 mt-1">Otomatisasi proses 65% • 1 minggu yang lalu</p>
                         </div>
                     </div>
                 </div>

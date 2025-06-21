@@ -70,7 +70,7 @@ const menuItems = [
     {
     label: 'Serapan Anggaran',
     href: '/user/serapan',
-    icon: PieChart,
+    icon: PieChart
   },
 ]
 

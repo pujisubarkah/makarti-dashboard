@@ -1,6 +1,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import { toast, Toaster } from "sonner"
 import {
   Dialog,
   DialogContent,
@@ -29,7 +30,8 @@ import {
   BarChart3,
   PieChart as PieChartIcon,
   Award,
-  Clock
+  Clock,
+  Plus
 } from "lucide-react"
 import {
   BarChart,
@@ -45,38 +47,140 @@ import {
   Legend,
 } from 'recharts'
 
-interface PelatihanPeserta {
+interface PenyelenggaraanItem {
   id: number
-  nama: string
+  namaKegiatan: string
   tanggal: string
-  jenis: string
   jumlahPeserta: number
-  unit: string
+  jenis_bangkom_non_pelatihan?: {  // Make optional
+    jenis_bangkom: string
+  }
+  users?: {  // Make optional
+    unit_kerja: string
+  }
 }
 
-const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6']
+interface JenisBangkomOption {
+  id: number
+  jenis_bangkom: string
+  created_at: string
+}
 
-export default function FormPelatihanPage() {
+const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6', '#8b5cf6']
+
+export default function PenyelenggaraanBangkomPage() {
   const [showModal, setShowModal] = useState(false)
-  const [data, setData] = useState<PelatihanPeserta[]>([])
+  const [data, setData] = useState<PenyelenggaraanItem[]>([])
+  const [options, setOptions] = useState<JenisBangkomOption[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [formData, setFormData] = useState({
-    nama: '',
+    namaKegiatan: '',
     tanggal: '',
-    jenis: 'Webinar',
-    jumlahPeserta: 0,
+    jenis_bangkom_id: '',
+    jumlahPeserta: ''
   })
 
-  // Get unit from localStorage
-  const unit = typeof window !== 'undefined' ? localStorage.getItem("userUnit") || "Pusdatin" : "Pusdatin"
-
-  // Load data from localStorage on component mount
+  // Fetch data from API
   useEffect(() => {
-    const savedData = localStorage.getItem("pelatihanPesertaData")
-    if (savedData) {
-      setData(JSON.parse(savedData))
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        
+        // Ambil unit_kerja_id dari localStorage
+        const unitKerjaId = localStorage.getItem("id")
+        
+        if (!unitKerjaId) {
+          throw new Error("Unit kerja ID tidak ditemukan di localStorage. Silakan login ulang.")
+        }
+
+        // Fetch data penyelenggaraan dan jenis bangkom secara parallel
+        const [penyelenggaraanResponse, jenisBangkomResponse] = await Promise.all([
+          fetch(`/api/penyelenggaraan/${unitKerjaId}`),
+          fetch('/api/jenis_bangkom')
+        ])
+
+        if (!penyelenggaraanResponse.ok) {
+          if (penyelenggaraanResponse.status === 404) {
+            throw new Error("Data penyelenggaraan tidak ditemukan untuk unit kerja ini.")
+          } else {
+            throw new Error(`HTTP error! status: ${penyelenggaraanResponse.status}`)
+          }
+        }
+
+        if (!jenisBangkomResponse.ok) {
+          throw new Error(`HTTP error! status: ${jenisBangkomResponse.status}`)
+        }
+
+        const penyelenggaraanData = await penyelenggaraanResponse.json()
+        const jenisBangkomData = await jenisBangkomResponse.json()
+
+        setData(penyelenggaraanData)
+        setOptions(jenisBangkomData)
+        setError(null)
+        
+      } catch (err) {
+        console.error('Error fetching data:', err)
+        setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat memuat data')
+        
+        // Set empty data on error
+        setData([])
+        setOptions([])
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    // Cek apakah kode berjalan di browser
+    if (typeof window !== 'undefined') {
+      fetchData()
     }
   }, [])
+
+  // Loading state
+  if (loading) {
+    return (
+      <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Memuat data penyelenggaraan...</p>
+            <p className="text-sm text-gray-500 mt-2">Mengambil informasi dari database...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-2xl mx-auto">
+          <div className="flex items-center mb-4">
+            <div className="text-red-600 mr-3 text-2xl">⚠️</div>
+            <div>
+              <h3 className="text-red-800 font-medium text-lg">Gagal Memuat Data</h3>
+              <p className="text-red-600 text-sm mt-1">{error}</p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <button 
+              onClick={() => {
+                window.location.reload()
+                toast.info("Memuat ulang halaman...")
+              }} 
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+            >
+              Coba Lagi
+            </button>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
   // Calculate statistics
   const totalKegiatan = data.length
@@ -90,7 +194,10 @@ export default function FormPelatihanPage() {
 
   // Data for charts
   const jenisCount = data.reduce((acc, item) => {
-    acc[item.jenis] = (acc[item.jenis] || 0) + 1
+    const jenis = item.jenis_bangkom_non_pelatihan?.jenis_bangkom
+    if (jenis) {
+      acc[jenis] = (acc[jenis] || 0) + 1
+    }
     return acc
   }, {} as Record<string, number>)
 
@@ -122,7 +229,7 @@ export default function FormPelatihanPage() {
       textDark: 'text-blue-800',
       borderColor: 'border-blue-500',
       change: '+18%',
-      description: 'Kegiatan pelatihan total'
+      description: 'Kegiatan bangkom total'
     },
     {
       title: "Total Peserta",
@@ -171,71 +278,141 @@ export default function FormPelatihanPage() {
   }
 
   const handleSelectChange = (value: string) => {
-    setFormData(prev => ({ ...prev, jenis: value }))
+    setFormData(prev => ({ ...prev, jenis_bangkom_id: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    setIsSubmitting(true)
 
-    const newItem = {
-      id: Date.now(),
-      ...formData,
-      jumlahPeserta: Number(formData.jumlahPeserta),
-      unit: unit // Add unit from localStorage
-    }
+    // Show loading toast
+    const loadingPromise = new Promise((resolve, reject) => {
+      setTimeout(async () => {
+        try {
+          const unitKerjaId = localStorage.getItem("id")
+          if (!unitKerjaId) {
+            throw new Error("Unit kerja ID tidak ditemukan")
+          }
 
-    const updatedData = [...data, newItem]
-    setData(updatedData)
-    localStorage.setItem("pelatihanPesertaData", JSON.stringify(updatedData))
+          const response = await fetch(`/api/penyelenggaraan/${unitKerjaId}`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify({
+              namaKegiatan: formData.namaKegiatan,
+              tanggal: formData.tanggal,
+              jenis_bangkom_id: parseInt(formData.jenis_bangkom_id),
+              jumlahPeserta: parseInt(formData.jumlahPeserta),
+            }),
+          })
 
-    // Reset form and close modal
-    setFormData({
-      nama: '',
-      tanggal: '',
-      jenis: 'Webinar',
-      jumlahPeserta: 0,
+          if (!response.ok) {
+            const errorData = await response.json()
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+          }
+
+          const newItem = await response.json()
+          
+          // Pastikan data lengkap sebelum menambahkan ke state
+          if (newItem && newItem.jenis_bangkom_non_pelatihan) {
+            setData(prev => [newItem, ...prev])
+          } else {
+            // Jika data tidak lengkap, refresh seluruh data
+            const refreshResponse = await fetch(`/api/penyelenggaraan/${unitKerjaId}`)
+            if (refreshResponse.ok) {
+              const refreshedData = await refreshResponse.json()
+              setData(refreshedData)
+            }
+          }
+
+          // Reset form
+          setFormData({
+            namaKegiatan: '',
+            tanggal: '',
+            jenis_bangkom_id: '',
+            jumlahPeserta: ''
+          })
+          setShowModal(false)
+
+          resolve(newItem)
+        } catch (err) {
+          console.error('Error saving data:', err)
+          reject(err)
+        } finally {
+          setIsSubmitting(false)
+        }
+      }, 500) // Reduced delay
     })
-    setShowModal(false)
+
+    // Use Sonner's promise toast
+    toast.promise(loadingPromise, {
+      loading: 'Menyimpan data kegiatan...',
+      success: 'Data berhasil ditambahkan!',
+      error: (err) => `Error: ${err.message || 'Terjadi kesalahan saat menyimpan data'}`,
+    })
   }
 
   return (
     <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
+      {/* Sonner Toaster */}
+      <Toaster 
+        position="top-right"
+        richColors
+        closeButton
+        expand={true}
+        duration={4000}
+        toastOptions={{
+          style: {
+            background: 'white',
+            border: '1px solid #e5e7eb',
+            boxShadow: '0 10px 25px -5px rgb(0 0 0 / 0.1), 0 8px 10px -6px rgb(0 0 0 / 0.1)',
+          },
+        }}
+      />
+
       {/* Header & Add Button */}
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard Penyelenggaraan Bangkom</h1>
-          <p className="text-blue-600">Kelola dan monitor penyelenggaraan kegiatan pelatihan</p>
+          <p>Kelola dan monitor penyelenggaraan kegiatan bangkom non-pelatihan:
+  <br/>
+  <span>(Seminar, Webinar, Bimtek, Talkshow, Penilaian Kompetensi,</span>
+  <br/>
+  <span>Lab inovasi, Sosialisasi, dan lainnya)</span>
+</p>
         </div>
         <Dialog open={showModal} onOpenChange={setShowModal}>
           <DialogTrigger asChild>
             <Button className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all">
-              <GraduationCap className="w-4 h-4 mr-2" />
-              Isi Data Pelatihan
+              <Plus className="w-4 h-4 mr-2" />
+              Tambah Kegiatan
             </Button>
           </DialogTrigger>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-blue-700">Form Pengisian Pelatihan</DialogTitle>
+              <DialogTitle className="text-blue-700">Form Penyelenggaraan Bangkom</DialogTitle>
             </DialogHeader>
 
             {/* Form Input */}
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Nama Kegiatan */}
               <div className="space-y-1">
-                <Label htmlFor="nama">Nama Kegiatan</Label>
+                <Label htmlFor="namaKegiatan">Nama Kegiatan</Label>
                 <Input
-                  id="nama"
-                  name="nama"
-                  value={formData.nama}
+                  id="namaKegiatan"
+                  name="namaKegiatan"
+                  value={formData.namaKegiatan}
                   onChange={handleChange}
                   required
-                  placeholder="Contoh: Webinar Transformasi Digital"
+                  disabled={isSubmitting}
+                  placeholder="Contoh: Lab. Inovasi Kab. Tanjung Jabung Timur"
                 />
               </div>
 
-              {/* Tanggal Pelatihan */}
+              {/* Tanggal Kegiatan */}
               <div className="space-y-1">
-                <Label htmlFor="tanggal">Tanggal Pelatihan</Label>
+                <Label htmlFor="tanggal">Tanggal Kegiatan</Label>
                 <Input
                   id="tanggal"
                   type="date"
@@ -243,21 +420,27 @@ export default function FormPelatihanPage() {
                   value={formData.tanggal}
                   onChange={handleChange}
                   required
+                  disabled={isSubmitting}
                 />
               </div>
 
-              {/* Jenis Pelatihan */}
+              {/* Jenis Bangkom */}
               <div className="space-y-1">
-                <Label htmlFor="jenis">Jenis Pelatihan</Label>
-                <Select onValueChange={handleSelectChange} defaultValue={formData.jenis}>
-                  <SelectTrigger id="jenis">
-                    <SelectValue placeholder="Pilih jenis pelatihan" />
+                <Label htmlFor="jenis_bangkom">Jenis Bangkom</Label>
+                <Select 
+                  onValueChange={handleSelectChange} 
+                  value={formData.jenis_bangkom_id}
+                  disabled={isSubmitting}
+                >
+                  <SelectTrigger id="jenis_bangkom">
+                    <SelectValue placeholder="Pilih jenis bangkom" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="Webinar">Webinar</SelectItem>
-                    <SelectItem value="Seminar">Seminar</SelectItem>
-                    <SelectItem value="Zoom">Zoom</SelectItem>
-                    <SelectItem value="Sosialisasi">Sosialisasi</SelectItem>
+                    {options.map((option) => (
+                      <SelectItem key={option.id} value={option.id.toString()}>
+                        {option.jenis_bangkom}
+                      </SelectItem>
+                    ))}
                   </SelectContent>
                 </Select>
               </div>
@@ -273,7 +456,8 @@ export default function FormPelatihanPage() {
                   onChange={handleChange}
                   min="1"
                   required
-                  placeholder="Misal: 80"
+                  disabled={isSubmitting}
+                  placeholder="Contoh: 30"
                 />
               </div>
 
@@ -281,13 +465,28 @@ export default function FormPelatihanPage() {
               <div className="flex justify-end gap-3 pt-2">
                 <Button
                   variant="outline"
-                  onClick={() => setShowModal(false)}
+                  onClick={() => {
+                    setShowModal(false)
+                    toast.info("Form dibatalkan")
+                  }}
                   type="button"
+                  disabled={isSubmitting}
                 >
                   Batal
                 </Button>
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                  Simpan
+                <Button 
+                  type="submit" 
+                  className="bg-blue-600 hover:bg-blue-700"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                      Menyimpan...
+                    </>
+                  ) : (
+                    'Simpan'
+                  )}
                 </Button>
               </div>
             </form>
@@ -389,7 +588,7 @@ export default function FormPelatihanPage() {
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
             <PieChartIcon className="w-6 h-6 mr-2 text-green-500" />
-            Jenis Pelatihan
+            Jenis Bangkom
           </h2>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -417,7 +616,7 @@ export default function FormPelatihanPage() {
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
           <h2 className="text-xl font-bold">Data Penyelenggaraan Bangkom</h2>
-          <p className="text-blue-100 text-sm">Monitoring kegiatan pelatihan dan peserta</p>
+          <p className="text-blue-100 text-sm">Monitoring kegiatan bangkom non-pelatihan dan peserta</p>
         </div>
         
         <div className="overflow-x-auto">
@@ -427,8 +626,7 @@ export default function FormPelatihanPage() {
                 <TableHead className="font-medium">No</TableHead>
                 <TableHead className="font-medium">Nama Kegiatan</TableHead>
                 <TableHead className="font-medium">Tanggal</TableHead>
-                <TableHead className="font-medium">Jenis</TableHead>
-                <TableHead className="font-medium">Unit</TableHead>
+                <TableHead className="font-medium">Jenis Bangkom</TableHead>
                 <TableHead className="text-right font-medium">Jumlah Peserta</TableHead>
               </TableRow>
             </TableHeader>
@@ -436,28 +634,23 @@ export default function FormPelatihanPage() {
               {data.map((item, index) => (
                 <TableRow key={item.id} className="hover:bg-blue-50 transition-colors">
                   <TableCell className="text-gray-600">{index + 1}</TableCell>
-                  <TableCell className="font-medium text-gray-800">{item.nama}</TableCell>
+                  <TableCell className="font-medium text-gray-800">{item.namaKegiatan}</TableCell>
                   <TableCell className="text-gray-600">
                     <span className="inline-flex items-center">
                       <Calendar className="w-3 h-3 mr-1 text-gray-400" />
-                      {item.tanggal}
+                      {new Date(item.tanggal).toLocaleDateString('id-ID', {
+                        year: 'numeric',
+                        month: 'long',
+                        day: 'numeric'
+                      })}
                     </span>
                   </TableCell>
                   <TableCell>
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      item.jenis === 'Webinar' ? 'bg-blue-100 text-blue-800' :
-                      item.jenis === 'Seminar' ? 'bg-green-100 text-green-800' :
-                      item.jenis === 'Zoom' ? 'bg-purple-100 text-purple-800' :
-                      'bg-orange-100 text-orange-800'
-                    }`}>
-                      {item.jenis === 'Webinar' ? <Monitor className="w-3 h-3 mr-1" /> :
-                       item.jenis === 'Seminar' ? <GraduationCap className="w-3 h-3 mr-1" /> :
-                       item.jenis === 'Zoom' ? <Monitor className="w-3 h-3 mr-1" /> :
-                       <Award className="w-3 h-3 mr-1" />}
-                      {item.jenis}
+                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                      <Award className="w-3 h-3 mr-1" />
+                      {item.jenis_bangkom_non_pelatihan?.jenis_bangkom ?? "Tidak diketahui"}
                     </span>
                   </TableCell>
-                  <TableCell className="text-gray-600">{item.unit}</TableCell>
                   <TableCell className="text-right">
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                       item.jumlahPeserta >= 100 ? 'bg-green-100 text-green-800' :
@@ -473,6 +666,12 @@ export default function FormPelatihanPage() {
             </TableBody>
           </Table>
         </div>
+
+        {data.length === 0 && (
+          <div className="text-center py-8 text-gray-500">
+            Belum ada data penyelenggaraan. Tambahkan kegiatan pertama Anda!
+          </div>
+        )}
       </div>
 
       {/* Recent Activities */}
@@ -482,22 +681,33 @@ export default function FormPelatihanPage() {
           Aktivitas Terbaru
         </h2>
         <div className="space-y-4">
-          {data.slice(-3).map((item) => (
+          {data
+            .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime())
+            .slice(0, 3)
+            .map((item) => (
             <div key={item.id} className="flex items-start space-x-3 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
               <div className="bg-blue-500 rounded-full p-2">
                 <GraduationCap className="w-4 h-4 text-white" />
               </div>
               <div className="flex-1">
-                <h3 className="font-medium text-blue-800">{item.nama}</h3>
-                <p className="text-sm text-blue-600">{item.jumlahPeserta} peserta mengikuti {item.jenis}</p>
-                <p className="text-xs text-blue-500 mt-1">{item.tanggal}</p>
+                <h3 className="font-medium text-blue-800">{item.namaKegiatan}</h3>
+                <p className="text-sm text-blue-600">
+                  {item.jumlahPeserta} peserta • {item.jenis_bangkom_non_pelatihan?.jenis_bangkom ?? "Tidak diketahui"}
+                </p>
+                <p className="text-xs text-blue-500 mt-1">
+                  {new Date(item.tanggal).toLocaleDateString('id-ID', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  })}
+                </p>
               </div>
             </div>
           ))}
           
           {data.length === 0 && (
             <div className="text-center py-8 text-gray-500">
-              Belum ada data pelatihan. Tambahkan data pertama Anda!
+              Belum ada aktivitas terbaru. Tambahkan kegiatan pertama Anda!
             </div>
           )}
         </div>

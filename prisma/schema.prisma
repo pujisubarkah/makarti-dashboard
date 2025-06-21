@@ -75,14 +75,15 @@ model Penyelenggaraan {
 }
 
 model ProdukInovasi {
-  id            Int      @id @default(autoincrement())
-  nama          String
-  jenis         String
-  status        String
-  tanggalRilis  DateTime
-  keterangan    String?
-  unit_kerja_id Int?
-  users         users?   @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id             Int            @id @default(autoincrement())
+  nama           String
+  jenis          String
+  status_id      Int
+  tanggalRilis   DateTime
+  keterangan     String?
+  unit_kerja_id  Int?
+  status_inovasi status_inovasi @relation(fields: [status_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users          users?         @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("makarti")
 }
@@ -149,6 +150,8 @@ model pegawai {
   unit_kerja_id Int?
   jabatan       String?
   golongan      String?  @db.VarChar
+  eselon        String?  @db.VarChar(10)
+  users         users?   @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("makarti")
 }
@@ -159,6 +162,29 @@ model role_user {
   created_at DateTime @default(now()) @db.Timestamptz(6)
   role_user  String?
   users      users[]
+
+  @@schema("makarti")
+}
+
+model serapan_anggaran {
+  id                    Int       @id @default(autoincrement())
+  bulan                 String    @db.VarChar(20)
+  pagu_anggaran         Decimal   @db.Decimal(18, 2)
+  realisasi_pengeluaran Decimal   @db.Decimal(18, 2)
+  unit_kerja_id         Int
+  created_at            DateTime? @default(now()) @db.Timestamp(6)
+  updated_at            DateTime? @default(now()) @db.Timestamp(6)
+  users                 users     @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("makarti")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model status_inovasi {
+  id            Int             @id @default(autoincrement())
+  created_at    DateTime        @default(now()) @db.Timestamptz(6)
+  status        String?         @db.VarChar
+  ProdukInovasi ProdukInovasi[]
 
   @@schema("makarti")
 }
@@ -181,6 +207,8 @@ model users {
   Publikasi           Publikasi[]
   SkpTransformasional SkpTransformasional[]
   Sosialisasi         Sosialisasi[]
+  pegawai             pegawai[]
+  serapan_anggaran    serapan_anggaran[]
   role_user           role_user?            @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("makarti")

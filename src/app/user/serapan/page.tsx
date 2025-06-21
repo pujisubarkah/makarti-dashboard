@@ -1,17 +1,17 @@
-"use client"
-
-import { useState, useEffect } from "react"
+"use client";
+import { useState } from "react";
+import useSWR, { mutate } from "swr";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from "@/components/ui/dialog"
-import { Button } from "@/components/ui/button"
-import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import {
   Table,
   TableBody,
@@ -19,10 +19,9 @@ import {
   TableHead,
   TableHeader,
   TableRow,
-} from "@/components/ui/table"
+} from "@/components/ui/table";
 import {
   DollarSign,
-  TrendingUp,
   Calendar,
   Target,
   AlertCircle,
@@ -30,138 +29,103 @@ import {
   BarChart3,
   PieChart as PieChartIcon,
   Wallet,
-  CreditCard
-} from "lucide-react"
+  CreditCard,
+  Loader2,
+  TrendingUp,
+} from "lucide-react";
 import {
-  BarChart,
-  Bar,
+  ResponsiveContainer,
+  LineChart,
+  Line,
   XAxis,
   YAxis,
   CartesianGrid,
   Tooltip,
-  ResponsiveContainer,
-  LineChart,
-  Line,
+  Legend,
   PieChart,
   Pie,
   Cell,
-  Legend,
-} from 'recharts'
+} from 'recharts';
 
-interface SerapanAnggaranItem {
-  id: number
-  bulan: string
-  paguAnggaran: number
-  realisasiPengeluaran: number
-  capaianRealisasi: number
+// Interface untuk tipe data
+interface SerapanDetailItem {
+  id: number;
+  bulan: string;
+  realisasi_pengeluaran: number;
+  capaian_realisasi: number;
+  capaian_realisasi_kumulatif: number;
 }
 
-const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6', '#8b5cf6', '#fb7185']
+interface SerapanData {
+  pagu_anggaran: number;
+  total_realisasi: number;
+  sisa_anggaran: number;
+  capaian_realisasi: number;
+  detail_per_bulan: SerapanDetailItem[];
+}
 
-const initialData: SerapanAnggaranItem[] = [
-  {
-    id: 1,
-    bulan: 'Januari',
-    paguAnggaran: 500000000,
-    realisasiPengeluaran: 45000000,
-    capaianRealisasi: 0
-  },
-  {
-    id: 2,
-    bulan: 'Februari',
-    paguAnggaran: 500000000,
-    realisasiPengeluaran: 85000000,
-    capaianRealisasi: 0
-  },
-  {
-    id: 3,
-    bulan: 'Maret',
-    paguAnggaran: 500000000,
-    realisasiPengeluaran: 120000000,
-    capaianRealisasi: 0
-  },
-  {
-    id: 4,
-    bulan: 'April',
-    paguAnggaran: 500000000,
-    realisasiPengeluaran: 180000000,
-    capaianRealisasi: 0
-  },
-  {
-    id: 5,
-    bulan: 'Mei',
-    paguAnggaran: 500000000,
-    realisasiPengeluaran: 225000000,
-    capaianRealisasi: 0
-  },
-  {
-    id: 6,
-    bulan: 'Juni',
-    paguAnggaran: 500000000,
-    realisasiPengeluaran: 280000000,
-    capaianRealisasi: 0
-  },
-]
-
-// Calculate capaian realisasi for initial data
-const processedInitialData = initialData.map(item => ({
-  ...item,
-  capaianRealisasi: parseFloat(((item.realisasiPengeluaran / item.paguAnggaran) * 100).toFixed(2))
-}))
+// Fungsi fetcher untuk SWR
+const fetcher = (url: string) => fetch(url).then((res) => {
+  if (!res.ok) throw new Error('Failed to fetch');
+  return res.json();
+});
 
 export default function SerapanAnggaranPage() {
-  const [showModal, setShowModal] = useState(false)
-  const [data, setData] = useState<SerapanAnggaranItem[]>([])
-
-  // Load data from localStorage on component mount
-  useEffect(() => {
-    const savedData = localStorage.getItem("serapanAnggaranData")
-    setData(savedData ? JSON.parse(savedData) : processedInitialData)
-  }, [])
-
+  const [showModal, setShowModal] = useState(false);
   const [formData, setFormData] = useState({
     bulan: 'Januari',
     paguAnggaran: '',
     realisasiPengeluaran: '',
-  })
+  });
 
   const bulanOptions = [
     "Januari", "Februari", "Maret", "April", "Mei", "Juni",
     "Juli", "Agustus", "September", "Oktober", "November", "Desember"
-  ]
+  ];
 
-  // Calculate statistics
-  const totalPagu = data.reduce((sum, item) => sum + item.paguAnggaran, 0)
-  const totalRealisasi = data.reduce((sum, item) => sum + item.realisasiPengeluaran, 0)
-  const sisaAnggaran = totalPagu - totalRealisasi
-  const persentaseRealisasi = totalPagu > 0 ? (totalRealisasi / totalPagu) * 100 : 0
+  // Ambil userId dari localStorage dengan pengecekan client-side
+  const getUserId = () => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('userId') || localStorage.getItem('userUnitId') || '17';
+    }
+    return '17';
+  };
 
-  // Data for charts
-  const chartData = data.map(item => ({
-    bulan: item.bulan.substring(0, 3),
-    pagu: item.paguAnggaran / 1000000,
-    realisasi: item.realisasiPengeluaran / 1000000,
-    persentase: item.capaianRealisasi
-  }))
+  const userId = getUserId();
+  const { data, error, isLoading } = useSWR<SerapanData>(`/api/serapan/${userId}`, fetcher);
 
-  const pieData = [
-    { name: 'Realisasi', value: totalRealisasi, color: '#34d399' },
-    { name: 'Sisa Anggaran', value: sisaAnggaran, color: '#60a5fa' }
-  ]
-
-  const formatRupiah = (amount: number) => {
-    return new Intl.NumberFormat('id-ID', {
+  // Format currency
+  const formatRupiah = (amount: number = 0) =>
+    new Intl.NumberFormat('id-ID', {
       style: 'currency',
       currency: 'IDR',
       minimumFractionDigits: 0,
-    }).format(amount)
-  }
+    }).format(amount);
 
+  // Loading state
+  if (isLoading) return <Loader />;
+  
+  // Error state
+  if (error) return <ErrorState error={error.message} />;
+  
+  // No data state
+  if (!data) return <ErrorState error="Data tidak ditemukan" />;
+
+  // Destructure data dengan default values
+  const { 
+    pagu_anggaran = 0, 
+    total_realisasi = 0, 
+    sisa_anggaran = 0, 
+    capaian_realisasi = 0, 
+    detail_per_bulan = [] 
+  } = data;
+
+  // Summary cards configuration
   const summaryCards = [
     {
       title: "Total Pagu Anggaran",
-      value: formatRupiah(totalPagu),
-      numericValue: totalPagu,
+      value: formatRupiah(pagu_anggaran),
+      numericValue: pagu_anggaran,
       icon: <Wallet className="w-6 h-6" />,
       color: 'blue',
       bgGradient: 'from-blue-500 to-blue-600',
@@ -174,8 +138,8 @@ export default function SerapanAnggaranPage() {
     },
     {
       title: "Total Realisasi",
-      value: formatRupiah(totalRealisasi),
-      numericValue: totalRealisasi,
+      value: formatRupiah(total_realisasi),
+      numericValue: total_realisasi,
       icon: <CreditCard className="w-6 h-6" />,
       color: 'green',
       bgGradient: 'from-green-500 to-green-600',
@@ -188,8 +152,8 @@ export default function SerapanAnggaranPage() {
     },
     {
       title: "Sisa Anggaran",
-      value: formatRupiah(sisaAnggaran),
-      numericValue: sisaAnggaran,
+      value: formatRupiah(sisa_anggaran),
+      numericValue: sisa_anggaran,
       icon: <DollarSign className="w-6 h-6" />,
       color: 'yellow',
       bgGradient: 'from-yellow-500 to-yellow-600',
@@ -202,73 +166,77 @@ export default function SerapanAnggaranPage() {
     },
     {
       title: "Capaian Realisasi",
-      value: `${persentaseRealisasi.toFixed(1)}%`,
-      numericValue: persentaseRealisasi,
+      value: `${capaian_realisasi.toFixed(1)}%`,
+      numericValue: capaian_realisasi,
       icon: <Target className="w-6 h-6" />,
-      color: persentaseRealisasi >= 80 ? 'green' : persentaseRealisasi >= 60 ? 'yellow' : 'red',
-      bgGradient: persentaseRealisasi >= 80 ? 'from-green-500 to-green-600' : persentaseRealisasi >= 60 ? 'from-yellow-500 to-yellow-600' : 'from-red-500 to-red-600',
-      bgLight: persentaseRealisasi >= 80 ? 'bg-green-100' : persentaseRealisasi >= 60 ? 'bg-yellow-100' : 'bg-red-100',
-      textColor: persentaseRealisasi >= 80 ? 'text-green-600' : persentaseRealisasi >= 60 ? 'text-yellow-600' : 'text-red-600',
-      textDark: persentaseRealisasi >= 80 ? 'text-green-800' : persentaseRealisasi >= 60 ? 'text-yellow-800' : 'text-red-800',
-      borderColor: persentaseRealisasi >= 80 ? 'border-green-500' : persentaseRealisasi >= 60 ? 'border-yellow-500' : 'border-red-500',
+      color: capaian_realisasi >= 80 ? 'green' : capaian_realisasi >= 60 ? 'yellow' : 'red',
+      bgGradient: capaian_realisasi >= 80 ? 'from-green-500 to-green-600' :
+                capaian_realisasi >= 60 ? 'from-yellow-500 to-yellow-600' :
+                'from-red-500 to-red-600',
+      bgLight: capaian_realisasi >= 80 ? 'bg-green-100' : capaian_realisasi >= 60 ? 'bg-yellow-100' : 'bg-red-100',
+      textColor: capaian_realisasi >= 80 ? 'text-green-600' :
+                capaian_realisasi >= 60 ? 'text-yellow-600' : 'text-red-600',
+      textDark: capaian_realisasi >= 80 ? 'text-green-800' : capaian_realisasi >= 60 ? 'text-yellow-800' : 'text-red-800',
+      borderColor: capaian_realisasi >= 80 ? 'border-green-500' :
+                capaian_realisasi >= 60 ? 'border-yellow-500' : 'border-red-500',
       change: '+8%',
       description: 'Persentase penyerapan'
-    },
-  ]
+    }
+  ];
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
+  // Chart data dengan pengecekan array
+  const chartData = Array.isArray(detail_per_bulan) ? detail_per_bulan.map(item => ({
+    bulan: item.bulan ? item.bulan.substring(0, 3) : '',
+    realisasi: (item.realisasi_pengeluaran || 0) / 1000000,
+    persentase: item.capaian_realisasi || 0,
+    capaian_realisasi_kumulatif: item.capaian_realisasi_kumulatif || 0
+  })) : [];
 
-  const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
+  // Pie chart data
+  const pieData = [
+    { name: 'Realisasi', value: total_realisasi, color: '#34d399' },
+    { name: 'Sisa Anggaran', value: sisa_anggaran, color: '#60a5fa' }
+  ];
 
+  // Handle form submission
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
+    e.preventDefault();
 
     try {
-      const paguAnggaran = parseFloat(formData.paguAnggaran)
-      const realisasiPengeluaran = parseFloat(formData.realisasiPengeluaran)
-      const capaianRealisasi = parseFloat(((realisasiPengeluaran / paguAnggaran) * 100).toFixed(2))
+      const response = await fetch(`/api/serapan/${userId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          bulan: formData.bulan,
+          pagu_anggaran: parseFloat(formData.paguAnggaran),
+          realisasi_pengeluaran: parseFloat(formData.realisasiPengeluaran),
+        }),
+      });
 
-      const newItem = {
-        id: Date.now(),
-        bulan: formData.bulan,
-        paguAnggaran,
-        realisasiPengeluaran,
-        capaianRealisasi
+      if (!response.ok) {
+        throw new Error('Gagal menyimpan data');
       }
 
-      // Check if month already exists
-      const existingIndex = data.findIndex(item => item.bulan === formData.bulan)
-      let updatedData
+      const result = await response.json();
 
-      if (existingIndex !== -1) {
-        // Update existing month
-        updatedData = [...data]
-        updatedData[existingIndex] = newItem
-      } else {
-        // Add new month
-        updatedData = [...data, newItem]
-      }
+      // Update data dengan SWR
+      mutate(`/api/serapan/${userId}`, result, false);
 
-      setData(updatedData)
-      localStorage.setItem("serapanAnggaranData", JSON.stringify(updatedData))
-
-      // Reset form and close modal
+      // Reset form dan tutup modal
       setFormData({
         bulan: 'Januari',
         paguAnggaran: '',
         realisasiPengeluaran: '',
-      })
-      setShowModal(false)
-      alert('Data berhasil disimpan!')
-    } catch {
-      alert('Terjadi kesalahan saat menyimpan data.')
+      });
+      setShowModal(false);
+      alert('Data berhasil disimpan!');
+    } catch (err) {
+      console.error('Error saving data:', err);
+      alert('Terjadi kesalahan saat menyimpan data.');
     }
-  }
+  };
 
   return (
     <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
@@ -289,7 +257,6 @@ export default function SerapanAnggaranPage() {
             <DialogHeader>
               <DialogTitle className="text-blue-700">Form Serapan Anggaran</DialogTitle>
             </DialogHeader>
-
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Bulan */}
               <div className="space-y-1">
@@ -297,16 +264,14 @@ export default function SerapanAnggaranPage() {
                 <Select
                   name="bulan"
                   value={formData.bulan}
-                  onValueChange={(value) => handleSelectChange("bulan", value)}
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, bulan: value }))}
                 >
                   <SelectTrigger id="bulan">
                     <SelectValue placeholder="Pilih bulan" />
                   </SelectTrigger>
                   <SelectContent>
                     {bulanOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
+                      <SelectItem key={option} value={option}>{option}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
@@ -320,10 +285,13 @@ export default function SerapanAnggaranPage() {
                   name="paguAnggaran"
                   type="number"
                   value={formData.paguAnggaran}
-                  onChange={handleChange}
+                  onChange={(e) => setFormData(prev => ({ ...prev, paguAnggaran: e.target.value }))}
                   required
-                  placeholder="Contoh: 500000000"
+                  placeholder="Contoh: 6786042000"
                 />
+                <p className="text-xs text-gray-500">
+                  Current Pagu: {formatRupiah(pagu_anggaran)}
+                </p>
               </div>
 
               {/* Realisasi Pengeluaran */}
@@ -334,18 +302,14 @@ export default function SerapanAnggaranPage() {
                   name="realisasiPengeluaran"
                   type="number"
                   value={formData.realisasiPengeluaran}
-                  onChange={handleChange}
+                  onChange={(e) => setFormData(prev => ({ ...prev, realisasiPengeluaran: e.target.value }))}
                   required
                   placeholder="Contoh: 45000000"
                 />
               </div>
 
               <div className="flex justify-end gap-3 pt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowModal(false)}
-                  type="button"
-                >
+                <Button variant="outline" onClick={() => setShowModal(false)} type="button">
                   Batal
                 </Button>
                 <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
@@ -394,7 +358,7 @@ export default function SerapanAnggaranPage() {
                   <div 
                     className={`bg-gradient-to-r ${card.bgGradient} h-2 rounded-full transition-all duration-500`}
                     style={{ 
-                      width: `${idx === 3 ? Math.min(card.numericValue, 100) : Math.min((card.numericValue / Math.max(...summaryCards.slice(0, 3).map(c => c.numericValue))) * 100, 100)}%` 
+                      width: `${idx === 3 ? Math.min(card.numericValue, 100) : Math.min((card.numericValue / Math.max(...summaryCards.slice(0, 3).map(c => c.numericValue || 1))) * 100, 100)}%` 
                     }}
                   ></div>
                 </div>
@@ -431,26 +395,18 @@ export default function SerapanAnggaranPage() {
                     borderRadius: '8px'
                   }}
                   formatter={(value, name) => [
-                    `Rp ${value} Juta`,
-                    name === 'pagu' ? 'Pagu Anggaran' : 'Realisasi'
+                    `${value} Juta`,
+                    name === 'realisasi' ? 'Realisasi' : name
                   ]}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="pagu" 
-                  stroke="#60a5fa" 
-                  strokeWidth={3}
-                  name="pagu"
-                  strokeDasharray="5 5"
-                />
+                <Legend />
                 <Line 
                   type="monotone" 
                   dataKey="realisasi" 
                   stroke="#34d399" 
                   strokeWidth={3}
-                  name="realisasi"
+                  name="Realisasi"
                 />
-                <Legend />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -471,7 +427,7 @@ export default function SerapanAnggaranPage() {
                   nameKey="name"
                   outerRadius={100}
                   label={({ name, percent, value }) => 
-                    `${name}: ${(percent * 100).toFixed(1)}%\n${formatRupiah(value)}`
+                    `${name}: ${(percent * 100).toFixed(1)}%`
                   }
                 >
                   {pieData.map((entry, index) => (
@@ -501,55 +457,63 @@ export default function SerapanAnggaranPage() {
               <TableRow className="bg-gray-50">
                 <TableHead className="font-medium">No</TableHead>
                 <TableHead className="font-medium">Bulan</TableHead>
-                <TableHead className="font-medium text-right">Pagu Anggaran</TableHead>
                 <TableHead className="font-medium text-right">Realisasi Pengeluaran</TableHead>
                 <TableHead className="font-medium text-center">Capaian Realisasi</TableHead>
+                <TableHead className="font-medium text-center">Capaian Kumulatif</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.map((item, index) => (
-                <TableRow key={item.id} className="hover:bg-blue-50 transition-colors">
-                  <TableCell className="text-gray-600">{index + 1}</TableCell>
-                  <TableCell className="font-medium text-gray-800">
-                    <span className="inline-flex items-center">
-                      <Calendar className="w-3 h-3 mr-1 text-gray-400" />
-                      {item.bulan}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-right font-medium text-blue-600">
-                    {formatRupiah(item.paguAnggaran)}
-                  </TableCell>
-                  <TableCell className="text-right font-medium text-green-600">
-                    {formatRupiah(item.realisasiPengeluaran)}
-                  </TableCell>
-                  <TableCell className="text-center">
-                    <div className="flex items-center justify-center space-x-2">
+              {Array.isArray(detail_per_bulan) && detail_per_bulan.length > 0 ? (
+                detail_per_bulan.map((item, index) => (
+                  <TableRow key={item.id} className="hover:bg-blue-50 transition-colors">
+                    <TableCell className="text-gray-600">{index + 1}</TableCell>
+                    <TableCell className="font-medium text-gray-800">
+                      <span className="inline-flex items-center">
+                        <Calendar className="w-3 h-3 mr-1 text-gray-400" />
+                        {item.bulan}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-right font-medium text-green-600">
+                      {formatRupiah(item.realisasi_pengeluaran)}
+                    </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center space-x-2">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
+                          item.capaian_realisasi >= 80 ? 'bg-green-100 text-green-800' :
+                          item.capaian_realisasi >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                          item.capaian_realisasi >= 40 ? 'bg-orange-100 text-orange-800' :
+                          'bg-red-100 text-red-800'
+                        }`}>
+                          {item.capaian_realisasi >= 80 ? <CheckCircle className="w-3 h-3 mr-1" /> :
+                           item.capaian_realisasi >= 60 ? <Target className="w-3 h-3 mr-1" /> :
+                           <AlertCircle className="w-3 h-3 mr-1" />}
+                          {item.capaian_realisasi.toFixed(1)}%
+                        </span>
+                      </div>
+                    </TableCell>
+                    <TableCell className="text-center">
                       <span className={`inline-flex items-center px-3 py-1 rounded-full text-sm font-medium ${
-                        item.capaianRealisasi >= 80 ? 'bg-green-100 text-green-800' :
-                        item.capaianRealisasi >= 60 ? 'bg-yellow-100 text-yellow-800' :
-                        item.capaianRealisasi >= 40 ? 'bg-orange-100 text-orange-800' :
+                        item.capaian_realisasi_kumulatif >= 80 ? 'bg-green-100 text-green-800' :
+                        item.capaian_realisasi_kumulatif >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                        item.capaian_realisasi_kumulatif >= 40 ? 'bg-orange-100 text-orange-800' :
                         'bg-red-100 text-red-800'
                       }`}>
-                        {item.capaianRealisasi >= 80 ? <CheckCircle className="w-3 h-3 mr-1" /> :
-                         item.capaianRealisasi >= 60 ? <Target className="w-3 h-3 mr-1" /> :
-                         <AlertCircle className="w-3 h-3 mr-1" />}
-                        {item.capaianRealisasi.toFixed(1)}%
+                        {item.capaian_realisasi_kumulatif.toFixed(1)}%
                       </span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
-                      <div 
-                        className={`h-2 rounded-full transition-all duration-500 ${
-                          item.capaianRealisasi >= 80 ? 'bg-gradient-to-r from-green-500 to-green-600' :
-                          item.capaianRealisasi >= 60 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' :
-                          item.capaianRealisasi >= 40 ? 'bg-gradient-to-r from-orange-500 to-orange-600' :
-                          'bg-gradient-to-r from-red-500 to-red-600'
-                        }`}
-                        style={{ width: `${Math.min(item.capaianRealisasi, 100)}%` }}
-                      ></div>
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                    <div className="flex flex-col items-center">
+                      <AlertCircle className="w-8 h-8 text-gray-400 mb-2" />
+                      <p>Tidak ada data untuk ditampilkan</p>
+                      <p className="text-sm">Silakan tambahkan data anggaran terlebih dahulu</p>
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </div>
@@ -573,7 +537,9 @@ export default function SerapanAnggaranPage() {
               </div>
             </div>
             <p className="text-2xl font-bold text-green-700 mt-2">
-              {data.filter(item => item.capaianRealisasi >= 80).length} bulan
+              {Array.isArray(detail_per_bulan) 
+                ? detail_per_bulan.filter(item => item.capaian_realisasi >= 80).length 
+                : 0} bulan
             </p>
           </div>
 
@@ -588,7 +554,9 @@ export default function SerapanAnggaranPage() {
               </div>
             </div>
             <p className="text-2xl font-bold text-yellow-700 mt-2">
-              {data.filter(item => item.capaianRealisasi >= 40 && item.capaianRealisasi < 80).length} bulan
+              {Array.isArray(detail_per_bulan) 
+                ? detail_per_bulan.filter(item => item.capaian_realisasi >= 40 && item.capaian_realisasi < 80).length
+                : 0} bulan
             </p>
           </div>
 
@@ -603,11 +571,44 @@ export default function SerapanAnggaranPage() {
               </div>
             </div>
             <p className="text-2xl font-bold text-red-700 mt-2">
-              {data.filter(item => item.capaianRealisasi < 40).length} bulan
+              {Array.isArray(detail_per_bulan) 
+                ? detail_per_bulan.filter(item => item.capaian_realisasi < 40).length
+                : 0} bulan
             </p>
           </div>
         </div>
       </div>
     </div>
-  )
+  );
+}
+
+// Component Loader
+function Loader() {
+  return (
+    <div className="p-6 space-y-8 bg-gray-50 min-h-screen flex justify-center items-center">
+      <div className="text-center">
+        <Loader2 className="w-10 h-10 animate-spin mx-auto text-blue-600" />
+        <p className="mt-2 text-gray-600">Memuat data...</p>
+      </div>
+    </div>
+  );
+}
+
+// Component Error
+function ErrorState({ error = "Gagal memuat data" }: { error?: string }) {
+  return (
+    <div className="p-6 space-y-8 bg-gray-50 min-h-screen flex justify-center items-center">
+      <div className="text-center">
+        <AlertCircle className="w-10 h-10 text-red-500 mx-auto mb-4" />
+        <h2 className="text-xl font-semibold text-gray-800 mb-2">Terjadi Kesalahan</h2>
+        <p className="text-gray-600 mb-4">{error}</p>
+        <button 
+          onClick={() => window.location.reload()} 
+          className="bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 rounded-lg transition-colors"
+        >
+          Coba Lagi
+        </button>
+      </div>
+    </div>
+  );
 }

@@ -15,7 +15,18 @@ import {
   LineChart,
   Line,
 } from 'recharts'
-import { Lightbulb, Megaphone, Users, BookOpenCheck, TrendingUp, Award } from 'lucide-react'
+import { 
+  Lightbulb, 
+  Megaphone, 
+  Users, 
+  BookOpenCheck, 
+  TrendingUp, 
+  Award, 
+  Rocket, 
+  Star, 
+  Brain,
+  Target
+} from 'lucide-react'
 
 const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6']
 
@@ -95,35 +106,103 @@ const serapanData = [
   { name: 'Sisa', value: 125 },
 ]
 
-const targetAchievements = [
+// Data Bigger Better Smarter yang dicapai melalui 4 pilar MAKARTI
+const biggerBetterSmarterAchievements = [
   {
-    category: 'Inovasi',
-    target: 20,
-    achieved: 15,
-    percentage: 75,
-    color: 'blue'
+    category: 'BIGGER',
+    subtitle: 'Dampak & Jangkauan',
+    description: 'Dicapai melalui Inovasi dan Networking',
+    contributingPillars: [
+      { pillar: 'Inovasi', contribution: 70, description: '15 inovasi aktif meningkatkan dampak layanan' },
+      { pillar: 'Networking', contribution: 65, description: '8 kunjungan instansi memperluas jangkauan' }
+    ],
+    metrics: [
+      { label: 'Penerima Manfaat', value: '12,500', unit: 'orang', progress: 85, source: 'Inovasi & Networking' },
+      { label: 'Jangkauan Wilayah', value: '45', unit: 'unit', progress: 90, source: 'Networking' },
+      { label: 'Kolaborasi Eksternal', value: '28', unit: 'instansi', progress: 80, source: 'Networking' },
+      { label: 'Dampak Sistemik', value: '75', unit: '%', progress: 75, source: 'Inovasi' }
+    ],
+    overallScore: 82,
+    icon: <Rocket className="w-6 h-6" />,
+    color: 'blue',
+    bgLight: 'bg-blue-50',
+    textColor: 'text-blue-600',
+    borderColor: 'border-blue-500'
   },
   {
-    category: 'Komunikasi',
-    target: 50,
-    achieved: 42,
-    percentage: 84,
-    color: 'green'
+    category: 'BETTER',
+    subtitle: 'Kualitas & Efisiensi',
+    description: 'Dicapai melalui Learning dan Inovasi',
+    contributingPillars: [
+      { pillar: 'Learning', contribution: 80, description: '10 kegiatan pembelajaran meningkatkan kualitas SDM' },
+      { pillar: 'Inovasi', contribution: 75, description: 'Inovasi mengoptimalkan proses kerja' }
+    ],
+    metrics: [
+      { label: 'Kepuasan Layanan', value: '92', unit: '%', progress: 92, source: 'Learning & Inovasi' },
+      { label: 'Efisiensi Proses', value: '85', unit: '%', progress: 85, source: 'Inovasi' },
+      { label: 'Kualitas Output', value: '88', unit: '%', progress: 88, source: 'Learning' },
+      { label: 'Pengurangan Biaya', value: '35', unit: '%', progress: 70, source: 'Inovasi' }
+    ],
+    overallScore: 84,
+    icon: <Star className="w-6 h-6" />,
+    color: 'green',
+    bgLight: 'bg-green-50',
+    textColor: 'text-green-600',
+    borderColor: 'border-green-500'
   },
   {
-    category: 'Networking',
-    target: 10,
-    achieved: 8,
-    percentage: 80,
-    color: 'yellow'
+    category: 'SMARTER',
+    subtitle: 'Teknologi & Inovasi',
+    description: 'Dicapai melalui Inovasi dan Komunikasi & Branding',
+    contributingPillars: [
+      { pillar: 'Inovasi', contribution: 85, description: 'Inovasi teknologi mendorong transformasi digital' },
+      { pillar: 'Komunikasi', contribution: 60, description: '42 postingan komunikasi meningkatkan literasi digital' }
+    ],
+    metrics: [
+      { label: 'Digitalisasi', value: '78', unit: '%', progress: 78, source: 'Inovasi' },
+      { label: 'Otomatisasi', value: '65', unit: '%', progress: 65, source: 'Inovasi' },
+      { label: 'Data Analytics', value: '72', unit: '%', progress: 72, source: 'Inovasi' },
+      { label: 'Literasi Digital', value: '68', unit: '%', progress: 68, source: 'Komunikasi & Branding' }
+    ],
+    overallScore: 71,
+    icon: <Brain className="w-6 h-6" />,
+    color: 'purple',
+    bgLight: 'bg-purple-50',
+    textColor: 'text-purple-600',
+    borderColor: 'border-purple-500'
+  }
+]
+
+// Data kontribusi setiap pilar terhadap BBS
+const pillarContributionData = [
+  { 
+    pillar: 'Inovasi', 
+    bigger: 70, 
+    better: 75, 
+    smarter: 85,
+    description: '15 inovasi aktif'
   },
-  {
-    category: 'Learning',
-    target: 12,
-    achieved: 10,
-    percentage: 83,
-    color: 'purple'
+  { 
+    pillar: 'Komunikasi & Branding', 
+    bigger: 45, 
+    better: 50, 
+    smarter: 60,
+    description: '42 postingan komunikasi'
   },
+  { 
+    pillar: 'Networking', 
+    bigger: 65, 
+    better: 40, 
+    smarter: 35,
+    description: '8 kunjungan instansi'
+  },
+  { 
+    pillar: 'Learning', 
+    bigger: 55, 
+    better: 80, 
+    smarter: 45,
+    description: '10 kegiatan pembelajaran'
+  }
 ]
 
 export default function RingkasanMakartiPage() {
@@ -188,38 +267,180 @@ export default function RingkasanMakartiPage() {
         ))}
       </div>
 
-      {/* Key Achievements */}
+      {/* Bigger Better Smarter Section */}
       <div className="bg-white rounded-xl shadow-lg p-6">
-        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-          <Award className="w-6 h-6 mr-2 text-yellow-500" />
-          Pencapaian Target MAKARTI
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-          {targetAchievements.map((achievement, index) => (
-            <div key={achievement.category} className="bg-gray-50 rounded-lg p-4">
-              <div className="flex justify-between items-center mb-2">
-                <h3 className="font-medium text-gray-800">{achievement.category}</h3>
-                <span className={`text-sm font-bold ${
-                  achievement.percentage >= 80 ? 'text-green-600' :
-                  achievement.percentage >= 60 ? 'text-yellow-600' : 'text-red-600'
-                }`}>
-                  {achievement.percentage}%
-                </span>
+        <div className="flex items-center space-x-3 mb-6">
+          <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-3 rounded-full">
+            <Target className="w-6 h-6 text-white" />
+          </div>
+          <div>
+            <h2 className="text-2xl font-bold text-gray-800">Bigger Better Smarter</h2>
+            <p className="text-gray-600">Dicapai melalui 4 pilar MAKARTI: Inovasi, Komunikasi & Branding, Networking, dan Learning</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {biggerBetterSmarterAchievements.map((achievement, index) => (
+            <div key={achievement.category} className={`${achievement.bgLight} rounded-xl p-6 border-l-4 ${achievement.borderColor} hover:shadow-lg transition-all duration-300`}>
+              {/* Header */}
+              <div className="flex items-center justify-between mb-4">
+                <div>
+                  <h3 className={`text-2xl font-bold ${achievement.textColor}`}>
+                    {achievement.category}
+                  </h3>
+                  <p className="text-sm text-gray-600">{achievement.subtitle}</p>
+                </div>
+                <div className={`bg-white p-3 rounded-full shadow-md`}>
+                  <div className={achievement.textColor}>
+                    {achievement.icon}
+                  </div>
+                </div>
               </div>
-              <div className="mb-2">
-                <div className="w-full bg-gray-200 rounded-full h-2">
+
+              {/* Contributing Pillars */}
+              <div className="mb-4 p-3 bg-white rounded-lg">
+                <p className="text-xs font-medium text-gray-700 mb-2">{achievement.description}</p>
+                <div className="space-y-2">
+                  {achievement.contributingPillars.map((pillar, idx) => (
+                    <div key={idx} className="flex items-center justify-between">
+                      <span className="text-xs text-gray-600">{pillar.pillar}</span>
+                      <div className="flex items-center space-x-2">
+                        <div className="w-16 bg-gray-200 rounded-full h-1">
+                          <div 
+                            className={`h-1 rounded-full ${achievement.textColor.replace('text-', 'bg-')}`}
+                            style={{ width: `${pillar.contribution}%` }}
+                          ></div>
+                        </div>
+                        <span className={`text-xs font-medium ${achievement.textColor}`}>
+                          {pillar.contribution}%
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Overall Score */}
+              <div className="mb-6">
+                <div className="flex items-center justify-between mb-3">
+                  <span className="text-sm font-medium text-gray-700">Overall Score</span>
+                  <span className={`text-3xl font-bold ${achievement.textColor}`}>
+                    {achievement.overallScore}%
+                  </span>
+                </div>
+                <div className="w-full bg-white rounded-full h-3 shadow-inner">
                   <div 
-                    className={`h-2 rounded-full transition-all duration-500 ${
-                      achievement.percentage >= 80 ? 'bg-green-500' :
-                      achievement.percentage >= 60 ? 'bg-yellow-500' : 'bg-red-500'
+                    className={`h-3 rounded-full transition-all duration-1000 ${
+                      achievement.overallScore >= 80 ? 'bg-gradient-to-r from-green-500 to-green-600' :
+                      achievement.overallScore >= 60 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' :
+                      'bg-gradient-to-r from-red-500 to-red-600'
                     }`}
-                    style={{ width: `${achievement.percentage}%` }}
+                    style={{ width: `${achievement.overallScore}%` }}
                   ></div>
                 </div>
               </div>
-              <div className="text-xs text-gray-600">
-                {achievement.achieved} dari {achievement.target} target
+
+              {/* Detailed Metrics */}
+              <div className="space-y-3">
+                {achievement.metrics.map((metric, metricIdx) => (
+                  <div key={metricIdx} className="bg-white rounded-lg p-3 shadow-sm">
+                    <div className="flex items-center justify-between mb-1">
+                      <span className="text-xs font-medium text-gray-700">{metric.label}</span>
+                      <span className={`text-sm font-bold ${achievement.textColor}`}>
+                        {metric.value} {metric.unit}
+                      </span>
+                    </div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-gray-500">via {metric.source}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-1.5">
+                      <div 
+                        className={`h-1.5 rounded-full transition-all duration-700 ${
+                          metric.progress >= 80 ? 'bg-green-500' :
+                          metric.progress >= 60 ? 'bg-yellow-500' :
+                          'bg-red-500'
+                        }`}
+                        style={{ width: `${metric.progress}%` }}
+                      ></div>
+                    </div>
+                  </div>
+                ))}
               </div>
+
+              {/* Status Badge */}
+              <div className="mt-4 text-center">
+                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                  achievement.overallScore >= 80 ? 'bg-green-100 text-green-800' :
+                  achievement.overallScore >= 60 ? 'bg-yellow-100 text-yellow-800' :
+                  'bg-red-100 text-red-800'
+                }`}>
+                  {achievement.overallScore >= 80 ? '🎯 Excellent' :
+                   achievement.overallScore >= 60 ? '⚡ Good' :
+                   '🔄 Needs Improvement'}
+                </span>
+              </div>
+            </div>
+          ))}
+        </div>
+
+        {/* Summary Stats */}
+        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 text-white">
+            <div className="text-center">
+              <div className="text-2xl font-bold">82%</div>
+              <div className="text-sm opacity-90">BIGGER Score</div>
+              <div className="text-xs opacity-75">via Inovasi & Networking</div>
+            </div>
+          </div>
+          <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 text-white">
+            <div className="text-center">
+              <div className="text-2xl font-bold">84%</div>
+              <div className="text-sm opacity-90">BETTER Score</div>
+              <div className="text-xs opacity-75">via Learning & Inovasi</div>
+            </div>
+          </div>
+          <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-4 text-white">
+            <div className="text-center">
+              <div className="text-2xl font-bold">71%</div>
+              <div className="text-sm opacity-90">SMARTER Score</div>
+              <div className="text-xs opacity-75">via Inovasi & Komunikasi</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      {/* Kontribusi Pilar terhadap BBS */}
+      <div className="bg-white rounded-xl shadow-lg p-6">
+        <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
+          <Award className="w-6 h-6 mr-2 text-orange-500" />
+          Kontribusi Pilar MAKARTI terhadap Bigger Better Smarter
+        </h2>
+        <div className="h-[400px]">
+          <ResponsiveContainer width="100%" height="100%">
+            <BarChart data={pillarContributionData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+              <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+              <XAxis dataKey="pillar" tick={{ fontSize: 11 }} angle={-45} textAnchor="end" height={80} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip 
+                contentStyle={{ 
+                  backgroundColor: '#f8fafc', 
+                  border: '1px solid #e2e8f0',
+                  borderRadius: '8px'
+                }}
+                formatter={(value, name) => [`${value}%`, typeof name === 'string' ? name.toUpperCase() : name]}
+              />
+              <Legend />
+              <Bar dataKey="bigger" fill="#3b82f6" radius={[2, 2, 0, 0]} name="BIGGER" />
+              <Bar dataKey="better" fill="#10b981" radius={[2, 2, 0, 0]} name="BETTER" />
+              <Bar dataKey="smarter" fill="#8b5cf6" radius={[2, 2, 0, 0]} name="SMARTER" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+        <div className="mt-4 grid grid-cols-1 md:grid-cols-4 gap-4">
+          {pillarContributionData.map((pillar, idx) => (
+            <div key={idx} className="p-3 bg-gray-50 rounded-lg text-center">
+              <h4 className="font-medium text-gray-800 text-sm">{pillar.pillar}</h4>
+              <p className="text-xs text-gray-600 mt-1">{pillar.description}</p>
             </div>
           ))}
         </div>
@@ -322,45 +543,38 @@ export default function RingkasanMakartiPage() {
 
         {/* Monthly Highlights */}
         <div className="bg-white p-6 rounded-xl shadow-lg lg:col-span-2">
-          <h2 className="text-xl font-bold mb-4 text-gray-800">Highlight Bulan Ini</h2>
+          <h2 className="text-xl font-bold mb-4 text-gray-800">Highlight: Pilar MAKARTI → Bigger Better Smarter</h2>
           <div className="space-y-4">
-            <div className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg">
+            <div className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
               <div className="bg-blue-500 rounded-full p-2">
-                <Lightbulb className="w-4 h-4 text-white" />
+                <Rocket className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h3 className="font-medium text-blue-800">Inovasi Digital Terbaru</h3>
-                <p className="text-sm text-blue-600">Implementasi 3 sistem baru untuk meningkatkan efisiensi pelayanan</p>
+                <h3 className="font-medium text-blue-800">BIGGER: Melalui Inovasi & Networking</h3>
+                <p className="text-sm text-blue-600">15 inovasi dan 8 kunjungan instansi menghasilkan jangkauan 45 unit dengan 12,500 penerima manfaat</p>
+                <p className="text-xs text-blue-500 mt-1">Kontribusi: Inovasi 70% • Networking 65%</p>
               </div>
             </div>
             
-            <div className="flex items-start space-x-3 p-3 bg-green-50 rounded-lg">
+            <div className="flex items-start space-x-3 p-3 bg-green-50 rounded-lg border-l-4 border-green-500">
               <div className="bg-green-500 rounded-full p-2">
-                <Megaphone className="w-4 h-4 text-white" />
+                <Star className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h3 className="font-medium text-green-800">Kampanye Komunikasi</h3>
-                <p className="text-sm text-green-600">Engagement rate meningkat 25% dari publikasi konten edukasi</p>
+                <h3 className="font-medium text-green-800">BETTER: Melalui Learning & Inovasi</h3>
+                <p className="text-sm text-green-600">10 kegiatan pembelajaran dan inovasi menghasilkan kepuasan layanan 92% dan efisiensi 85%</p>
+                <p className="text-xs text-green-500 mt-1">Kontribusi: Learning 80% • Inovasi 75%</p>
               </div>
             </div>
             
-            <div className="flex items-start space-x-3 p-3 bg-yellow-50 rounded-lg">
-              <div className="bg-yellow-500 rounded-full p-2">
-                <Users className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h3 className="font-medium text-yellow-800">Kolaborasi Strategis</h3>
-                <p className="text-sm text-yellow-600">MoU dengan 2 instansi baru untuk pengembangan kapasitas</p>
-              </div>
-            </div>
-            
-            <div className="flex items-start space-x-3 p-3 bg-purple-50 rounded-lg">
+            <div className="flex items-start space-x-3 p-3 bg-purple-50 rounded-lg border-l-4 border-purple-500">
               <div className="bg-purple-500 rounded-full p-2">
-                <BookOpenCheck className="w-4 h-4 text-white" />
+                <Brain className="w-4 h-4 text-white" />
               </div>
               <div>
-                <h3 className="font-medium text-purple-800">Program Pembelajaran</h3>
-                <p className="text-sm text-purple-600">5 workshop dengan tingkat kepuasan peserta 95%</p>
+                <h3 className="font-medium text-purple-800">SMARTER: Melalui Inovasi & Komunikasi</h3>
+                <p className="text-sm text-purple-600">Inovasi teknologi dan 42 komunikasi mencapai digitalisasi 78% dan literasi digital 68%</p>
+                <p className="text-xs text-purple-500 mt-1">Kontribusi: Inovasi 85% • Komunikasi 60%</p>
               </div>
             </div>
           </div>

@@ -33,7 +33,6 @@ import {
   BarChart3,
   PieChart as PieChartIcon,
   MapPin,
-  FileText
 } from "lucide-react"
 import {
   BarChart,

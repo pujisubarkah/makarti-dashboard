@@ -116,11 +116,6 @@ export default function PelatihanPage() {
   const totalPeserta = data.length // assuming 1 person per training
   const totalJam = data.reduce((sum, item) => sum + item.jam, 0)
   const rataRataJam = totalPelatihan > 0 ? Math.round(totalJam / totalPelatihan) : 0
-  const bulanIni = data.filter(item => {
-    const today = new Date()
-    const itemDate = new Date(item.tanggal)
-    return itemDate.getMonth() === today.getMonth() && itemDate.getFullYear() === today.getFullYear()
-  }).length
 
   // Data for charts
   const monthlyData = data.reduce((acc, item) => {

@@ -20,7 +20,6 @@ import {
   Eye, 
   Heart, 
   Share,
-  Calendar,
   BarChart3,
   PieChart as PieChartIcon
 } from "lucide-react"

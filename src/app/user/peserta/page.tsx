@@ -482,7 +482,7 @@ export default function FormPelatihanPage() {
           Aktivitas Terbaru
         </h2>
         <div className="space-y-4">
-          {data.slice(-3).map((item, index) => (
+          {data.slice(-3).map((item) => (
             <div key={item.id} className="flex items-start space-x-3 p-4 bg-blue-50 rounded-lg border-l-4 border-blue-500">
               <div className="bg-blue-500 rounded-full p-2">
                 <GraduationCap className="w-4 h-4 text-white" />

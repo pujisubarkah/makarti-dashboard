@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/table"
 import {
   Users,
-  Target,
   CheckCircle,
   Clock,
   TrendingUp,
@@ -33,17 +32,12 @@ import {
   Settings
 } from "lucide-react"
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
-  Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
   Legend,
+  Tooltip,
 } from 'recharts'
 
 interface SkpTransformasionalItem {

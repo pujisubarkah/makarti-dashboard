@@ -29,7 +29,6 @@ import {
   Monitor, 
   Building,
   Instagram,
-  Video,
   MessageSquare,
   BarChart3,
   PieChart as PieChartIcon
@@ -128,7 +127,6 @@ export default function SosialisasiPage() {
   const totalKegiatan = data.length
   const totalPeserta = data.reduce((sum, item) => sum + item.peserta, 0)
   const kegiatanDaring = data.filter(item => item.jenis === 'Webinar' || item.jenis === 'Live IG').length
-  const kegiatanLuring = data.filter(item => item.jenis === 'Tatap Muka' || item.jenis === 'FGD').length
   const rataRataPeserta = totalKegiatan > 0 ? Math.round(totalPeserta / totalKegiatan) : 0
 
   // Data for charts

@@ -22,7 +22,6 @@ import {
 } from "@/components/ui/table"
 import {
   Lightbulb,
-  Users,
   Clock,
   CheckCircle,
   TrendingUp,

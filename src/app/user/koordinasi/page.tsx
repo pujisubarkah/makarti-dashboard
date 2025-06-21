@@ -132,7 +132,6 @@ export default function TambahKoordinasiPage() {
   const totalKoordinasi = data.length
   const instansiPusat = data.filter(item => item.jenisInstansi === 'Pusat').length
   const instansiDaerah = data.filter(item => item.jenisInstansi === 'Daerah').length
-  const instansiAkademisi = data.filter(item => item.jenisInstansi === 'Akademisi').length
   const bulanIni = data.filter(item => {
     const today = new Date()
     const itemDate = new Date(item.tanggal)

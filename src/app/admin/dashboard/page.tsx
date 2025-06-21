@@ -280,7 +280,7 @@ export default function RingkasanMakartiPage() {
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {biggerBetterSmarterAchievements.map((achievement, index) => (
+          {biggerBetterSmarterAchievements.map((achievement) => (
             <div key={achievement.category} className={`${achievement.bgLight} rounded-xl p-6 border-l-4 ${achievement.borderColor} hover:shadow-lg transition-all duration-300`}>
               {/* Header */}
               <div className="flex items-center justify-between mb-4">

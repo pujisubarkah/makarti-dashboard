@@ -426,7 +426,7 @@ export default function SerapanAnggaranPage() {
                   dataKey="value"
                   nameKey="name"
                   outerRadius={100}
-                  label={({ name, percent, value }) => 
+                  label={({ name, percent }) => 
                     `${name}: ${(percent * 100).toFixed(1)}%`
                   }
                 >

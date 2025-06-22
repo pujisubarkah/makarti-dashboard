@@ -77,7 +77,13 @@ const fetcher = async (url: string) => {
 export default function PublikasiPage() {
   // State management
   const [showModal, setShowModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [submitLoading, setSubmitLoading] = useState(false)
+  const [editLoading, setEditLoading] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState<number | null>(null)
+  
+  // Edit form state
+  const [editData, setEditData] = useState<PublikasiItem | null>(null)
   
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1)
@@ -234,6 +240,123 @@ export default function PublikasiPage() {
       ...prev,
       [name]: name === "likes" || name === "views" ? parseInt(value) || 0 : value,
     }))
+  }
+
+  // Edit publication
+  const handleEdit = (item: PublikasiItem) => {
+    setEditData({
+      ...item,
+      tanggal: new Date(item.tanggal).toISOString().split('T')[0]
+    })
+    setShowEditModal(true)
+  }
+
+  // Update publication
+  const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault();
+
+  if (!unitKerjaId || !editData) {
+    toast.error("Data tidak lengkap");
+    return;
+  }
+
+  try {
+    setEditLoading(true);
+    
+    const payload = {
+      id: editData.id,
+      judul: editData.judul,
+      tanggal: editData.tanggal,
+      jenis: editData.jenis,
+      link: editData.link || null,
+      likes: hasEngagementMetrics(editData.jenis) ? editData.likes || null : null,
+      views: hasEngagementMetrics(editData.jenis) ? editData.views || null : null,
+    };
+
+    // Perbaikan endpoint PUT di sini:
+    if (!editData) {
+      throw new Error("Data edit tidak ditemukan");
+    }
+    // Pastikan editData tidak null sebelum akses id
+    const response = await fetch(`/api/publikasi/${unitKerjaId}/${editData?.id}`, {
+      method: 'PUT',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to update publikasi');
+    }
+
+    // ... rest of the code
+  } catch (err) {
+    // ... error handling
+  } finally {
+    setEditLoading(false);
+  }
+}
+
+  // Delete publication
+const handleDelete = async (id: number, judul: string) => {
+  if (!unitKerjaId) {
+    toast.error("Tidak dapat menentukan unit kerja");
+    return;
+  }
+
+  // Confirm delete
+  if (!window.confirm(`Apakah Anda yakin ingin menghapus publikasi "${judul}"?`)) {
+    return;
+  }
+
+  try {
+    setDeleteLoading(id);
+    
+    const response = await fetch(`/api/publikasi/${unitKerjaId}/${id}`, {
+      method: 'DELETE',
+      headers: {
+        'Content-Type': 'application/json',
+      },
+      // Tidak perlu body karena ID sudah di URL
+    });
+
+    if (!response.ok) {
+      const errorData = await response.json();
+      throw new Error(errorData.message || 'Failed to delete publikasi');
+    }
+
+    // Mutate SWR cache to trigger revalidation
+    await mutate();
+    
+    // Show success toast
+    toast.success("Publikasi berhasil dihapus!", {
+      description: `"${judul}" telah dihapus dari sistem.`,
+      duration: 4000,
+    });
+    
+  } catch (err) {
+    console.error('Error deleting publikasi:', err);
+    toast.error("Gagal menghapus publikasi", {
+      description: err instanceof Error ? err.message : 'Terjadi kesalahan saat menghapus data.',
+      duration: 5000,
+    });
+  } finally {
+    setDeleteLoading(null);
+  }
+}
+
+  // Edit form change handler
+  const handleEditChange = (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const { name, value } = e.target
+    setEditData((prev) => {
+      if (!prev) return null
+      return {
+        ...prev,
+        [name]: name === "likes" || name === "views" ? parseInt(value) || 0 : value,
+      }
+    })
   }
 
   // Calculate statistics
@@ -804,6 +927,7 @@ export default function PublikasiPage() {
                 <TableHead className="text-right font-medium">Views</TableHead>
                 <TableHead className="text-right font-medium">Engagement</TableHead>
                 <TableHead className="text-center font-medium">Link</TableHead>
+                <TableHead className="text-center font-medium">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -878,12 +1002,46 @@ export default function PublikasiPage() {
                           Lihat
                         </a>
                       </TableCell>
+                      <TableCell className="text-center">
+                        <div className="flex items-center justify-center gap-2">
+                          {/* Edit Button */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleEdit(item)}
+                            className="h-8 w-8 p-0 text-blue-600 border-blue-300 hover:bg-blue-50 hover:border-blue-400"
+                            title="Edit publikasi"
+                          >
+                            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M11 5H6a2 2 0 00-2 2v11a2 2 0 002 2h11a2 2 0 002-2v-5m-1.414-9.414a2 2 0 112.828 2.828L11.828 15H9v-2.828l8.586-8.586z" />
+                            </svg>
+                          </Button>
+
+                          {/* Delete Button */}
+                          <Button
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleDelete(item.id, item.judul)}
+                            disabled={deleteLoading === item.id}
+                            className="h-8 w-8 p-0 text-red-600 border-red-300 hover:bg-red-50 hover:border-red-400 disabled:opacity-50"
+                            title="Hapus publikasi"
+                          >
+                            {deleteLoading === item.id ? (
+                              <Loader2 className="w-4 h-4 animate-spin" />
+                            ) : (
+                              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16" />
+                              </svg>
+                            )}
+                          </Button>
+                        </div>
+                      </TableCell>
                     </TableRow>
                   )
                 })
               ) : (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={9} className="text-center py-8 text-gray-500">
                     <div className="flex flex-col items-center">
                       <FileText className="w-8 h-8 text-gray-400 mb-2" />
                       <p>Tidak ada data publikasi</p>
@@ -962,6 +1120,182 @@ export default function PublikasiPage() {
           </div>
         )}
       </div>
+
+      {/* Edit Publication Modal */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-blue-700">Edit Publikasi</DialogTitle>
+          </DialogHeader>
+          {editData && (
+            <form onSubmit={handleUpdate} className="space-y-4">
+              {/* Judul */}
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-blue-600">Judul</label>
+                <input
+                  type="text"
+                  name="judul"
+                  value={editData.judul}
+                  onChange={handleEditChange}
+                  required
+                  disabled={editLoading}
+                  className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                />
+              </div>
+
+              {/* Tanggal */}
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-blue-600">Tanggal</label>
+                <input
+                  type="date"
+                  name="tanggal"
+                  value={editData.tanggal}
+                  onChange={handleEditChange}
+                  required
+                  disabled={editLoading}
+                  className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                />
+              </div>
+
+              {/* Jenis Media */}
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-blue-600">Jenis Media</label>
+                <select
+                  name="jenis"
+                  value={editData.jenis}
+                  onChange={handleEditChange}
+                  disabled={editLoading}
+                  className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                >
+                  {jenisMediaOptions.map((option) => (
+                    <option key={option} value={option}>
+                      {option}
+                    </option>
+                  ))}
+                </select>
+              </div>
+
+              {/* Link */}
+              <div className="space-y-1">
+                <label className="block text-sm font-medium text-blue-600">Link</label>
+                <input
+                  type="url"
+                  name="link"
+                  value={editData.link}
+                  onChange={handleEditChange}
+                  disabled={editLoading}
+                  placeholder={
+                    editData.jenis === 'Instagram' ? 'https://instagram.com/p/...' :
+                    editData.jenis === 'TikTok' ? 'https://tiktok.com/@username/video/...' :
+                    editData.jenis === 'YouTube' ? 'https://youtube.com/watch?v=...' :
+                    'https://example.com'
+                  }
+                  className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                />
+              </div>
+
+              {/* Conditional Fields untuk platform dengan metrics */}
+              {hasEngagementMetrics(editData.jenis) && (
+                <>
+                  <div className="bg-gray-50 p-3 rounded-lg border-l-4 border-blue-500">
+                    <p className="text-sm text-blue-700 font-medium mb-2">
+                      📊 Metrics untuk {editData.jenis}
+                    </p>
+                    <p className="text-xs text-gray-600">
+                      {editData.jenis === 'Instagram' 
+                        ? 'Masukkan jumlah likes dan views dari post Instagram'
+                        : editData.jenis === 'TikTok'
+                        ? 'Masukkan jumlah likes dan views dari video TikTok'
+                        : 'Masukkan jumlah likes dan views dari video YouTube'
+                      }
+                    </p>
+                  </div>
+
+                  {/* Likes */}
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium text-blue-600">
+                      Likes {
+                        editData.jenis === 'TikTok' ? '❤️' : 
+                        editData.jenis === 'YouTube' ? '👍' :
+                        '💕'
+                      }
+                    </label>
+                    <input
+                      type="number"
+                      name="likes"
+                      value={editData.likes || 0}
+                      onChange={handleEditChange}
+                      min="0"
+                      disabled={editLoading}
+                      placeholder={
+                        editData.jenis === 'TikTok' ? 'e.g., 1500' : 
+                        editData.jenis === 'YouTube' ? 'e.g., 680' :
+                        'e.g., 300'
+                      }
+                      className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                    />
+                  </div>
+
+                  {/* Views */}
+                  <div className="space-y-1">
+                    <label className="block text-sm font-medium text-blue-600">
+                      Views {
+                        editData.jenis === 'TikTok' ? '👀' : 
+                        editData.jenis === 'YouTube' ? '📺' :
+                        '📊'
+                      }
+                    </label>
+                    <input
+                      type="number"
+                      name="views"
+                      value={editData.views || 0}
+                      onChange={handleEditChange}
+                      min="0"
+                      disabled={editLoading}
+                      placeholder={
+                        editData.jenis === 'TikTok' ? 'e.g., 25000' : 
+                        editData.jenis === 'YouTube' ? 'e.g., 18500' :
+                        'e.g., 5000'
+                      }
+                      className="w-full border border-gray-300 px-3 py-2 rounded focus:outline-none focus:ring-2 focus:ring-blue-500 disabled:bg-gray-100"
+                    />
+                  </div>
+                </>
+              )}
+
+              {/* Submit buttons */}
+              <div className="flex justify-end gap-3 pt-2">
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    setShowEditModal(false)
+                    setEditData(null)
+                  }}
+                  type="button"
+                  disabled={editLoading}
+                  className="text-gray-700 border-gray-300 hover:bg-gray-100"
+                >
+                  Batal
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={editLoading}
+                  className="bg-blue-600 hover:bg-blue-700 text-white disabled:opacity-50"
+                >
+                  {editLoading ? (
+                    <>
+                      <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                      Memperbarui...
+                    </>
+                  ) : (
+                    'Perbarui'
+                  )}
+                </Button>
+              </div>
+            </form>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

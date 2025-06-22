@@ -31,6 +31,7 @@ model Koordinasi {
   catatan       String?
   unit_kerja_id Int
   createdAt     DateTime @default(now())
+  Status        String?
   users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("makarti")

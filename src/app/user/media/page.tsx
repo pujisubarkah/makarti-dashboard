@@ -139,7 +139,7 @@ export default function PublikasiPage() {
   const data = React.useMemo(() => {
     if (!rawData) return []
     
-    return rawData.map((item: any) => ({
+    return rawData.map((item: PublikasiItem) => ({
       id: item.id,
       judul: item.judul,
       tanggal: new Date(item.tanggal).toISOString().split('T')[0],
@@ -214,10 +214,9 @@ export default function PublikasiPage() {
         },
       })
       
-    } catch (err) {
-      console.error('Error creating publikasi:', err)
+    } catch {
       toast.error("Gagal menambahkan publikasi", {
-        description: err instanceof Error ? err.message : 'Terjadi kesalahan saat menyimpan data.',
+        description: 'Terjadi kesalahan saat menyimpan data.',
         duration: 5000,
       })
     } finally {
@@ -292,7 +291,7 @@ export default function PublikasiPage() {
     }
 
     // ... rest of the code
-  } catch (err) {
+  } catch {
     // ... error handling
   } finally {
     setEditLoading(false);

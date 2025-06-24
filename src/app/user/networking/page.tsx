@@ -24,7 +24,6 @@ import {
 } from "@/components/ui/table"
 import {
   Users,
-  Calendar,
   CheckCircle,
   Clock,
   TrendingUp,
@@ -36,6 +35,8 @@ import {
   MapPin,
   AlertCircle,
   RefreshCw,
+  Edit,
+  Trash2,
 } from "lucide-react"
 import {
   BarChart,
@@ -60,7 +61,7 @@ interface NetworkingItem {
   unit_kerja: string
 }
 
-const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6']
+const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6', '#8b5cf6', '#06b6d4']
 
 // Fetcher function untuk SWR
 const fetcher = async (url: string) => {
@@ -73,12 +74,22 @@ const fetcher = async (url: string) => {
 
 export default function NetworkingPage() {
   const [showModal, setShowModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
+  const [editingItem, setEditingItem] = useState<NetworkingItem | null>(null)
   const [unitKerjaId, setUnitKerjaId] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isDeleting, setIsDeleting] = useState<number | null>(null)
 
   const [formData, setFormData] = useState({
     instansi: "",
     jenis: "Joint Seminar",
+    status: "In Progress",
+    catatan: "",
+  })
+
+  const [editFormData, setEditFormData] = useState({
+    instansi: "",
+    jenis: "Joint Seminar", 
     status: "In Progress",
     catatan: "",
   })
@@ -118,7 +129,7 @@ export default function NetworkingPage() {
     unitKerjaId ? `/api/networking/${unitKerjaId}` : null,
     fetcher,
     {
-      refreshInterval: 30000, // Refresh setiap 30 detik
+      refreshInterval: 30000,
       revalidateOnFocus: true,
     }
   )
@@ -130,7 +141,7 @@ export default function NetworkingPage() {
   const selesai = data.filter(item => item.status === 'Selesai').length
   const mouDitandatangani = data.filter(item => item.status === 'MoU Ditandatangani').length
   const inProgress = data.filter(item => item.status === 'In Progress').length
-  const menungguTindakLanjut = data.filter(item => item.status === 'Menunggu Tindak Lanjut').length
+  
 
   // Data for charts
   const statusCount = data.reduce((acc, item) => {
@@ -222,11 +233,31 @@ export default function NetworkingPage() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
+  const handleEditChange = (
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
+  ) => {
+    const { name, value } = e.target
+    setEditFormData((prev) => ({
+      ...prev,
+      [name]: value,
+    }))
+  }
+
+  const handleEditSelectChange = (name: string, value: string) => {
+    setEditFormData(prev => ({ ...prev, [name]: value }))
+  }
+
+  // Handle Submit untuk Tambah Data
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     if (!unitKerjaId) {
       alert("Unit kerja ID tidak ditemukan. Silakan login ulang.")
+      return
+    }
+
+    if (!formData.instansi.trim()) {
+      alert("Nama instansi harus diisi.")
       return
     }
 
@@ -238,15 +269,30 @@ export default function NetworkingPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          instansi: formData.instansi.trim(),
+          jenis: formData.jenis,
+          status: formData.status,
+          catatan: formData.catatan.trim(),
+        }),
       })
 
+      const result = await response.json()
+
       if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || 'Gagal menyimpan data')
+        if (response.status === 409) {
+          alert(`Data networking sudah ada!\n\nInstansi: ${formData.instansi}\nJenis: ${formData.jenis}\n\nSilakan cek data yang sudah ada atau gunakan nama instansi yang berbeda.`)
+        } else if (response.status === 400) {
+          alert(`Data tidak valid:\n${result.error || 'Periksa kembali data yang dimasukkan'}`)
+        } else if (response.status === 404) {
+          alert("Unit kerja tidak ditemukan. Silakan login ulang.")
+        } else {
+          throw new Error(result.error || result.message || 'Gagal menyimpan data')
+        }
+        return
       }
 
-      // Refresh data dengan SWR mutate
+      // Refresh data
       await mutate()
 
       // Reset form and close modal
@@ -257,13 +303,139 @@ export default function NetworkingPage() {
         catatan: "",
       })
       setShowModal(false)
-      alert('Data berhasil disimpan!')
+      
+      alert('✅ Data berhasil disimpan!')
 
     } catch (error) {
       console.error('Error saving data:', error)
-      alert(error instanceof Error ? error.message : 'Terjadi kesalahan saat menyimpan data')
+      alert(`❌ Terjadi kesalahan: ${error instanceof Error ? error.message : 'Gagal menyimpan data'}`)
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  // Handle Edit Data
+  const handleEdit = (item: NetworkingItem) => {
+    setEditingItem(item)
+    setEditFormData({
+      instansi: item.instansi,
+      jenis: item.jenis,
+      status: item.status,
+      catatan: item.catatan,
+    })
+    setShowEditModal(true)
+  }
+
+  // Handle Update Data
+  const handleUpdate = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+
+    if (!unitKerjaId || !editingItem) {
+      alert("Data tidak valid untuk diupdate.")
+      return
+    }
+
+    if (!editFormData.instansi.trim()) {
+      alert("Nama instansi harus diisi.")
+      return
+    }
+
+    setIsSubmitting(true)
+
+    try {
+      const response = await fetch(`/api/networking/${unitKerjaId}/${editingItem.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          instansi: editFormData.instansi.trim(),
+          jenis: editFormData.jenis,
+          status: editFormData.status,
+          catatan: editFormData.catatan.trim(),
+        }),
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        if (response.status === 409) {
+          alert(`Data networking sudah ada!\n\nInstansi: ${editFormData.instansi}\nJenis: ${editFormData.jenis}\n\nSilakan gunakan nama instansi yang berbeda.`)
+        } else if (response.status === 400) {
+          alert(`Data tidak valid:\n${result.error || 'Periksa kembali data yang dimasukkan'}`)
+        } else if (response.status === 404) {
+          alert("Data networking tidak ditemukan atau Anda tidak memiliki akses.")
+        } else {
+          throw new Error(result.error || result.message || 'Gagal mengupdate data')
+        }
+        return
+      }
+
+      // Refresh data
+      await mutate()
+
+      // Close modal and reset
+      setShowEditModal(false)
+      setEditingItem(null)
+      
+      alert('✅ Data berhasil diupdate!')
+
+    } catch (error) {
+      console.error('Error updating data:', error)
+      alert(`❌ Terjadi kesalahan: ${error instanceof Error ? error.message : 'Gagal mengupdate data'}`)
+    } finally {
+      setIsSubmitting(false)
+    }
+  }
+
+  // Handle Delete Data
+  const handleDelete = async (item: NetworkingItem) => {
+    if (!unitKerjaId) {
+      alert("Unit kerja ID tidak ditemukan.")
+      return
+    }
+
+    const confirmDelete = confirm(
+      `⚠️ KONFIRMASI HAPUS DATA\n\n` +
+      `Instansi: ${item.instansi}\n` +
+      `Jenis: ${item.jenis}\n` +
+      `Status: ${item.status}\n\n` +
+      `Apakah Anda yakin ingin menghapus data ini?\n` +
+      `Data yang dihapus tidak dapat dikembalikan.`
+    )
+    
+    if (!confirmDelete) return
+
+    setIsDeleting(item.id)
+
+    try {
+      const response = await fetch(`/api/networking/${unitKerjaId}/${item.id}`, {
+        method: 'DELETE',
+      })
+
+      const result = await response.json()
+
+      if (!response.ok) {
+        if (response.status === 404) {
+          alert("Data tidak ditemukan atau sudah dihapus.")
+        } else if (response.status === 409) {
+          alert("Data tidak dapat dihapus karena masih memiliki relasi dengan data lain.")
+        } else {
+          throw new Error(result.error || result.message || 'Gagal menghapus data')
+        }
+        return
+      }
+
+      // Refresh data
+      await mutate()
+      
+      alert('✅ Data berhasil dihapus!')
+
+    } catch (error) {
+      console.error('Error deleting data:', error)
+      alert(`❌ Terjadi kesalahan: ${error instanceof Error ? error.message : 'Gagal menghapus data'}`)
+    } finally {
+      setIsDeleting(null)
     }
   }
 
@@ -310,6 +482,8 @@ export default function NetworkingPage() {
           <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard Kegiatan Networking</h1>
           <p className="text-blue-600">Kelola dan monitor kegiatan networking dengan instansi lain</p>
         </div>
+        
+        {/* Modal Tambah Kegiatan */}
         <Dialog open={showModal} onOpenChange={setShowModal}>
           <DialogTrigger asChild>
             <Button className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all">
@@ -323,7 +497,6 @@ export default function NetworkingPage() {
             </DialogHeader>
 
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Instansi */}
               <div className="space-y-1">
                 <Label htmlFor="instansi">Instansi / Pihak Terkait</Label>
                 <Input
@@ -336,15 +509,13 @@ export default function NetworkingPage() {
                 />
               </div>
 
-              {/* Jenis Kegiatan */}
               <div className="space-y-1">
                 <Label htmlFor="jenis">Jenis Kegiatan</Label>
                 <Select
-                  name="jenis"
                   value={formData.jenis}
                   onValueChange={(value) => handleSelectChange("jenis", value)}
                 >
-                  <SelectTrigger id="jenis">
+                  <SelectTrigger>
                     <SelectValue placeholder="Pilih jenis kegiatan" />
                   </SelectTrigger>
                   <SelectContent>
@@ -357,15 +528,13 @@ export default function NetworkingPage() {
                 </Select>
               </div>
 
-              {/* Status */}
               <div className="space-y-1">
                 <Label htmlFor="status">Status</Label>
                 <Select
-                  name="status"
                   value={formData.status}
                   onValueChange={(value) => handleSelectChange("status", value)}
                 >
-                  <SelectTrigger id="status">
+                  <SelectTrigger>
                     <SelectValue placeholder="Pilih status" />
                   </SelectTrigger>
                   <SelectContent>
@@ -378,7 +547,6 @@ export default function NetworkingPage() {
                 </Select>
               </div>
 
-              {/* Catatan */}
               <div className="space-y-1">
                 <Label htmlFor="catatan">Catatan</Label>
                 <textarea
@@ -452,7 +620,6 @@ export default function NetworkingPage() {
                 </div>
               </div>
               
-              {/* Progress Bar */}
               <div className="mt-4">
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div 
@@ -508,7 +675,7 @@ export default function NetworkingPage() {
             )}
           </div>
         </div>
-
+    
         {/* Bar Chart */}
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
@@ -529,17 +696,11 @@ export default function NetworkingPage() {
                       borderRadius: '8px'
                     }}
                   />
-                  <Bar 
-                    dataKey="kegiatan" 
-                    fill="url(#colorGradient)" 
-                    radius={[4, 4, 0, 0]}
-                  />
-                  <defs>
-                    <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                      <stop offset="95%" stopColor="#1d4ed8" stopOpacity={0.8}/>
-                    </linearGradient>
-                  </defs>
+                  <Bar dataKey="kegiatan">
+                    {barData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                    ))}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             ) : (
@@ -551,7 +712,7 @@ export default function NetworkingPage() {
         </div>
       </div>
 
-      {/* Enhanced Table */}
+      {/* Table Section */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
           <h2 className="text-xl font-bold">Data Kegiatan Networking</h2>
@@ -567,6 +728,7 @@ export default function NetworkingPage() {
                 <TableHead className="font-medium">Jenis</TableHead>
                 <TableHead className="font-medium">Status</TableHead>
                 <TableHead className="font-medium">Catatan</TableHead>
+                <TableHead className="font-medium text-center">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -609,11 +771,36 @@ export default function NetworkingPage() {
                     <TableCell className="text-sm text-gray-600 max-w-xs truncate">
                       {item.catatan || '-'}
                     </TableCell>
+                    <TableCell className="text-center">
+                      <div className="flex items-center justify-center space-x-2">
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleEdit(item)}
+                          className="hover:bg-blue-50 hover:border-blue-300"
+                        >
+                          <Edit className="w-4 h-4 text-blue-600" />
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => handleDelete(item)}
+                          disabled={isDeleting === item.id}
+                          className="hover:bg-red-50 hover:border-red-300"
+                        >
+                          {isDeleting === item.id ? (
+                            <RefreshCw className="w-4 h-4 text-red-600 animate-spin" />
+                          ) : (
+                            <Trash2 className="w-4 h-4 text-red-600" />
+                          )}
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
                     Belum ada data networking
                   </TableCell>
                 </TableRow>
@@ -623,66 +810,107 @@ export default function NetworkingPage() {
         </div>
       </div>
 
-      {/* Recent Activities */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
-          <Handshake className="w-6 h-6 mr-2 text-purple-500" />
-          Kegiatan Networking Terbaru
-        </h2>
-        <div className="space-y-4">
-          {data.slice(0, 3).map((item, index) => (
-            <div key={item.id} className={`flex items-start space-x-3 p-4 rounded-lg border-l-4 ${
-              item.status === 'Selesai' ? 'bg-green-50 border-green-500' :
-              item.status === 'MoU Ditandatangani' ? 'bg-purple-50 border-purple-500' :
-              item.status === 'In Progress' ? 'bg-yellow-50 border-yellow-500' :
-              'bg-gray-50 border-gray-500'
-            }`}>
-              <div className={`rounded-full p-2 ${
-                item.status === 'Selesai' ? 'bg-green-500' :
-                item.status === 'MoU Ditandatangani' ? 'bg-purple-500' :
-                item.status === 'In Progress' ? 'bg-yellow-500' :
-                'bg-gray-500'
-              }`}>
-                {item.status === 'Selesai' ? <CheckCircle className="w-4 h-4 text-white" /> :
-                 item.status === 'MoU Ditandatangani' ? <Award className="w-4 h-4 text-white" /> :
-                 <Clock className="w-4 h-4 text-white" />}
-              </div>
-              <div className="flex-1">
-                <h3 className={`font-medium ${
-                  item.status === 'Selesai' ? 'text-green-800' :
-                  item.status === 'MoU Ditandatangani' ? 'text-purple-800' :
-                  item.status === 'In Progress' ? 'text-yellow-800' :
-                  'text-gray-800'
-                }`}>
-                  {item.jenis} dengan {item.instansi}
-                </h3>
-                <p className={`text-sm ${
-                  item.status === 'Selesai' ? 'text-green-600' :
-                  item.status === 'MoU Ditandatangani' ? 'text-purple-600' :
-                  item.status === 'In Progress' ? 'text-yellow-600' :
-                  'text-gray-600'
-                }`}>
-                  {item.catatan || 'Tidak ada catatan'}
-                </p>
-                <p className={`text-xs mt-1 ${
-                  item.status === 'Selesai' ? 'text-green-500' :
-                  item.status === 'MoU Ditandatangani' ? 'text-purple-500' :
-                  item.status === 'In Progress' ? 'text-yellow-500' :
-                  'text-gray-500'
-                }`}>
-                  Status: {item.status}
-                </p>
-              </div>
+      {/* Modal Edit Kegiatan */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-blue-700">Edit Kegiatan Networking</DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleUpdate} className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="edit-instansi">Instansi / Pihak Terkait</Label>
+              <Input
+                id="edit-instansi"
+                name="instansi"
+                value={editFormData.instansi}
+                onChange={handleEditChange}
+                required
+                placeholder="Contoh: Jclair, Pemda Indonesia-Jepang"
+              />
             </div>
-          ))}
-          
-          {data.length === 0 && (
-            <div className="text-center py-8 text-gray-500">
-              Belum ada kegiatan networking terbaru
+
+            <div className="space-y-1">
+              <Label htmlFor="edit-jenis">Jenis Kegiatan</Label>
+              <Select
+                value={editFormData.jenis}
+                onValueChange={(value) => handleEditSelectChange("jenis", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih jenis kegiatan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {jenisOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
-          )}
-        </div>
-      </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="edit-status">Status</Label>
+              <Select
+                value={editFormData.status}
+                onValueChange={(value) => handleEditSelectChange("status", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih status" />
+                </SelectTrigger>
+                <SelectContent>
+                  {statusOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="edit-catatan">Catatan</Label>
+              <textarea
+                id="edit-catatan"
+                name="catatan"
+                value={editFormData.catatan}
+                onChange={handleEditChange}
+                placeholder="Contoh: Kesepakatan tema, waktu dan penganggaran"
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                rows={3}
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowEditModal(false)
+                  setEditingItem(null)
+                }}
+                type="button"
+                disabled={isSubmitting}
+              >
+                Batal
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-blue-600 hover:bg-blue-700"
+                disabled={isSubmitting}
+              >
+                {isSubmitting ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    Mengupdate...
+                  </>
+                ) : (
+                  'Update'
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

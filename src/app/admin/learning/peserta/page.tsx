@@ -34,6 +34,10 @@ export default function PesertaPage() {
   const [data, setData] = useState<Penyelenggaraan[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPenyelenggara, setSelectedPenyelenggara] = useState<string>('Semua')
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage] = useState(20)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -51,6 +55,11 @@ export default function PesertaPage() {
     fetchData()
   }, [])
 
+  // Reset pagination when filter changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [selectedPenyelenggara])
+
   // Dapatkan daftar penyelenggara unik
   const penyelenggaraList = Array.from(
     new Set(data.map((item) => item.users?.unit_kerja || 'Lainnya'))
@@ -61,6 +70,44 @@ export default function PesertaPage() {
     selectedPenyelenggara === 'Semua'
       ? data
       : data.filter((item) => item.users?.unit_kerja === selectedPenyelenggara)
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedData = filteredData.slice(startIndex, endIndex)
+
+  // Pagination handlers
+  const handlePreviousPage = () => {
+    setCurrentPage(prev => Math.max(prev - 1, 1))
+  }
+
+  const handleNextPage = () => {
+    setCurrentPage(prev => Math.min(prev + 1, totalPages))
+  }
+
+  const handlePageClick = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  // Generate page numbers for pagination
+  const getPageNumbers = () => {
+    const pages = []
+    const maxVisiblePages = 5
+    
+    let startPage = Math.max(1, currentPage - Math.floor(maxVisiblePages / 2))
+    let endPage = Math.min(totalPages, startPage + maxVisiblePages - 1)
+    
+    if (endPage - startPage + 1 < maxVisiblePages) {
+      startPage = Math.max(1, endPage - maxVisiblePages + 1)
+    }
+    
+    for (let i = startPage; i <= endPage; i++) {
+      pages.push(i)
+    }
+    
+    return pages
+  }
 
   const totalPeserta = filteredData.reduce((acc, item) => acc + item.jumlahPeserta, 0)
   const totalKegiatan = filteredData.length
@@ -350,11 +397,23 @@ export default function PesertaPage() {
         </div>
       </div>
 
-      {/* Enhanced Table */}
+      {/* Enhanced Table with Pagination */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
         <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
-          <h2 className="text-xl font-bold">Detail Peserta Pelatihan</h2>
-          <p className="text-blue-100 text-sm">Daftar lengkap kegiatan pelatihan dan jumlah peserta</p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-bold">Detail Peserta Pelatihan</h2>
+              <p className="text-blue-100 text-sm">Daftar lengkap kegiatan pelatihan dan jumlah peserta</p>
+            </div>
+            <div className="text-right">
+              <div className="text-sm text-blue-100">
+                Menampilkan {startIndex + 1}-{Math.min(endIndex, filteredData.length)} dari {filteredData.length} data
+              </div>
+              <div className="text-xs text-blue-200">
+                Halaman {currentPage} dari {totalPages}
+              </div>
+            </div>
+          </div>
         </div>
 
         <div className="overflow-x-auto">
@@ -378,13 +437,14 @@ export default function PesertaPage() {
                 </tr>
               </thead>
               <tbody className="text-sm divide-y divide-gray-200">
-                {filteredData.map((item, index) => {
+                {paginatedData.map((item, index) => {
                   const unitRank = unitStats.findIndex((u) => u.unit === (item.users?.unit_kerja || 'Lainnya'))
                   const isTopUnit = unitRank !== -1
+                  const globalIndex = startIndex + index
 
                   return (
                     <tr key={item.id} className="hover:bg-blue-50 transition-colors">
-                      <td className="px-6 py-4 text-gray-600">{index + 1}</td>
+                      <td className="px-6 py-4 text-gray-600">{globalIndex + 1}</td>
                       <td className="px-6 py-4 font-medium text-gray-800">{item.namaKegiatan}</td>
                       <td className="px-6 py-4 text-gray-600">
                         {new Date(item.tanggal).toLocaleDateString('id-ID', {
@@ -429,10 +489,103 @@ export default function PesertaPage() {
                     </tr>
                   )
                 })}
+                {paginatedData.length === 0 && !loading && (
+                  <tr>
+                    <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                      Tidak ada data yang sesuai dengan filter
+                    </td>
+                  </tr>
+                )}
               </tbody>
             </table>
           )}
         </div>
+
+        {/* Pagination Controls */}
+        {totalPages > 1 && (
+          <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
+            <div className="flex items-center justify-between">
+              <div className="text-sm text-gray-700">
+                Menampilkan <span className="font-medium">{startIndex + 1}</span> hingga{' '}
+                <span className="font-medium">{Math.min(endIndex, filteredData.length)}</span> dari{' '}
+                <span className="font-medium">{filteredData.length}</span> hasil
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                {/* Previous Button */}
+                <button
+                  onClick={handlePreviousPage}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-2 text-sm font-medium rounded-md ${
+                    currentPage === 1
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
+                >
+                  ← Sebelumnya
+                </button>
+
+                {/* Page Numbers */}
+                <div className="flex space-x-1">
+                  {currentPage > 3 && (
+                    <>
+                      <button
+                        onClick={() => handlePageClick(1)}
+                        className="px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+                      >
+                        1
+                      </button>
+                      {currentPage > 4 && (
+                        <span className="px-3 py-2 text-sm text-gray-500">...</span>
+                      )}
+                    </>
+                  )}
+                  
+                  {getPageNumbers().map((page) => (
+                    <button
+                      key={page}
+                      onClick={() => handlePageClick(page)}
+                      className={`px-3 py-2 text-sm font-medium rounded-md ${
+                        currentPage === page
+                          ? 'bg-blue-600 text-white'
+                          : 'text-gray-700 hover:bg-gray-100'
+                      }`}
+                    >
+                      {page}
+                    </button>
+                  ))}
+                  
+                  {currentPage < totalPages - 2 && (
+                    <>
+                      {currentPage < totalPages - 3 && (
+                        <span className="px-3 py-2 text-sm text-gray-500">...</span>
+                      )}
+                      <button
+                        onClick={() => handlePageClick(totalPages)}
+                        className="px-3 py-2 text-sm font-medium text-gray-700 hover:bg-gray-100 rounded-md"
+                      >
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
+                </div>
+
+                {/* Next Button */}
+                <button
+                  onClick={handleNextPage}
+                  disabled={currentPage === totalPages}
+                  className={`px-3 py-2 text-sm font-medium rounded-md ${
+                    currentPage === totalPages
+                      ? 'text-gray-400 cursor-not-allowed'
+                      : 'text-gray-700 hover:bg-gray-100 hover:text-gray-900'
+                  }`}
+                >
+                  Selanjutnya →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Enhanced Charts */}

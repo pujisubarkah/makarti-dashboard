@@ -58,7 +58,7 @@ export default async function handler(
           instansi: body.instansi,
           jenis: body.jenis,
           status: body.status,
-          catatan: body.catatan || null,
+          catatan: body.catatan || '',
           unit_kerja_id: body.unit_kerja_id,
         },
         include: {

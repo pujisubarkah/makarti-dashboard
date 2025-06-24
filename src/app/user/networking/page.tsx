@@ -2,6 +2,7 @@
 "use client"
 
 import { useState, useEffect } from "react"
+import useSWR from 'swr'
 import {
   Dialog,
   DialogContent,
@@ -33,6 +34,8 @@ import {
   BarChart3,
   PieChart as PieChartIcon,
   MapPin,
+  AlertCircle,
+  RefreshCw,
 } from "lucide-react"
 import {
   BarChart,
@@ -52,74 +55,81 @@ interface NetworkingItem {
   id: number
   instansi: string
   jenis: string
-  tanggal: string
   status: string
-  unit: string | null
+  catatan: string
+  unit_kerja: string
 }
 
 const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6']
 
-const initialData: NetworkingItem[] = [
-  {
-    id: 1,
-    instansi: 'Kementerian PANRB',
-    jenis: 'Kunjungan',
-    tanggal: '2024-05-15',
-    status: 'Selesai',
-    unit: 'Pusat A'
-  },
-  {
-    id: 2,
-    instansi: 'BPKP',
-    jenis: 'Kerjasama',
-    tanggal: '2024-05-20',
-    status: 'MoU Ditandatangani',
-    unit: 'Pusat A'
-  },
-  {
-    id: 3,
-    instansi: 'Kemendagri',
-    jenis: 'Koordinasi',
-    tanggal: '2024-06-01',
-    status: 'Menunggu Tindak Lanjut',
-    unit: 'Pusat A'
-  },
-  {
-    id: 4,
-    instansi: 'BPS',
-    jenis: 'Kunjungan',
-    tanggal: '2024-06-10',
-    status: 'Selesai',
-    unit: 'Pusat A'
-  },
-]
+// Fetcher function untuk SWR
+const fetcher = async (url: string) => {
+  const res = await fetch(url)
+  if (!res.ok) {
+    throw new Error(`HTTP error! status: ${res.status}`)
+  }
+  return res.json()
+}
 
 export default function NetworkingPage() {
   const [showModal, setShowModal] = useState(false)
-  const [data, setData] = useState<NetworkingItem[]>([])
+  const [unitKerjaId, setUnitKerjaId] = useState<string | null>(null)
+  const [isSubmitting, setIsSubmitting] = useState(false)
 
   const [formData, setFormData] = useState({
     instansi: "",
-    jenis: "Kunjungan",
-    tanggal: "",
-    status: "Selesai",
+    jenis: "Joint Seminar",
+    status: "In Progress",
+    catatan: "",
   })
 
-  const userUnit = typeof window !== 'undefined' ? localStorage.getItem("userUnit") : null
+  const jenisOptions = [
+    "Joint Seminar",
+    "Kunjungan",
+    "Kerjasama",
+    "Koordinasi",
+    "Workshop",
+    "Pelatihan"
+  ]
+  
+  const statusOptions = [
+    "In Progress",
+    "Selesai",
+    "MoU Ditandatangani",
+    "Menunggu Tindak Lanjut",
+    "Direncanakan"
+  ]
 
-  const jenisOptions = ["Kunjungan", "Kerjasama", "Koordinasi"]
-  const statusOptions = ["Selesai", "MoU Ditandatangani", "Menunggu Tindak Lanjut"]
-
-  // Load data from localStorage on component mount
+  // Get unit_kerja_id from localStorage
   useEffect(() => {
-    const savedData = localStorage.getItem("networkingData")
-    setData(savedData ? JSON.parse(savedData) : initialData)
+    if (typeof window !== 'undefined') {
+      const id = localStorage.getItem('id')
+      setUnitKerjaId(id)
+    }
   }, [])
+
+  // SWR hook untuk fetch data
+  const { 
+    data: apiData, 
+    error, 
+    isLoading, 
+    mutate 
+  } = useSWR(
+    unitKerjaId ? `/api/networking/${unitKerjaId}` : null,
+    fetcher,
+    {
+      refreshInterval: 30000, // Refresh setiap 30 detik
+      revalidateOnFocus: true,
+    }
+  )
+
+  const data: NetworkingItem[] = apiData || []
 
   // Calculate statistics
   const totalKegiatan = data.length
   const selesai = data.filter(item => item.status === 'Selesai').length
   const mouDitandatangani = data.filter(item => item.status === 'MoU Ditandatangani').length
+  const inProgress = data.filter(item => item.status === 'In Progress').length
   const menungguTindakLanjut = data.filter(item => item.status === 'Menunggu Tindak Lanjut').length
 
   // Data for charts
@@ -158,6 +168,19 @@ export default function NetworkingPage() {
       description: 'Networking keseluruhan'
     },
     {
+      title: "In Progress",
+      value: inProgress,
+      icon: <Clock className="w-6 h-6" />,
+      color: 'yellow',
+      bgGradient: 'from-yellow-500 to-yellow-600',
+      bgLight: 'bg-yellow-100',
+      textColor: 'text-yellow-600',
+      textDark: 'text-yellow-800',
+      borderColor: 'border-yellow-500',
+      change: '+10%',
+      description: 'Sedang berlangsung'
+    },
+    {
       title: "Selesai",
       value: selesai,
       icon: <CheckCircle className="w-6 h-6" />,
@@ -183,23 +206,10 @@ export default function NetworkingPage() {
       change: '+25%',
       description: 'Kerjasama resmi'
     },
-    {
-      title: "Tindak Lanjut",
-      value: menungguTindakLanjut,
-      icon: <Clock className="w-6 h-6" />,
-      color: 'yellow',
-      bgGradient: 'from-yellow-500 to-yellow-600',
-      bgLight: 'bg-yellow-100',
-      textColor: 'text-yellow-600',
-      textDark: 'text-yellow-800',
-      borderColor: 'border-yellow-500',
-      change: '+10%',
-      description: 'Menunggu follow up'
-    },
   ]
 
   const handleChange = (
-    e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>
+    e: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>
   ) => {
     const { name, value } = e.target
     setFormData((prev) => ({
@@ -212,33 +222,84 @@ export default function NetworkingPage() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
-    if (!userUnit) {
-      alert("Tidak dapat menentukan unit kerja")
+    if (!unitKerjaId) {
+      alert("Unit kerja ID tidak ditemukan. Silakan login ulang.")
       return
     }
 
-    const newItem = {
-      id: Date.now(),
-      ...formData,
-      unit: userUnit,
+    setIsSubmitting(true)
+
+    try {
+      const response = await fetch(`/api/networking/${unitKerjaId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(formData),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || 'Gagal menyimpan data')
+      }
+
+      // Refresh data dengan SWR mutate
+      await mutate()
+
+      // Reset form and close modal
+      setFormData({
+        instansi: "",
+        jenis: "Joint Seminar",
+        status: "In Progress",
+        catatan: "",
+      })
+      setShowModal(false)
+      alert('Data berhasil disimpan!')
+
+    } catch (error) {
+      console.error('Error saving data:', error)
+      alert(error instanceof Error ? error.message : 'Terjadi kesalahan saat menyimpan data')
+    } finally {
+      setIsSubmitting(false)
     }
+  }
 
-    const updatedData = [...data, newItem]
-    setData(updatedData)
-    localStorage.setItem("networkingData", JSON.stringify(updatedData))
+  // Loading state
+  if (isLoading) {
+    return (
+      <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <RefreshCw className="w-8 h-8 animate-spin text-blue-500 mx-auto mb-4" />
+            <p className="text-gray-600">Memuat data networking...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
 
-    // Reset form and close modal
-    setFormData({
-      instansi: "",
-      jenis: "Kunjungan",
-      tanggal: "",
-      status: "Selesai",
-    })
-    setShowModal(false)
-    alert('Data berhasil disimpan!')
+  // Error state
+  if (error) {
+    return (
+      <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <AlertCircle className="w-8 h-8 text-red-500 mx-auto mb-4" />
+            <p className="text-red-600 mb-4">Gagal memuat data networking</p>
+            <p className="text-red-500 text-sm mb-4">{error.message}</p>
+            <Button 
+              onClick={() => mutate()} 
+              className="bg-red-600 hover:bg-red-700"
+            >
+              Coba Lagi
+            </Button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -271,7 +332,7 @@ export default function NetworkingPage() {
                   value={formData.instansi}
                   onChange={handleChange}
                   required
-                  placeholder="Contoh: Kementerian PANRB"
+                  placeholder="Contoh: Jclair, Pemda Indonesia-Jepang"
                 />
               </div>
 
@@ -296,19 +357,6 @@ export default function NetworkingPage() {
                 </Select>
               </div>
 
-              {/* Tanggal */}
-              <div className="space-y-1">
-                <Label htmlFor="tanggal">Tanggal</Label>
-                <Input
-                  id="tanggal"
-                  type="date"
-                  name="tanggal"
-                  value={formData.tanggal}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
               {/* Status */}
               <div className="space-y-1">
                 <Label htmlFor="status">Status</Label>
@@ -330,16 +378,42 @@ export default function NetworkingPage() {
                 </Select>
               </div>
 
+              {/* Catatan */}
+              <div className="space-y-1">
+                <Label htmlFor="catatan">Catatan</Label>
+                <textarea
+                  id="catatan"
+                  name="catatan"
+                  value={formData.catatan}
+                  onChange={handleChange}
+                  placeholder="Contoh: Kesepakatan tema, waktu dan penganggaran"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  rows={3}
+                />
+              </div>
+
               <div className="flex justify-end gap-3 pt-2">
                 <Button
                   variant="outline"
                   onClick={() => setShowModal(false)}
                   type="button"
+                  disabled={isSubmitting}
                 >
                   Batal
                 </Button>
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                  Simpan
+                <Button 
+                  type="submit" 
+                  className="bg-blue-600 hover:bg-blue-700"
+                  disabled={isSubmitting}
+                >
+                  {isSubmitting ? (
+                    <>
+                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      Menyimpan...
+                    </>
+                  ) : (
+                    'Simpan'
+                  )}
                 </Button>
               </div>
             </form>
@@ -384,7 +458,7 @@ export default function NetworkingPage() {
                   <div 
                     className={`bg-gradient-to-r ${card.bgGradient} h-2 rounded-full transition-all duration-500`}
                     style={{ 
-                      width: `${Math.min((card.value / Math.max(...summaryCards.map(c => c.value))) * 100, 100)}%` 
+                      width: `${Math.min((card.value / Math.max(...summaryCards.map(c => c.value), 1)) * 100, 100)}%` 
                     }}
                   ></div>
                 </div>
@@ -409,23 +483,29 @@ export default function NetworkingPage() {
             Distribusi Status Kegiatan
           </h2>
           <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={pieData}
-                  dataKey="value"
-                  nameKey="name"
-                  outerRadius={100}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                >
-                  {pieData.map((_, i) => (
-                    <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
+            {pieData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <PieChart>
+                  <Pie
+                    data={pieData}
+                    dataKey="value"
+                    nameKey="name"
+                    outerRadius={100}
+                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                  >
+                    {pieData.map((_, i) => (
+                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
+                    ))}
+                  </Pie>
+                  <Tooltip />
+                  <Legend />
+                </PieChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                Tidak ada data untuk ditampilkan
+              </div>
+            )}
           </div>
         </div>
 
@@ -436,31 +516,37 @@ export default function NetworkingPage() {
             Kegiatan per Jenis
           </h2>
           <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <BarChart data={barData}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                <XAxis dataKey="jenis" tick={{ fontSize: 12 }} />
-                <YAxis tick={{ fontSize: 12 }} />
-                <Tooltip 
-                  contentStyle={{ 
-                    backgroundColor: '#f8fafc', 
-                    border: '1px solid #e2e8f0',
-                    borderRadius: '8px'
-                  }}
-                />
-                <Bar 
-                  dataKey="kegiatan" 
-                  fill="url(#colorGradient)" 
-                  radius={[4, 4, 0, 0]}
-                />
-                <defs>
-                  <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
-                    <stop offset="95%" stopColor="#1d4ed8" stopOpacity={0.8}/>
-                  </linearGradient>
-                </defs>
-              </BarChart>
-            </ResponsiveContainer>
+            {barData.length > 0 ? (
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={barData}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="jenis" tick={{ fontSize: 12 }} />
+                  <YAxis tick={{ fontSize: 12 }} />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#f8fafc', 
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px'
+                    }}
+                  />
+                  <Bar 
+                    dataKey="kegiatan" 
+                    fill="url(#colorGradient)" 
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <defs>
+                    <linearGradient id="colorGradient" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#1d4ed8" stopOpacity={0.8}/>
+                    </linearGradient>
+                  </defs>
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex items-center justify-center h-full text-gray-500">
+                Tidak ada data untuk ditampilkan
+              </div>
+            )}
           </div>
         </div>
       </div>
@@ -478,53 +564,60 @@ export default function NetworkingPage() {
               <TableRow className="bg-gray-50">
                 <TableHead className="font-medium">No</TableHead>
                 <TableHead className="font-medium">Instansi</TableHead>
-                <TableHead className="font-medium">Tanggal</TableHead>
                 <TableHead className="font-medium">Jenis</TableHead>
                 <TableHead className="font-medium">Status</TableHead>
+                <TableHead className="font-medium">Catatan</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.map((item, index) => (
-                <TableRow key={item.id} className="hover:bg-blue-50 transition-colors">
-                  <TableCell className="text-gray-600">{index + 1}</TableCell>
-                  <TableCell className="font-medium text-gray-800">
-                    <span className="inline-flex items-center">
-                      <Building className="w-3 h-3 mr-1 text-gray-400" />
-                      {item.instansi}
-                    </span>
-                  </TableCell>
-                  <TableCell className="text-gray-600">
-                    <span className="inline-flex items-center">
-                      <Calendar className="w-3 h-3 mr-1 text-gray-400" />
-                      {item.tanggal}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      item.jenis === 'Kunjungan' ? 'bg-blue-100 text-blue-800' :
-                      item.jenis === 'Kerjasama' ? 'bg-purple-100 text-purple-800' :
-                      'bg-green-100 text-green-800'
-                    }`}>
-                      {item.jenis === 'Kunjungan' ? <MapPin className="w-3 h-3 mr-1" /> :
-                       item.jenis === 'Kerjasama' ? <Handshake className="w-3 h-3 mr-1" /> :
-                       <Users className="w-3 h-3 mr-1" />}
-                      {item.jenis}
-                    </span>
-                  </TableCell>
-                  <TableCell>
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      item.status === 'Selesai' ? 'bg-green-100 text-green-800' :
-                      item.status === 'MoU Ditandatangani' ? 'bg-purple-100 text-purple-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {item.status === 'Selesai' ? <CheckCircle className="w-3 h-3 mr-1" /> :
-                       item.status === 'MoU Ditandatangani' ? <Award className="w-3 h-3 mr-1" /> :
-                       <Clock className="w-3 h-3 mr-1" />}
-                      {item.status}
-                    </span>
+              {data.length > 0 ? (
+                data.map((item, index) => (
+                  <TableRow key={item.id} className="hover:bg-blue-50 transition-colors">
+                    <TableCell className="text-gray-600">{index + 1}</TableCell>
+                    <TableCell className="font-medium text-gray-800">
+                      <span className="inline-flex items-center">
+                        <Building className="w-3 h-3 mr-1 text-gray-400" />
+                        {item.instansi}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        item.jenis === 'Kunjungan' ? 'bg-blue-100 text-blue-800' :
+                        item.jenis === 'Kerjasama' ? 'bg-purple-100 text-purple-800' :
+                        item.jenis === 'Joint Seminar' ? 'bg-indigo-100 text-indigo-800' :
+                        'bg-green-100 text-green-800'
+                      }`}>
+                        {item.jenis === 'Kunjungan' ? <MapPin className="w-3 h-3 mr-1" /> :
+                         item.jenis === 'Kerjasama' ? <Handshake className="w-3 h-3 mr-1" /> :
+                         <Users className="w-3 h-3 mr-1" />}
+                        {item.jenis}
+                      </span>
+                    </TableCell>
+                    <TableCell>
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        item.status === 'Selesai' ? 'bg-green-100 text-green-800' :
+                        item.status === 'MoU Ditandatangani' ? 'bg-purple-100 text-purple-800' :
+                        item.status === 'In Progress' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {item.status === 'Selesai' ? <CheckCircle className="w-3 h-3 mr-1" /> :
+                         item.status === 'MoU Ditandatangani' ? <Award className="w-3 h-3 mr-1" /> :
+                         <Clock className="w-3 h-3 mr-1" />}
+                        {item.status}
+                      </span>
+                    </TableCell>
+                    <TableCell className="text-sm text-gray-600 max-w-xs truncate">
+                      {item.catatan || '-'}
+                    </TableCell>
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={5} className="text-center py-8 text-gray-500">
+                    Belum ada data networking
                   </TableCell>
                 </TableRow>
-              ))}
+              )}
             </TableBody>
           </Table>
         </div>
@@ -537,38 +630,57 @@ export default function NetworkingPage() {
           Kegiatan Networking Terbaru
         </h2>
         <div className="space-y-4">
-          <div className="flex items-start space-x-3 p-4 bg-green-50 rounded-lg border-l-4 border-green-500">
-            <div className="bg-green-500 rounded-full p-2">
-              <CheckCircle className="w-4 h-4 text-white" />
+          {data.slice(0, 3).map((item, index) => (
+            <div key={item.id} className={`flex items-start space-x-3 p-4 rounded-lg border-l-4 ${
+              item.status === 'Selesai' ? 'bg-green-50 border-green-500' :
+              item.status === 'MoU Ditandatangani' ? 'bg-purple-50 border-purple-500' :
+              item.status === 'In Progress' ? 'bg-yellow-50 border-yellow-500' :
+              'bg-gray-50 border-gray-500'
+            }`}>
+              <div className={`rounded-full p-2 ${
+                item.status === 'Selesai' ? 'bg-green-500' :
+                item.status === 'MoU Ditandatangani' ? 'bg-purple-500' :
+                item.status === 'In Progress' ? 'bg-yellow-500' :
+                'bg-gray-500'
+              }`}>
+                {item.status === 'Selesai' ? <CheckCircle className="w-4 h-4 text-white" /> :
+                 item.status === 'MoU Ditandatangani' ? <Award className="w-4 h-4 text-white" /> :
+                 <Clock className="w-4 h-4 text-white" />}
+              </div>
+              <div className="flex-1">
+                <h3 className={`font-medium ${
+                  item.status === 'Selesai' ? 'text-green-800' :
+                  item.status === 'MoU Ditandatangani' ? 'text-purple-800' :
+                  item.status === 'In Progress' ? 'text-yellow-800' :
+                  'text-gray-800'
+                }`}>
+                  {item.jenis} dengan {item.instansi}
+                </h3>
+                <p className={`text-sm ${
+                  item.status === 'Selesai' ? 'text-green-600' :
+                  item.status === 'MoU Ditandatangani' ? 'text-purple-600' :
+                  item.status === 'In Progress' ? 'text-yellow-600' :
+                  'text-gray-600'
+                }`}>
+                  {item.catatan || 'Tidak ada catatan'}
+                </p>
+                <p className={`text-xs mt-1 ${
+                  item.status === 'Selesai' ? 'text-green-500' :
+                  item.status === 'MoU Ditandatangani' ? 'text-purple-500' :
+                  item.status === 'In Progress' ? 'text-yellow-500' :
+                  'text-gray-500'
+                }`}>
+                  Status: {item.status}
+                </p>
+              </div>
             </div>
-            <div className="flex-1">
-              <h3 className="font-medium text-green-800">Kunjungan ke BPS</h3>
-              <p className="text-sm text-green-600">Kegiatan kunjungan telah selesai dilaksanakan</p>
-              <p className="text-xs text-green-500 mt-1">10 Juni 2024 • 1 minggu yang lalu</p>
-            </div>
-          </div>
+          ))}
           
-          <div className="flex items-start space-x-3 p-4 bg-purple-50 rounded-lg border-l-4 border-purple-500">
-            <div className="bg-purple-500 rounded-full p-2">
-              <Award className="w-4 h-4 text-white" />
+          {data.length === 0 && (
+            <div className="text-center py-8 text-gray-500">
+              Belum ada kegiatan networking terbaru
             </div>
-            <div className="flex-1">
-              <h3 className="font-medium text-purple-800">MoU dengan BPKP</h3>
-              <p className="text-sm text-purple-600">Memorandum of Understanding telah ditandatangani</p>
-              <p className="text-xs text-purple-500 mt-1">20 Mei 2024 • 3 minggu yang lalu</p>
-            </div>
-          </div>
-          
-          <div className="flex items-start space-x-3 p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-500">
-            <div className="bg-yellow-500 rounded-full p-2">
-              <Clock className="w-4 h-4 text-white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-medium text-yellow-800">Koordinasi dengan Kemendagri</h3>
-              <p className="text-sm text-yellow-600">Menunggu tindak lanjut hasil koordinasi</p>
-              <p className="text-xs text-yellow-500 mt-1">1 Juni 2024 • 2 minggu yang lalu</p>
-            </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

@@ -41,7 +41,7 @@ model Networking {
   id            Int      @id @default(autoincrement())
   instansi      String
   jenis         String
-  tanggal       DateTime
+  catatan       String
   status        String
   unit_kerja_id Int
   createdAt     DateTime @default(now())
@@ -194,7 +194,7 @@ model status_inovasi {
 model users {
   created_at          DateTime              @default(now()) @db.Timestamptz(6)
   unit_kerja          String?
-  username            String                @db.VarChar
+  username            String                @db.VarChar @unique
   password            String?               @db.VarChar
   id                  Int                   @id @unique @default(autoincrement())
   role_id             Int?

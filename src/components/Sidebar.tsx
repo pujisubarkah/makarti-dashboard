@@ -9,7 +9,7 @@ import {
   Megaphone,
   Users,
   BookOpenCheck,
-  PieChart
+  PieChart,
 } from "lucide-react"
 
 const menuItems = [
@@ -18,6 +18,7 @@ const menuItems = [
     icon: LayoutDashboard,
     children: [
       { title: "Ringkasan MAKARTI", href: "/admin/dashboard" },
+      { title: "Statistik", href: "/admin/dashboard/statistik" },
     ],
   },
   {
@@ -63,7 +64,6 @@ const menuItems = [
   },
 ]
 
-
 export function Sidebar() {
   const pathname = usePathname()
 
@@ -76,20 +76,26 @@ export function Sidebar() {
             <section.icon className="mr-2 w-4 h-4" />
             {section.title}
           </div>
-          <ul className="space-y-1 ml-6">
-            {section.children.map((item) => (
-              <li key={item.href}>
-                <Link
-                  href={item.href}
-                  className={cn(
-                    "block px-2 py-1 rounded hover:bg-blue-100 text-sm",
-                    pathname === item.href ? "bg-blue-200 font-medium" : "text-gray-700"
-                  )}
-                >
-                  {item.title}
-                </Link>
-              </li>
-            ))}
+          <ul className="space-y-1 ml-2">
+            {section.children.map((item) => {
+              const isActive = pathname === item.href
+              return (
+                <li key={item.href}>
+                  <Link href={item.href}>
+                    <div
+                      className={cn(
+                        "flex items-center text-sm font-medium p-2 rounded-lg transition-colors",
+                        isActive
+                          ? "bg-blue-100 text-blue-700 border-r-2 border-blue-700"
+                          : "text-gray-600 hover:bg-gray-100 hover:text-blue-600"
+                      )}
+                    >
+                      <span className="ml-2">{item.title}</span>
+                    </div>
+                  </Link>
+                </li>
+              )
+            })}
           </ul>
         </div>
       ))}

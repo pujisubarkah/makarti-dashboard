@@ -34,7 +34,9 @@ import {
   BarChart3,
   PieChart as PieChartIcon,
   Plus,
-  Clock
+  Clock,
+  Edit2,
+  Trash2
 } from "lucide-react"
 import {
   BarChart,
@@ -64,8 +66,12 @@ const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6', '#8b5cf6']
 export default function SosialisasiPage() {
   const [data, setData] = useState<SosialisasiItem[]>([])
   const [showModal, setShowModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [loading, setLoading] = useState(true)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [editingItem, setEditingItem] = useState<SosialisasiItem | null>(null)
 
   const [formData, setFormData] = useState({
     nama: "",
@@ -111,7 +117,7 @@ export default function SosialisasiPage() {
     },
   ], [])
 
-  // Load data on client side - PERBAIKAN: tambahkan getInitialData ke dependencies
+  // Load data on client side
   useEffect(() => {
     const loadData = () => {
       try {
@@ -135,7 +141,7 @@ export default function SosialisasiPage() {
     }
 
     loadData()
-  }, [getInitialData]) // Tambahkan dependency
+  }, [getInitialData])
 
   const jenisOptions = ["Webinar", "Tatap Muka", "Live IG", "FGD"]
 
@@ -274,6 +280,89 @@ export default function SosialisasiPage() {
       toast.error("Terjadi kesalahan saat menyimpan data")
     } finally {
       setIsSubmitting(false)
+    }
+  }
+
+  const handleEdit = (item: SosialisasiItem) => {
+    setEditingItem(item)
+    setFormData({
+      nama: item.nama,
+      tanggal: item.tanggal,
+      jenis: item.jenis,
+      platform: item.platform,
+      peserta: item.peserta,
+    })
+    setShowEditModal(true)
+  }
+
+  const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!editingItem) return
+    
+    setIsEditing(true)
+
+    try {
+      const updatedItem: SosialisasiItem = {
+        ...editingItem,
+        nama: formData.nama,
+        tanggal: formData.tanggal,
+        jenis: formData.jenis,
+        platform: formData.platform,
+        peserta: formData.peserta,
+      }
+
+      const updatedData = data.map(item => 
+        item.id === editingItem.id ? updatedItem : item
+      )
+
+      setData(updatedData)
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("sosialisasiData", JSON.stringify(updatedData))
+      }
+
+      setFormData({
+        nama: "",
+        tanggal: "",
+        jenis: "Webinar",
+        platform: "",
+        peserta: 0,
+      })
+      setEditingItem(null)
+      setShowEditModal(false)
+
+      toast.success('Data kegiatan berhasil diperbarui!')
+      
+    } catch (err) {
+      console.error('Error updating data:', err)
+      toast.error('Gagal memperbarui data')
+    } finally {
+      setIsEditing(false)
+    }
+  }
+
+  const handleDelete = async (item: SosialisasiItem) => {
+    if (!confirm(`Apakah Anda yakin ingin menghapus kegiatan "${item.nama}"?`)) {
+      return
+    }
+
+    setIsDeleting(true)
+
+    try {
+      const updatedData = data.filter(dataItem => dataItem.id !== item.id)
+      setData(updatedData)
+
+      if (typeof window !== "undefined") {
+        localStorage.setItem("sosialisasiData", JSON.stringify(updatedData))
+      }
+
+      toast.success('Kegiatan berhasil dihapus!')
+      
+    } catch (err) {
+      console.error('Error deleting data:', err)
+      toast.error('Gagal menghapus data')
+    } finally {
+      setIsDeleting(false)
     }
   }
 
@@ -553,7 +642,7 @@ export default function SosialisasiPage() {
         </div>
       </div>
 
-      {/* Enhanced Table */}
+      {/* Enhanced Table with Actions */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
           <h2 className="text-xl font-bold">Daftar Kegiatan Sosialisasi</h2>
@@ -570,6 +659,7 @@ export default function SosialisasiPage() {
                 <TableHead className="font-medium">Jenis</TableHead>
                 <TableHead className="font-medium">Platform</TableHead>
                 <TableHead className="text-right font-medium">Peserta</TableHead>
+                <TableHead className="text-center font-medium">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -614,6 +704,28 @@ export default function SosialisasiPage() {
                       {item.peserta.toLocaleString()}
                     </span>
                   </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEdit(item)}
+                        disabled={isDeleting}
+                        className="h-8 px-2 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDelete(item)}
+                        disabled={isDeleting}
+                        className="h-8 px-2 hover:bg-red-50 hover:border-red-300 hover:text-red-700"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
@@ -626,6 +738,133 @@ export default function SosialisasiPage() {
           </div>
         )}
       </div>
+
+      {/* Edit Modal */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-blue-700">Edit Kegiatan Sosialisasi</DialogTitle>
+          </DialogHeader>
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            {/* Nama */}
+            <div className="space-y-1">
+              <Label htmlFor="editNama">Nama Kegiatan</Label>
+              <Input
+                id="editNama"
+                name="nama"
+                value={formData.nama}
+                onChange={handleChange}
+                required
+                disabled={isEditing}
+                placeholder="Contoh: Webinar SPBE dan Inovasi Digital"
+              />
+            </div>
+
+            {/* Tanggal */}
+            <div className="space-y-1">
+              <Label htmlFor="editTanggal">Tanggal Kegiatan</Label>
+              <Input
+                id="editTanggal"
+                type="date"
+                name="tanggal"
+                value={formData.tanggal}
+                onChange={handleChange}
+                required
+                disabled={isEditing}
+              />
+            </div>
+
+            {/* Jenis */}
+            <div className="space-y-1">
+              <Label htmlFor="editJenis">Jenis Kegiatan</Label>
+              <Select
+                value={formData.jenis}
+                onValueChange={(value) =>
+                  setFormData((prev) => ({ ...prev, jenis: value }))
+                }
+                disabled={isEditing}
+              >
+                <SelectTrigger id="editJenis">
+                  <SelectValue placeholder="Pilih jenis kegiatan" />
+                </SelectTrigger>
+                <SelectContent>
+                  {jenisOptions.map((option) => (
+                    <SelectItem key={option} value={option}>
+                      {option}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Platform */}
+            <div className="space-y-1">
+              <Label htmlFor="editPlatform">Platform</Label>
+              <Input
+                id="editPlatform"
+                name="platform"
+                value={formData.platform}
+                onChange={handleChange}
+                required
+                disabled={isEditing}
+                placeholder="Zoom / Instagram / Offline"
+              />
+            </div>
+
+            {/* Peserta */}
+            <div className="space-y-1">
+              <Label htmlFor="editPeserta">Jumlah Peserta</Label>
+              <Input
+                id="editPeserta"
+                type="number"
+                name="peserta"
+                value={formData.peserta}
+                onChange={handleChange}
+                min={0}
+                required
+                disabled={isEditing}
+                placeholder="Contoh: 200"
+              />
+            </div>
+
+            {/* Tombol Simpan & Batal */}
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowEditModal(false)
+                  setEditingItem(null)
+                  setFormData({
+                    nama: "",
+                    tanggal: "",
+                    jenis: "Webinar",
+                    platform: "",
+                    peserta: 0,
+                  })
+                }}
+                type="button"
+                disabled={isEditing}
+              >
+                Batal
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-blue-600 hover:bg-blue-700"
+                disabled={isEditing}
+              >
+                {isEditing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Memperbarui...
+                  </>
+                ) : (
+                  'Perbarui'
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Recent Activities */}
       <div className="bg-white rounded-xl shadow-lg p-6">

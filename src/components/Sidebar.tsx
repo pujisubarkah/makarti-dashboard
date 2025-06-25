@@ -18,7 +18,7 @@ const menuItems = [
     icon: LayoutDashboard,
     children: [
       { title: "Ringkasan MAKARTI", href: "/admin/dashboard" },
-      { title: "Statistik", href: "/admin/dashboard/statistik" },
+      { title: "Pohon Makarti", href: "/admin/dashboard/statistik" },
     ],
   },
   {

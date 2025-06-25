@@ -33,67 +33,59 @@ interface OrgNode {
     networking: number
     learning: number
   }
+  isDashedConnection?: boolean
 }
 
 const organizationData: OrgNode = {
   id: "1",
-  name: "Kepala Pusat Data dan Informasi",
-  position: "Kepala Pusat",
-  department: "PUSDATIN",
+  name: "Kepala Lembaga Administrasi Negara",
+  position: "Kepala LAN",
+  department: "LAN",
   level: 1,
   kpi: {
     target: 100,
-    achieved: 95,
+    achieved: 92,
     status: "excellent"
   },
-  metrics: {
-    inovasi: 98,
-    komunikasi: 92,
-    networking: 95,
-    learning: 90
-  },
+
   children: [
     {
-      id: "2",
-      name: "Koordinator Bidang Inovasi",
-      position: "Koordinator",
-      department: "Inovasi",
+      id: "3",
+      name: "Sekretaris Utama",
+      position: "Sekretaris Utama",
+      department: "SETAMA",
       level: 2,
       kpi: {
         target: 100,
-        achieved: 92,
-        status: "excellent"
+        achieved: 88,
+        status: "good"
       },
-      metrics: {
-        inovasi: 95,
-        komunikasi: 88,
-        networking: 90,
-        learning: 85
-      },
+
+      
       children: [
         {
-          id: "3",
-          name: "Tim Pengembangan Inovasi",
-          position: "Staff",
-          department: "Inovasi",
+          id: "2",
+          name: "Inspektorat",
+          position: "Inspektur",
+          department: "INSPEKTORAT", 
           level: 3,
           kpi: {
             target: 100,
-            achieved: 88,
+            achieved: 86,
             status: "good"
           },
           metrics: {
-            inovasi: 92,
-            komunikasi: 85,
-            networking: 87,
-            learning: 82
+            inovasi: 82,
+            komunikasi: 88,
+            networking: 85,
+            learning: 89
           }
         },
         {
           id: "4",
-          name: "Tim Implementasi",
-          position: "Staff",
-          department: "Inovasi",
+          name: "Biro Perencanaan dan Keuangan",
+          position: "Kepala Biro",
+          department: "SETAMA",
           level: 3,
           kpi: {
             target: 100,
@@ -101,37 +93,293 @@ const organizationData: OrgNode = {
             status: "good"
           },
           metrics: {
-            inovasi: 88,
-            komunikasi: 82,
+            inovasi: 82,
+            komunikasi: 88,
             networking: 85,
-            learning: 80
+            learning: 87
+          }
+        },
+        {
+          id: "5",
+          name: "Biro Hukum, Organisasi dan Sumber Daya Manusia",
+          position: "Kepala Biro",
+          department: "SETAMA",
+          level: 3,
+          kpi: {
+            target: 100,
+            achieved: 90,
+            status: "excellent"
+          },
+          metrics: {
+            inovasi: 88,
+            komunikasi: 95,
+            networking: 89,
+            learning: 92
+          }
+        },
+        {
+          id: "6",
+          name: "Biro Umum, Kerjasama dan Humas",
+          position: "Kepala Biro",
+          department: "SETAMA",
+          level: 3,
+          kpi: {
+            target: 100,
+            achieved: 89,
+            status: "good"
+          },
+          metrics: {
+            inovasi: 85,
+            komunikasi: 93,
+            networking: 87,
+            learning: 95
           }
         }
       ]
     },
     {
-      id: "5",
-      name: "Koordinator Bidang Komunikasi",
-      position: "Koordinator",
-      department: "Komunikasi",
+      id: "7",
+      name: "Deputi Bidang Peningkatan Kualitas Kebijakan Administrasi Negara",
+      position: "Deputi",
+      department: "DEPUTI I",
       level: 2,
       kpi: {
         target: 100,
-        achieved: 78,
-        status: "warning"
+        achieved: 94,
+        status: "excellent"
       },
-      metrics: {
-        inovasi: 75,
-        komunikasi: 85,
-        networking: 80,
-        learning: 70
-      },
+ 
       children: [
         {
-          id: "6",
-          name: "Tim Media & Branding",
-          position: "Staff",
-          department: "Komunikasi",
+          id: "8",
+          name: "Direktorat Strategi Peningkatan Kualitas Kebijakan Adm Negara",
+          position: "Direktur",
+          department: "DEPUTI I",
+          level: 3,
+          kpi: {
+            target: 100,
+            achieved: 92,
+            status: "excellent"
+          },
+          metrics: {
+            inovasi: 95,
+            komunikasi: 88,
+            networking: 90,
+            learning: 82
+          }
+        },
+        {
+          id: "9",
+          name: "Direktorat Advokasi dan Pengembangan Kinerja Kebijakan",
+          position: "Direktur",
+          department: "DEPUTI I",
+          level: 3,
+          kpi: {
+            target: 100,
+            achieved: 96,
+            status: "excellent"
+          },
+          metrics: {
+            inovasi: 100,
+            komunikasi: 92,
+            networking: 94,
+            learning: 88
+          }
+        },
+        {
+          id: "10",
+          name: "Direktorat Penguatan KapasitasJabatan Fungsional",
+          position: "Direktur",
+          department: "DEPUTI I",
+          level: 3,
+          kpi: {
+            target: 100,
+            achieved: 93,
+            status: "excellent"
+          },
+          metrics: {
+            inovasi: 95,
+            komunikasi: 90,
+            networking: 92,
+            learning: 85
+          }
+        }
+      ]
+    },
+    {
+      id: "11",
+      name: "Deputi Bidang Transformasi Pembelajaran Aparatur Sipil Negara",
+      position: "Deputi",
+      department: "DEPUTI II",
+      level: 2,
+      kpi: {
+        target: 100,
+        achieved: 87,
+        status: "good"
+      },
+  
+      children: [
+        {
+          id: "12",
+          name: "Direktorat Sistem Pembelajaran Terintegrasi ",
+          position: "Direktur",
+          department: "DEPUTI II",
+          level: 3,
+          kpi: {
+            target: 100,
+            achieved: 89,
+            status: "good"
+          },
+          metrics: {
+            inovasi: 87,
+            komunikasi: 92,
+            networking: 88,
+            learning: 95
+          }
+        },
+        {
+          id: "13",
+          name: "Direktorat Ekosistem Pembelajaran ASN",
+          position: "Direktur",
+          department: "DEPUTI II",
+          level: 3,
+          kpi: {
+            target: 100,
+            achieved: 85,
+            status: "good"
+          },
+          metrics: {
+            inovasi: 83,
+            komunikasi: 88,
+            networking: 87,
+            learning: 90
+          }
+        },
+        {
+          id: "14",
+          name: "Direktorat Teknologi dan Digitalisasi Pembelajaran",
+          position: "Direktur",
+          department: "DEPUTI II",
+          level: 3,
+          kpi: {
+            target: 100,
+            achieved: 87,
+            status: "good"
+          },
+          metrics: {
+            inovasi: 85,
+            komunikasi: 90,
+            networking: 89,
+            learning: 92
+          }
+        }
+      ]
+    },
+    {
+      id: "15",
+      name: "Deputi Bidang Penyelenggaraan Pengembangan Kapasitas ASN",
+      position: "Deputi",
+      department: "DEPUTI III",
+      level: 2,
+      kpi: {
+        target: 100,
+        achieved: 79,
+        status: "warning"
+      },
+  
+      children: [
+        {
+          id: "16",
+          name: "Direktorat Pembelajaran Manajerial Kepemimpinan",
+          position: "Direktur",
+          department: "DEPUTI III",
+          level: 3,
+          kpi: {
+            target: 100,
+            achieved: 81,
+            status: "good"
+          },
+          metrics: {
+            inovasi: 78,
+            komunikasi: 85,
+            networking: 82,
+            learning: 80
+          }
+        },
+        {
+          id: "17",
+          name: "Direktorat Pembelajaran Karakter dan Sosial Kultural",
+          position: "Direktur",
+          department: "DEPUTI III",
+          level: 3,
+          kpi: {
+            target: 100,
+            achieved: 77,
+            status: "warning"
+          },
+          metrics: {
+            inovasi: 72,
+            komunikasi: 80,
+            networking: 78,
+            learning: 76
+          }
+        },
+        {
+          id: "18",
+          name: "Direktorat Pembelajaran Teknis dan Fungsional Terintegrasi",
+          position: "Asisten Deputi",
+          department: "DEPUTI III",
+          level: 3,
+          kpi: {
+            target: 100,
+            achieved: 79,
+            status: "warning"
+          },
+          metrics: {
+            inovasi: 75,
+            komunikasi: 82,
+            networking: 80,
+            learning: 78
+          }
+        }
+      ]
+    },
+    {
+      id: "19",
+      name: "Deputi Bidang Penjaminan Mutu Pengembangan Kapasitas dan Pembelajaran ASN",
+      position: "Deputi",
+      department: "DEPUTI IV",
+      level: 2,
+      kpi: {
+        target: 100,
+        achieved: 84,
+        status: "good"
+      },
+
+      children: [
+        {
+          id: "20",
+          name: "Direktorat Penjaminan Mutu Pembelajaran",
+          position: "Direktur",
+          department: "DEPUTI IV",
+          level: 3,
+          kpi: {
+            target: 100,
+            achieved: 86,
+            status: "good"
+          },
+          metrics: {
+            inovasi: 82,
+            komunikasi: 87,
+            networking: 84,
+            learning: 92
+          }
+        },
+        {
+          id: "21",
+          name: "Direktorat Penjaminan Mutu Pengembangan Kapasitas",
+          position: "Asisten Deputi",
+          department: "DEPUTI IV",
           level: 3,
           kpi: {
             target: 100,
@@ -140,141 +388,165 @@ const organizationData: OrgNode = {
           },
           metrics: {
             inovasi: 78,
-            komunikasi: 88,
-            networking: 82,
-            learning: 75
+            komunikasi: 83,
+            networking: 80,
+            learning: 88
           }
         },
         {
-          id: "7",
-          name: "Tim Sosialisasi",
-          position: "Staff",
-          department: "Komunikasi",
-          level: 3,
-          kpi: {
-            target: 100,
-            achieved: 74,
-            status: "warning"
-          },
-          metrics: {
-            inovasi: 72,
-            komunikasi: 82,
-            networking: 78,
-            learning: 65
-          }
-        }
-      ]
+      id: "22",
+      name: "Kepala Pusat Data dan Informasi",
+      position: "Kepala Pusat",
+      department: "PUSAT",
+      level: 3,
+      kpi: {
+        target: 100,
+        achieved: 89,
+        status: "good"
+      },
+      metrics: {
+        inovasi: 87,
+        komunikasi: 91,
+        networking: 88,
+        learning: 90
+      },
+      isDashedConnection: true
     },
     {
-      id: "8",
-      name: "Koordinator Bidang Networking",
-      position: "Koordinator",
-      department: "Networking",
-      level: 2,
+      id: "23",
+      name: "Kepala Pusat Pembelajaran dan Strategi Kebijakan Manajemen Kinerja",
+      position: "Kepala Pusat",
+      department: "PUSAT",
+      level: 3,
+      kpi: {
+        target: 100,
+        achieved: 91,
+        status: "excellent"
+      },
+      metrics: {
+        inovasi: 93,
+        komunikasi: 89,
+        networking: 90,
+        learning: 92
+      },
+      isDashedConnection: true
+    },
+    {
+      id: "24",
+      name: "Kepala Pusat Pembelajaran dan Strategi Kebijakan Manajemen Pemerintahan",
+      position: "Kepala Pusat",
+      department: "PUSAT",
+      level: 3,
+      kpi: {
+        target: 100,
+        achieved: 88,
+        status: "good"
+      },
+      metrics: {
+        inovasi: 86,
+        komunikasi: 90,
+        networking: 87,
+        learning: 89
+      },
+      isDashedConnection: true
+    },
+    {
+      id: "25",
+      name: "Kepala Pusat Pembelajaran dan Strategi Kebijakan Pelayanan Publik",
+      position: "Kepala Pusat",
+      department: "PUSAT",
+      level: 3,
       kpi: {
         target: 100,
         achieved: 90,
         status: "excellent"
       },
       metrics: {
-        inovasi: 85,
-        komunikasi: 90,
-        networking: 95,
-        learning: 88
+        inovasi: 92,
+        komunikasi: 88,
+        networking: 89,
+        learning: 91
       },
-      children: [
-        {
-          id: "9",
-          name: "Tim Kunjungan Instansi",
-          position: "Staff",
-          department: "Networking",
-          level: 3,
-          kpi: {
-            target: 100,
-            achieved: 87,
-            status: "good"
-          },
-          metrics: {
-            inovasi: 82,
-            komunikasi: 88,
-            networking: 92,
-            learning: 85
-          }
-        },
-        {
-          id: "10",
-          name: "Tim Koordinasi",
-          position: "Staff",
-          department: "Networking",
-          level: 3,
-          kpi: {
-            target: 100,
-            achieved: 93,
-            status: "excellent"
-          },
-          metrics: {
-            inovasi: 88,
-            komunikasi: 92,
-            networking: 98,
-            learning: 90
-          }
-        }
-      ]
+      isDashedConnection: true
     },
     {
-      id: "11",
-      name: "Koordinator Bidang Learning",
-      position: "Koordinator",
-      department: "Learning",
-      level: 2,
+      id: "26",
+      name: "Kepala Pusat Pembelajaran dan Strategi Kebijakan Talenta ASN",
+      position: "Kepala Pusat",
+      department: "PUSAT",
+      level: 3,
       kpi: {
         target: 100,
-        achieved: 65,
-        status: "poor"
+        achieved: 87,
+        status: "good"
       },
       metrics: {
-        inovasi: 60,
-        komunikasi: 68,
-        networking: 65,
-        learning: 70
+        inovasi: 85,
+        komunikasi: 89,
+        networking: 86,
+        learning: 88
       },
-      children: [
-        {
-          id: "12",
-          name: "Tim Pelatihan",
-          position: "Staff",
-          department: "Learning",
-          level: 3,
-          kpi: {
-            target: 100,
-            achieved: 70,
-            status: "warning"
-          },
-          metrics: {
-            inovasi: 65,
-            komunikasi: 72,
-            networking: 68,
-            learning: 75
-          }
-        },
-        {
-          id: "13",
-          name: "Tim Pengembangan SDM",
-          position: "Staff",
-          department: "Learning",
-          level: 3,
-          kpi: {
-            target: 100,
-            achieved: 60,
-            status: "poor"
-          },
-          metrics: {
-            inovasi: 55,
-            komunikasi: 64,
-            networking: 62,
-            learning: 65
-          }
-        }
+      isDashedConnection: true
+    },
+    // Polytechnic directors with dashed connection
+    {
+      id: "27",
+      name: "Direktur Politeknik STIA LAN Jakarta",
+      position: "Direktur",
+      department: "POLTEK",
+      level: 3,
+      kpi: {
+        target: 100,
+        achieved: 85,
+        status: "good"
+      },
+      metrics: {
+        inovasi: 83,
+        komunikasi: 87,
+        networking: 84,
+        learning: 86
+      },
+      isDashedConnection: true
+    },
+    {
+      id: "28",
+      name: "Direktur Politeknik STIA LAN Bandung",
+      position: "Direktur",
+      department: "POLTEK",
+      level: 3,
+      kpi: {
+        target: 100,
+        achieved: 88,
+        status: "good"
+      },
+      metrics: {
+        inovasi: 86,
+        komunikasi: 90,
+        networking: 87,
+        learning: 89
+      },
+      isDashedConnection: true
+    },
+    {
+      id: "29",
+      name: "Direktur Politeknik STIA LAN Makassar",
+      position: "Direktur",
+      department: "POLTEK",
+      level: 3,
+      kpi: {
+        target: 100,
+        achieved: 84,
+        status: "good"
+      },
+      metrics: {
+        inovasi: 82,
+        komunikasi: 86,
+        networking: 83,
+        learning: 85
+      },
+      isDashedConnection: true
+    },
+
       ]
     }
   ]
@@ -298,40 +570,47 @@ const getStatusColor = (status: string) => {
 const getStatusIcon = (status: string) => {
   switch (status) {
     case "excellent":
-      return <Star className="w-4 h-4" />
+      return <Star className="w-2.5 h-2.5" />
     case "good":
-      return <CheckCircle className="w-4 h-4" />
+      return <CheckCircle className="w-2.5 h-2.5" />
     case "warning":
-      return <Clock className="w-4 h-4" />
+      return <Clock className="w-2.5 h-2.5" />
     case "poor":
-      return <AlertTriangle className="w-4 h-4" />
+      return <AlertTriangle className="w-2.5 h-2.5" />
     default:
-      return <Activity className="w-4 h-4" />
+      return <Activity className="w-2.5 h-2.5" />
   }
 }
 
 const getDepartmentColor = (department: string) => {
   switch (department) {
-    case "PUSDATIN":
+    case "LAN":
       return "bg-gradient-to-r from-purple-600 to-indigo-600"
-    case "Inovasi":
-      return "bg-gradient-to-r from-yellow-500 to-orange-500"
-    case "Komunikasi":
-      return "bg-gradient-to-r from-pink-500 to-red-500"
-    case "Networking":
-      return "bg-gradient-to-r from-cyan-500 to-blue-500"
-    case "Learning":
+    case "INSPEKTORAT":
+      return "bg-gradient-to-r from-red-600 to-rose-600"
+    case "SETAMA":
       return "bg-gradient-to-r from-green-500 to-emerald-500"
+    case "DEPUTI I":
+      return "bg-gradient-to-r from-yellow-500 to-orange-500"
+    case "DEPUTI II":
+      return "bg-gradient-to-r from-pink-500 to-red-500"
+    case "DEPUTI III":
+      return "bg-gradient-to-r from-cyan-500 to-blue-500"
+    case "DEPUTI IV":
+      return "bg-gradient-to-r from-violet-500 to-purple-500"
+    case "PUSAT":
+      return "bg-gradient-to-r from-indigo-500 to-purple-500"
+    case "POLTEK":
+      return "bg-gradient-to-r from-orange-500 to-red-500"
     default:
       return "bg-gradient-to-r from-gray-500 to-gray-600"
   }
 }
 
-function OrgChart({ node, onToggle }: { 
+function OrgChart({ node }: { 
   node: OrgNode; 
-  onToggle: (id: string) => void;
 }) {
-  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['1', '2', '5', '8', '11']))
+  const [expandedNodes, setExpandedNodes] = useState<Set<string>>(new Set(['1', '3', '7', '11', '15', '19']))
 
   const toggleNode = (id: string) => {
     const newExpanded = new Set(expandedNodes)
@@ -345,53 +624,59 @@ function OrgChart({ node, onToggle }: {
 
   const isNodeExpanded = expandedNodes.has(node.id)
 
+  // Separate different types of children
+  const regularChildren = node.children?.filter(child => !child.isDashedConnection && child.level !== 2) || []
+  const level2Nodes = node.children?.filter(child => !child.isDashedConnection && child.level === 2) || []
+  const pusatNodes = node.children?.filter(child => child.isDashedConnection && child.department === 'PUSAT') || []
+  const polytechnicDirectors = node.children?.filter(child => child.isDashedConnection && child.department === 'POLTEK') || []
+
   return (
     <div className="flex flex-col items-center">
       {/* Node Card */}
-      <div className={`relative bg-white rounded-xl shadow-lg border-2 p-6 mb-6 min-w-80 max-w-96 transition-all duration-300 hover:shadow-xl hover:scale-105 ${
+      <div className={`relative bg-white rounded-lg shadow-md border-2 p-2 mb-3 w-40 transition-all duration-300 hover:shadow-lg hover:scale-102 ${
         node.level === 1 ? 'border-purple-300' : 
         node.level === 2 ? 'border-blue-300' : 'border-gray-300'
       }`}>
         {/* Department Header */}
-        <div className={`absolute -top-3 left-4 px-3 py-1 rounded-full text-xs font-bold text-white ${getDepartmentColor(node.department)}`}>
+        <div className={`absolute -top-1.5 left-2 px-1.5 py-0.5 rounded-full text-xs font-bold text-white ${getDepartmentColor(node.department)}`}>
           {node.department}
         </div>
 
         {/* Main Content */}
-        <div className="mt-2">
-          <div className="flex items-center justify-between mb-3">
-            <div className="flex items-center">
-              <Building2 className="w-5 h-5 text-gray-600 mr-2" />
-              <h3 className="font-bold text-gray-800 text-sm">{node.name}</h3>
+        <div className="mt-1">
+          <div className="flex flex-col mb-1">
+            <div className="flex items-center justify-between">
+              <Building2 className="w-3 h-3 text-gray-600" />
+              {((regularChildren.length > 0) || (level2Nodes.length > 0) || (pusatNodes.length > 0) || (polytechnicDirectors.length > 0)) && (
+                <button
+                  onClick={() => toggleNode(node.id)}
+                  className="p-0.5 rounded-full hover:bg-gray-100 transition-colors"
+                >
+                  {isNodeExpanded ? (
+                    <ChevronDown className="w-3 h-3 text-gray-600" />
+                  ) : (
+                    <ChevronRight className="w-3 h-3 text-gray-600" />
+                  )}
+                </button>
+              )}
             </div>
-            {node.children && node.children.length > 0 && (
-              <button
-                onClick={() => toggleNode(node.id)}
-                className="p-1 rounded-full hover:bg-gray-100 transition-colors"
-              >
-                {isNodeExpanded ? (
-                  <ChevronDown className="w-4 h-4 text-gray-600" />
-                ) : (
-                  <ChevronRight className="w-4 h-4 text-gray-600" />
-                )}
-              </button>
-            )}
+            <h3 className="font-bold text-gray-800 text-xs leading-tight mt-1">{node.name}</h3>
           </div>
 
-          <p className="text-xs text-gray-600 mb-3">{node.position}</p>
+          <p className="text-xs text-gray-600 mb-2">{node.position}</p>
 
           {/* KPI Section */}
-          <div className="mb-4">
-            <div className="flex items-center justify-between mb-2">
-              <span className="text-xs font-medium text-gray-700">KPI Performance</span>
-              <div className={`flex items-center px-2 py-1 rounded-full text-xs font-bold ${getStatusColor(node.kpi.status)}`}>
+          <div className="mb-2">
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-xs font-medium text-gray-700">KPI</span>
+              <div className={`flex items-center px-1 py-0.5 rounded-full text-xs font-bold ${getStatusColor(node.kpi.status)}`}>
                 {getStatusIcon(node.kpi.status)}
                 <span className="ml-1">{node.kpi.achieved}%</span>
               </div>
             </div>
-            <div className="w-full bg-gray-200 rounded-full h-2">
+            <div className="w-full bg-gray-200 rounded-full h-1">
               <div 
-                className={`h-2 rounded-full transition-all duration-500 ${
+                className={`h-1 rounded-full transition-all duration-500 ${
                   node.kpi.status === 'excellent' ? 'bg-green-500' :
                   node.kpi.status === 'good' ? 'bg-blue-500' :
                   node.kpi.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
@@ -403,22 +688,34 @@ function OrgChart({ node, onToggle }: {
 
           {/* Metrics */}
           {node.metrics && (
-            <div className="grid grid-cols-2 gap-2">
-              <div className="flex items-center">
-                <div className="w-2 h-2 bg-yellow-500 rounded-full mr-2"></div>
-                <span className="text-xs text-gray-600">Inovasi: {node.metrics.inovasi}%</span>
+            <div className="grid grid-cols-1 gap-1">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="w-1 h-1 bg-yellow-500 rounded-full mr-1"></div>
+                  <span className="text-xs text-gray-600">Inovasi</span>
+                </div>
+                <span className="text-xs font-medium text-gray-800">{node.metrics.inovasi}%</span>
               </div>
-              <div className="flex items-center">
-                <div className="w-2 h-2 bg-pink-500 rounded-full mr-2"></div>
-                <span className="text-xs text-gray-600">Komunikasi: {node.metrics.komunikasi}%</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="w-1 h-1 bg-pink-500 rounded-full mr-1"></div>
+                  <span className="text-xs text-gray-600">Komunikasi</span>
+                </div>
+                <span className="text-xs font-medium text-gray-800">{node.metrics.komunikasi}%</span>
               </div>
-              <div className="flex items-center">
-                <div className="w-2 h-2 bg-cyan-500 rounded-full mr-2"></div>
-                <span className="text-xs text-gray-600">Networking: {node.metrics.networking}%</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="w-1 h-1 bg-cyan-500 rounded-full mr-1"></div>
+                  <span className="text-xs text-gray-600">Networking</span>
+                </div>
+                <span className="text-xs font-medium text-gray-800">{node.metrics.networking}%</span>
               </div>
-              <div className="flex items-center">
-                <div className="w-2 h-2 bg-green-500 rounded-full mr-2"></div>
-                <span className="text-xs text-gray-600">Learning: {node.metrics.learning}%</span>
+              <div className="flex items-center justify-between">
+                <div className="flex items-center">
+                  <div className="w-1 h-1 bg-green-500 rounded-full mr-1"></div>
+                  <span className="text-xs text-gray-600">Learning</span>
+                </div>
+                <span className="text-xs font-medium text-gray-800">{node.metrics.learning}%</span>
               </div>
             </div>
           )}
@@ -426,42 +723,272 @@ function OrgChart({ node, onToggle }: {
       </div>
 
       {/* Connection Lines and Children */}
-      {node.children && node.children.length > 0 && isNodeExpanded && (
+      {((regularChildren.length > 0) || (level2Nodes.length > 0) || (pusatNodes.length > 0) || (polytechnicDirectors.length > 0)) && isNodeExpanded && (
         <div className="relative">
-          {/* Vertical Line */}
-          <div className="w-px h-8 bg-gray-300 mx-auto"></div>
-          
-          {/* Horizontal Line */}
-          {node.children.length > 1 && (
-            <div className="flex items-center">
-              <div className="h-px bg-gray-300 flex-1"></div>
-              <div className="w-3 h-3 bg-gray-300 rounded-full"></div>
-              <div className="h-px bg-gray-300 flex-1"></div>
+          {/* Level 2 Nodes (Deputi) - Horizontal Layout */}
+          {level2Nodes.length > 0 && (
+            <div className="mt-4">
+              {/* Vertical connector */}
+              <div className="w-px h-4 bg-gray-300 mx-auto"></div>
+              
+              {/* Horizontal line for level 2 nodes */}
+              <div className="flex items-center mb-2">
+                <div className="h-px bg-gray-300 flex-1"></div>
+                <div className="w-1.5 h-1.5 bg-gray-300 rounded-full"></div>
+                <div className="h-px bg-gray-300 flex-1"></div>
+              </div>
+
+              {/* Level 2 Container - All Horizontal */}
+              <div className="flex justify-center space-x-3 flex-wrap gap-y-4">
+                {/* Render Level 2 nodes (Deputi) */}
+                {level2Nodes.map((level2Node) => (
+                  <div key={level2Node.id} className="relative">
+                    {/* Vertical connector to level 2 node */}
+                    <div className="w-px h-4 bg-gray-300 mx-auto -mt-2"></div>
+                    <OrgChart 
+                      node={level2Node} 
+                    />
+                  </div>
+                ))}
+              </div>
             </div>
           )}
 
-          {/* Children Container */}
-          <div className={`flex ${node.children.length > 1 ? 'justify-center space-x-8' : 'justify-center'} mt-4`}>
-            {node.children.map((child) => (
-              <div key={child.id} className="relative">
-                {/* Vertical connector to child */}
-                <div className="w-px h-8 bg-gray-300 mx-auto -mt-4"></div>
-                <OrgChart 
-                  node={child} 
-                  onToggle={toggleNode}
-                />
+          {/* Regular Children */}
+          {regularChildren.length > 0 && (
+            <>
+              {/* Vertical Line */}
+              <div className="w-px h-4 bg-gray-300 mx-auto"></div>
+              
+              {/* Horizontal Line */}
+              {regularChildren.length > 1 && (
+                <div className="flex items-center">
+                  <div className="h-px bg-gray-300 flex-1"></div>
+                  <div className="w-1.5 h-1.5 bg-gray-300 rounded-full"></div>
+                  <div className="h-px bg-gray-300 flex-1"></div>
+                </div>
+              )}
+
+              {/* Regular Children Container */}
+              <div className={`flex ${
+                regularChildren.length > 3 ? 'flex-wrap justify-center gap-2' : 
+                regularChildren.length > 1 ? 'justify-center space-x-2' : 'justify-center'
+              } mt-2`}>
+                {regularChildren.map((child) => (
+                  <div key={child.id} className="relative">
+                    {/* Vertical connector to child */}
+                    <div className="w-px h-4 bg-gray-300 mx-auto -mt-2"></div>
+                    <OrgChart 
+                      node={child} 
+                    />
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+            </>
+          )}
+
+          {/* Kepala Pusat - Horizontal Layout */}
+          {pusatNodes.length > 0 && (
+            <div className="mt-8">
+              {/* Dashed connector line to pusat section */}
+              <div className="flex flex-col items-center">
+                <div className="w-px h-6 border-l-2 border-dashed border-gray-400 mx-auto"></div>
+                <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full mb-4">
+                  Kepala Pusat
+                </div>
+              </div>
+              
+              {/* Horizontal line for kepala pusat */}
+              <div className="flex items-center mb-2">
+                <div className="h-px border-t-2 border-dashed border-gray-400 flex-1"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full mx-2"></div>
+                <div className="h-px border-t-2 border-dashed border-gray-400 flex-1"></div>
+              </div>
+
+              {/* Kepala Pusat Container - All Horizontal */}
+              <div className="flex justify-center space-x-4 flex-wrap gap-y-4">
+                {pusatNodes.map((pusat) => (
+                  <div key={pusat.id} className="relative">
+                    {/* Dashed vertical connector to pusat */}
+                    <div className="w-px h-4 border-l-2 border-dashed border-gray-400 mx-auto -mt-2"></div>
+                    
+                    {/* Pusat Node */}
+                    <div className={`relative bg-white rounded-lg shadow-md border-2 border-dashed border-indigo-400 p-2 w-40 transition-all duration-300 hover:shadow-lg hover:scale-102`}>
+                      {/* Department Header */}
+                      <div className="absolute -top-1.5 left-2 px-1.5 py-0.5 rounded-full text-xs font-bold text-white bg-gradient-to-r from-indigo-500 to-purple-500">
+                        PUSAT
+                      </div>
+
+                      {/* Main Content */}
+                      <div className="mt-1">
+                        <div className="flex flex-col mb-1">
+                          <div className="flex items-center justify-between">
+                            <Building2 className="w-3 h-3 text-indigo-600" />
+                          </div>
+                          <h3 className="font-bold text-gray-800 text-xs leading-tight mt-1">{pusat.name}</h3>
+                        </div>
+
+                        <p className="text-xs text-gray-600 mb-2">{pusat.position}</p>
+
+                        {/* KPI Section */}
+                        <div className="mb-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-medium text-gray-700">KPI</span>
+                            <div className={`flex items-center px-1 py-0.5 rounded-full text-xs font-bold ${getStatusColor(pusat.kpi.status)}`}>
+                              {getStatusIcon(pusat.kpi.status)}
+                              <span className="ml-1">{pusat.kpi.achieved}%</span>
+                            </div>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-1">
+                            <div 
+                              className={`h-1 rounded-full transition-all duration-500 ${
+                                pusat.kpi.status === 'excellent' ? 'bg-green-500' :
+                                pusat.kpi.status === 'good' ? 'bg-blue-500' :
+                                pusat.kpi.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                              }`}
+                              style={{ width: `${pusat.kpi.achieved}%` }}
+                            ></div>
+                          </div>
+                        </div>
+
+                        {/* Metrics */}
+                        <div className="space-y-1">
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-600">Inovasi</span>
+                            <span className="text-xs font-semibold text-purple-600">{pusat.metrics?.inovasi || 0}%</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-600">Komunikasi</span>
+                            <span className="text-xs font-semibold text-blue-600">{pusat.metrics?.komunikasi || 0}%</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-600">Networking</span>
+                            <span className="text-xs font-semibold text-green-600">{pusat.metrics?.networking || 0}%</span>
+                          </div>
+                          <div className="flex justify-between items-center">
+                            <span className="text-xs text-gray-600">Learning</span>
+                            <span className="text-xs font-semibold text-orange-600">{pusat.metrics?.learning || 0}%</span>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Polytechnic Directors - Horizontal Layout */}
+          {polytechnicDirectors.length > 0 && (
+            <div className="mt-8">
+              {/* Dashed connector line to polytechnic section */}
+              <div className="flex flex-col items-center">
+                <div className="w-px h-6 border-l-2 border-dashed border-gray-400 mx-auto"></div>
+                <div className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full mb-4">
+                  Politeknik STIA LAN
+                </div>
+              </div>
+              
+              {/* Horizontal line for polytechnic directors */}
+              <div className="flex items-center mb-2">
+                <div className="h-px border-t-2 border-dashed border-gray-400 flex-1"></div>
+                <div className="w-2 h-2 bg-gray-400 rounded-full mx-2"></div>
+                <div className="h-px border-t-2 border-dashed border-gray-400 flex-1"></div>
+              </div>
+
+              {/* Polytechnic Directors Container - All Horizontal */}
+              <div className="flex justify-center space-x-4">
+                {polytechnicDirectors.map((director) => (
+                  <div key={director.id} className="relative">
+                    {/* Dashed vertical connector to director */}
+                    <div className="w-px h-4 border-l-2 border-dashed border-gray-400 mx-auto -mt-2"></div>
+                    
+                    {/* Director Node */}
+                    <div className={`relative bg-white rounded-lg shadow-md border-2 border-dashed border-orange-400 p-2 w-40 transition-all duration-300 hover:shadow-lg hover:scale-102`}>
+                      {/* Department Header */}
+                      <div className="absolute -top-1.5 left-2 px-1.5 py-0.5 rounded-full text-xs font-bold text-white bg-gradient-to-r from-orange-500 to-red-500">
+                        POLTEK
+                      </div>
+
+                      {/* Main Content */}
+                      <div className="mt-1">
+                        <div className="flex flex-col mb-1">
+                          <div className="flex items-center justify-between">
+                            <Building2 className="w-3 h-3 text-orange-600" />
+                          </div>
+                          <h3 className="font-bold text-gray-800 text-xs leading-tight mt-1">{director.name}</h3>
+                        </div>
+
+                        <p className="text-xs text-gray-600 mb-2">{director.position}</p>
+
+                        {/* KPI Section */}
+                        <div className="mb-2">
+                          <div className="flex items-center justify-between mb-1">
+                            <span className="text-xs font-medium text-gray-700">KPI</span>
+                            <div className={`flex items-center px-1 py-0.5 rounded-full text-xs font-bold ${getStatusColor(director.kpi.status)}`}>
+                              {getStatusIcon(director.kpi.status)}
+                              <span className="ml-1">{director.kpi.achieved}%</span>
+                            </div>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-1">
+                            <div 
+                              className={`h-1 rounded-full transition-all duration-500 ${
+                                director.kpi.status === 'excellent' ? 'bg-green-500' :
+                                director.kpi.status === 'good' ? 'bg-blue-500' :
+                                director.kpi.status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                              }`}
+                              style={{ width: `${director.kpi.achieved}%` }}
+                            ></div>
+                          </div>
+                        </div>
+
+                        {/* Metrics */}
+                        {director.metrics && (
+                          <div className="grid grid-cols-1 gap-1">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <div className="w-1 h-1 bg-yellow-500 rounded-full mr-1"></div>
+                                <span className="text-xs text-gray-600">Inovasi</span>
+                              </div>
+                              <span className="text-xs font-medium text-gray-800">{director.metrics.inovasi}%</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <div className="w-1 h-1 bg-pink-500 rounded-full mr-1"></div>
+                                <span className="text-xs text-gray-600">Komunikasi</span>
+                              </div>
+                              <span className="text-xs font-medium text-gray-800">{director.metrics.komunikasi}%</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <div className="w-1 h-1 bg-cyan-500 rounded-full mr-1"></div>
+                                <span className="text-xs text-gray-600">Networking</span>
+                              </div>
+                              <span className="text-xs font-medium text-gray-800">{director.metrics.networking}%</span>
+                            </div>
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center">
+                                <div className="w-1 h-1 bg-green-500 rounded-full mr-1"></div>
+                                <span className="text-xs text-gray-600">Learning</span>
+                              </div>
+                              <span className="text-xs font-medium text-gray-800">{director.metrics.learning}%</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>
-)
+  )
 }
 
 export default function StatistikPage() {
-  const [selectedMetric, setSelectedMetric] = useState<string>("all")
-
   // Calculate overall statistics
   const getAllNodes = (node: OrgNode): OrgNode[] => {
     const nodes = [node]
@@ -486,8 +1013,8 @@ export default function StatistikPage() {
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-gray-800 mb-2">Pohon Kinerja Organisasi</h1>
-        <p className="text-gray-600">Visualisasi struktur organisasi dengan metrik kinerja real-time</p>
+        <h1 className="text-3xl font-bold text-gray-800 mb-2">Pohon Kinerja Organisasi LAN</h1>
+        <p className="text-gray-600">Visualisasi struktur organisasi Lembaga Administrasi Negara dengan metrik kinerja real-time</p>
       </div>
 
       {/* Summary Cards */}
@@ -544,7 +1071,7 @@ export default function StatistikPage() {
       </div>
 
       {/* Organization Chart */}
-      <div className="bg-white rounded-xl shadow-lg p-8 overflow-x-auto">
+      <div className="bg-white rounded-xl shadow-lg p-4 overflow-auto">
         <div className="flex items-center justify-between mb-6">
           <h2 className="text-xl font-bold text-gray-800">Struktur Organisasi & Kinerja</h2>
           <div className="flex items-center space-x-2 text-sm text-gray-600">
@@ -554,30 +1081,29 @@ export default function StatistikPage() {
         </div>
 
         {/* Legend */}
-        <div className="flex flex-wrap gap-4 mb-8 p-4 bg-gray-50 rounded-lg">
+        <div className="flex flex-wrap gap-4 mb-6 p-3 bg-gray-50 rounded-lg">
           <div className="flex items-center">
-            <div className="w-4 h-4 bg-green-500 rounded-full mr-2"></div>
+            <div className="w-3 h-3 bg-green-500 rounded-full mr-2"></div>
             <span className="text-xs text-gray-600">Excellent (90-100%)</span>
           </div>
           <div className="flex items-center">
-            <div className="w-4 h-4 bg-blue-500 rounded-full mr-2"></div>
+            <div className="w-3 h-3 bg-blue-500 rounded-full mr-2"></div>
             <span className="text-xs text-gray-600">Good (80-89%)</span>
           </div>
           <div className="flex items-center">
-            <div className="w-4 h-4 bg-yellow-500 rounded-full mr-2"></div>
+            <div className="w-3 h-3 bg-yellow-500 rounded-full mr-2"></div>
             <span className="text-xs text-gray-600">Warning (70-79%)</span>
           </div>
           <div className="flex items-center">
-            <div className="w-4 h-4 bg-red-500 rounded-full mr-2"></div>
+            <div className="w-3 h-3 bg-red-500 rounded-full mr-2"></div>
             <span className="text-xs text-gray-600">Poor (&lt;70%)</span>
           </div>
         </div>
 
-        {/* Org Chart */}
-        <div className="min-w-full">
+        {/* Org Chart - Portrait Layout */}
+        <div className="flex justify-center">
           <OrgChart 
             node={organizationData} 
-            onToggle={() => {}}
           />
         </div>
       </div>

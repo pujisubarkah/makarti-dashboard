@@ -14,6 +14,7 @@ import {
   FileText,
   Package,
   PieChart,
+  FileSearch,
 } from 'lucide-react'
 
 const menuItems = [
@@ -66,6 +67,11 @@ const menuItems = [
     label: 'Produk Inovasi',
     href: '/user/inovasi/produk',
     icon: Package,
+  },
+  {
+    label: 'Produk Kajian/Analisis Kebijakan',
+    href: '/user/kajian',
+    icon: FileSearch,
   },
   {
     label: 'Serapan Anggaran',

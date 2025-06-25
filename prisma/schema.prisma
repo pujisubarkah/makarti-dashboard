@@ -155,6 +155,64 @@ model kajian {
   @@schema("makarti")
 }
 
+model org_departments {
+  id        Int         @id(map: "departments_pkey") @default(autoincrement())
+  name      String      @unique(map: "departments_name_key") @db.VarChar(255)
+  color     String?     @db.VarChar(255)
+  org_units org_units[]
+
+  @@schema("makarti")
+}
+
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model org_kpis {
+  id        Int       @id(map: "kpis_pkey") @default(autoincrement())
+  unit_id   Int       @unique(map: "kpis_unit_id_key")
+  target    Int
+  achieved  Int
+  status    String    @db.VarChar(20)
+  org_units org_units @relation(fields: [unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "kpis_unit_id_fkey")
+
+  @@schema("makarti")
+}
+
+model org_metrics {
+  id         Int       @id(map: "metrics_pkey") @default(autoincrement())
+  unit_id    Int       @unique(map: "metrics_unit_id_key")
+  inovasi    Int
+  komunikasi Int
+  networking Int
+  learning   Int
+  org_units  org_units @relation(fields: [unit_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "metrics_unit_id_fkey")
+
+  @@schema("makarti")
+}
+
+model org_positions {
+  id        Int         @id(map: "positions_pkey") @default(autoincrement())
+  title     String      @unique(map: "positions_title_key") @db.VarChar(255)
+  org_units org_units[]
+
+  @@schema("makarti")
+}
+
+model org_units {
+  id              Int             @id(map: "units_pkey") @default(autoincrement())
+  name            String          @db.VarChar(255)
+  position_id     Int
+  department_id   Int
+  level           Int
+  parent_id       Int?
+  org_kpis        org_kpis?
+  org_metrics     org_metrics?
+  org_departments org_departments @relation(fields: [department_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "units_department_id_fkey")
+  org_units       org_units?      @relation("org_unitsToorg_units", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "units_parent_id_fkey")
+  other_org_units org_units[]     @relation("org_unitsToorg_units")
+  org_positions   org_positions   @relation(fields: [position_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "units_position_id_fkey")
+
+  @@schema("makarti")
+}
+
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model pegawai {
   id            Int      @id @default(autoincrement())
@@ -207,7 +265,7 @@ model status_inovasi {
 model users {
   created_at          DateTime              @default(now()) @db.Timestamptz(6)
   unit_kerja          String?
-  username            String                @db.VarChar @unique
+  username            String                @db.VarChar
   password            String?               @db.VarChar
   id                  Int                   @id @unique @default(autoincrement())
   role_id             Int?

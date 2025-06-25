@@ -37,90 +37,14 @@ import {
 
 interface KajianItem {
   id: number
-  judulKajian: string
-  jenisProduk: string
-  statusPenyelesaian: string
-  tanggalMulai: string
-  targetSelesai: string
-  penanggungJawab: string
+  created_at: string
+  judul: string
+  jenis: string
+  status: string | null
+  unit_kerja_id: number
 }
 
 const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6']
-
-const initialData: KajianItem[] = [
-  {
-    id: 1,
-    judulKajian: 'Analisis Efektivitas Pelayanan Digital',
-    jenisProduk: 'Analisis Kebijakan',
-    statusPenyelesaian: 'Selesai',
-    tanggalMulai: '2024-01-15',
-    targetSelesai: '2024-03-15',
-    penanggungJawab: 'Tim A'
-  },
-  {
-    id: 2,
-    judulKajian: 'Survei Kepuasan Masyarakat Layanan Digital',
-    jenisProduk: 'Survei',
-    statusPenyelesaian: 'Berlangsung',
-    tanggalMulai: '2024-02-01',
-    targetSelesai: '2024-05-01',
-    penanggungJawab: 'Tim B'
-  },
-  {
-    id: 3,
-    judulKajian: 'Policy Brief Transformasi Digital Pemerintahan',
-    jenisProduk: 'Policy Brief',
-    statusPenyelesaian: 'Berlangsung',
-    tanggalMulai: '2024-03-10',
-    targetSelesai: '2024-06-10',
-    penanggungJawab: 'Tim C'
-  },
-  {
-    id: 4,
-    judulKajian: 'Telaah Kebijakan Pengembangan Smart City',
-    jenisProduk: 'Telaah Kebijakan',
-    statusPenyelesaian: 'Tertunda',
-    tanggalMulai: '2024-01-20',
-    targetSelesai: '2024-04-20',
-    penanggungJawab: 'Tim A'
-  },
-  {
-    id: 5,
-    judulKajian: 'Kajian Implementasi AI dalam Pelayanan Publik',
-    jenisProduk: 'Analisis Kebijakan',
-    statusPenyelesaian: 'Perencanaan',
-    tanggalMulai: '2024-05-01',
-    targetSelesai: '2024-08-01',
-    penanggungJawab: 'Tim D'
-  },
-  {
-    id: 6,
-    judulKajian: 'Policy Brief Dampak Digitalisasi Pelayanan',
-    jenisProduk: 'Policy Brief',
-    statusPenyelesaian: 'Selesai',
-    tanggalMulai: '2023-11-01',
-    targetSelesai: '2024-01-01',
-    penanggungJawab: 'Tim B'
-  },
-  {
-    id: 7,
-    judulKajian: 'Survei Kebutuhan Fitur Digital Masyarakat',
-    jenisProduk: 'Survei',
-    statusPenyelesaian: 'Berlangsung',
-    tanggalMulai: '2024-04-01',
-    targetSelesai: '2024-07-01',
-    penanggungJawab: 'Tim C'
-  },
-  {
-    id: 8,
-    judulKajian: 'Telaah Kebijakan Keamanan Data Pemerintah',
-    jenisProduk: 'Telaah Kebijakan',
-    statusPenyelesaian: 'Perencanaan',
-    tanggalMulai: '2024-06-01',
-    targetSelesai: '2024-09-01',
-    penanggungJawab: 'Tim A'
-  }
-]
 
 export default function KajianPage() {
   const [showModal, setShowModal] = useState(false)
@@ -128,35 +52,53 @@ export default function KajianPage() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(5)
+  const [loading, setLoading] = useState(true)
 
-  // Load data from localStorage on component mount
+  // Fetch data from API
   useEffect(() => {
-    const savedData = localStorage.getItem("kajianData")
-    setData(savedData ? JSON.parse(savedData) : initialData)
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        // Get unit_kerja_id from localStorage (assuming it's stored there)
+        const unitKerjaId = localStorage.getItem('id')
+        
+        const response = await fetch(`/api/kajian/${unitKerjaId}`)
+        if (!response.ok) {
+          throw new Error('Failed to fetch data')
+        }
+        
+        const result = await response.json()
+        setData(result.data || [])
+      } catch (error) {
+        console.error('Error fetching data:', error)
+        alert('Gagal memuat data kajian')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
   }, [])
 
   const [formData, setFormData] = useState({
-    judulKajian: '',
-    jenisProduk: 'Analisis Kebijakan',
-    statusPenyelesaian: 'Perencanaan',
-    tanggalMulai: '',
-    targetSelesai: '',
-    penanggungJawab: 'Tim A',
+    judul: '',
+    jenis: 'Laporan',
+    status: '',
   })
 
-  const jenisProdukOptions = ["Analisis Kebijakan", "Telaah Kebijakan", "Survei", "Policy Brief"]
-  const statusOptions = ["Perencanaan", "Berlangsung", "Selesai", "Tertunda"]
-  const timOptions = ["Tim A", "Tim B", "Tim C", "Tim D"]
+  const jenisOptions = ["Laporan", "Buku", "Policy brief", "Analisis Kebijakan", "Telaah Kebijakan", "Survei"]
+  const statusOptions = ["Draft", "Review", "Selesai", "Revisi", "Ditunda"]
 
-  // Calculate statistics
+  // Calculate statistics - updated for new data structure
   const totalKajian = data.length
-  const selesai = data.filter(item => item.statusPenyelesaian === 'Selesai').length
-  const berlangsung = data.filter(item => item.statusPenyelesaian === 'Berlangsung').length
-  const tertunda = data.filter(item => item.statusPenyelesaian === 'Tertunda').length
+  const withStatus = data.filter(item => item.status && item.status.trim() !== '').length
+  const withoutStatus = data.filter(item => !item.status || item.status.trim() === '').length
+  const laporan = data.filter(item => item.jenis === 'Laporan').length
 
-  // Data for charts
+  // Data for charts - updated for new structure
   const statusCount = data.reduce((acc, item) => {
-    acc[item.statusPenyelesaian] = (acc[item.statusPenyelesaian] || 0) + 1
+    const status = item.status && item.status.trim() !== '' ? 'Ada Status' : 'Belum Ada Status'
+    acc[status] = (acc[status] || 0) + 1
     return acc
   }, {} as Record<string, number>)
 
@@ -166,7 +108,7 @@ export default function KajianPage() {
   }))
 
   const jenisCount = data.reduce((acc, item) => {
-    acc[item.jenisProduk] = (acc[item.jenisProduk] || 0) + 1
+    acc[item.jenis] = (acc[item.jenis] || 0) + 1
     return acc
   }, {} as Record<string, number>)
 
@@ -198,8 +140,8 @@ export default function KajianPage() {
       description: 'Total produk kajian'
     },
     {
-      title: "Selesai",
-      value: selesai,
+      title: "Ada Status",
+      value: withStatus,
       icon: <CheckCircle className="w-6 h-6" />,
       color: 'green',
       bgGradient: 'from-green-500 to-green-600',
@@ -208,11 +150,11 @@ export default function KajianPage() {
       textDark: 'text-green-800',
       borderColor: 'border-green-500',
       change: '+25%',
-      description: 'Produk telah selesai'
+      description: 'Produk dengan status'
     },
     {
-      title: "Berlangsung",
-      value: berlangsung,
+      title: "Belum Ada Status",
+      value: withoutStatus,
       icon: <Clock className="w-6 h-6" />,
       color: 'yellow',
       bgGradient: 'from-yellow-500 to-yellow-600',
@@ -221,11 +163,11 @@ export default function KajianPage() {
       textDark: 'text-yellow-800',
       borderColor: 'border-yellow-500',
       change: '+18%',
-      description: 'Sedang dikerjakan'
+      description: 'Belum ada status'
     },
     {
-      title: "Tertunda",
-      value: tertunda,
+      title: "Laporan",
+      value: laporan,
       icon: <AlertCircle className="w-6 h-6" />,
       color: 'red',
       bgGradient: 'from-red-500 to-red-600',
@@ -234,7 +176,7 @@ export default function KajianPage() {
       textDark: 'text-red-800',
       borderColor: 'border-red-500',
       change: '-5%',
-      description: 'Perlu perhatian khusus'
+      description: 'Jenis laporan'
     },
   ]
 
@@ -249,28 +191,42 @@ export default function KajianPage() {
 
   const handleEdit = (item: KajianItem) => {
     setFormData({
-      judulKajian: item.judulKajian,
-      jenisProduk: item.jenisProduk,
-      statusPenyelesaian: item.statusPenyelesaian,
-      tanggalMulai: item.tanggalMulai,
-      targetSelesai: item.targetSelesai,
-      penanggungJawab: item.penanggungJawab,
+      judul: item.judul,
+      jenis: item.jenis,
+      status: item.status || '',
     })
     setEditingId(item.id)
     setShowModal(true)
   }
 
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
-      const updatedData = data.filter(item => item.id !== id)
-      setData(updatedData)
-      localStorage.setItem("kajianData", JSON.stringify(updatedData))
-      // Reset to first page if current page becomes empty
-      const newTotalPages = Math.ceil(updatedData.length / itemsPerPage)
-      if (currentPage > newTotalPages && newTotalPages > 0) {
-        setCurrentPage(newTotalPages)
+      try {
+        const unitKerjaId = localStorage.getItem('unit_kerja_id') || '19'
+        
+        const response = await fetch(`/api/kajian/${unitKerjaId}/${id}`, {
+          method: 'DELETE',
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to delete kajian')
+        }
+
+        // Remove from local state
+        const updatedData = data.filter(item => item.id !== id)
+        setData(updatedData)
+        
+        // Reset to first page if current page becomes empty
+        const newTotalPages = Math.ceil(updatedData.length / itemsPerPage)
+        if (currentPage > newTotalPages && newTotalPages > 0) {
+          setCurrentPage(newTotalPages)
+        }
+        
+        alert('Data berhasil dihapus!')
+      } catch (error) {
+        console.error('Error deleting data:', error)
+        alert('Terjadi kesalahan saat menghapus data.')
       }
-      alert('Data berhasil dihapus!')
     }
   }
 
@@ -278,63 +234,94 @@ export default function KajianPage() {
     e.preventDefault()
 
     try {
-      let updatedData
+      const unitKerjaId = localStorage.getItem('unit_kerja_id') || '19'
       
       if (editingId) {
-        // Update existing item
-        updatedData = data.map(item => 
-          item.id === editingId 
-            ? { ...item, ...formData }
-            : item
-        )
-      } else {
-        // Add new item
-        const newItem = {
-          id: Date.now(),
-          ...formData
-        }
-        updatedData = [...data, newItem]
-      }
+        // Update existing item - PUT to API
+        const response = await fetch(`/api/kajian/${unitKerjaId}/${editingId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            judul: formData.judul,
+            jenis: formData.jenis,
+            status: formData.status,
+          }),
+        })
 
-      setData(updatedData)
-      localStorage.setItem("kajianData", JSON.stringify(updatedData))
+        if (!response.ok) {
+          throw new Error('Failed to update kajian')
+        }
+
+        const result = await response.json()
+        // Update local state with the updated item
+        setData(prev => prev.map(item => 
+          item.id === editingId ? result.data : item
+        ))
+        alert('Data berhasil diperbarui!')
+      } else {
+        // Create new item - POST to API
+        const response = await fetch(`/api/kajian/${unitKerjaId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            judul: formData.judul,
+            jenis: formData.jenis,
+            status: formData.status,
+          }),
+        })
+
+        if (!response.ok) {
+          throw new Error('Failed to create kajian')
+        }
+
+        const result = await response.json()
+        setData(prev => [...prev, result.data])
+        alert('Data berhasil disimpan!')
+      }
 
       // Reset form and close modal
       setFormData({
-        judulKajian: '',
-        jenisProduk: 'Analisis Kebijakan',
-        statusPenyelesaian: 'Perencanaan',
-        tanggalMulai: '',
-        targetSelesai: '',
-        penanggungJawab: 'Tim A',
+        judul: '',
+        jenis: 'Laporan',
+        status: '',
       })
       setEditingId(null)
       setShowModal(false)
-      alert(editingId ? 'Data berhasil diperbarui!' : 'Data berhasil disimpan!')
-    } catch {
+    } catch (error) {
+      console.error('Error submitting data:', error)
       alert('Terjadi kesalahan saat menyimpan data.')
     }
   }
 
   return (
     <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
-      {/* Header */}
-      <div className="flex justify-between items-center mb-8">
-        <div>
-          <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard Kajian & Analisis Kebijakan</h1>
-          <p className="text-blue-600">Kelola dan monitor Produk Kajian/Analisis Kebijakan/Telaah Kebijakan</p>
+      {loading ? (
+        <div className="flex items-center justify-center min-h-[400px]">
+          <div className="text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="mt-2 text-gray-600">Memuat data kajian...</p>
+          </div>
         </div>
+      ) : (
+        <>
+          {/* Header */}
+          <div className="flex justify-between items-center mb-8">
+            <div>
+              <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard Kajian & Analisis Kebijakan</h1>
+              <p className="text-blue-600">Kelola dan monitor Produk Kajian/Analisis Kebijakan/Telaah Kebijakan</p>
+            </div>
         <Dialog open={showModal} onOpenChange={(open) => {
           setShowModal(open)
           if (!open) {
             setEditingId(null)
             setFormData({
-              judulKajian: '',
-              jenisProduk: 'Analisis Kebijakan',
-              statusPenyelesaian: 'Perencanaan',
-              tanggalMulai: '',
-              targetSelesai: '',
-              penanggungJawab: 'Tim A',
+              judul: '',
+              jenis: 'Laporan',
+              status: '',
             })
           }
         }}>
@@ -354,11 +341,11 @@ export default function KajianPage() {
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Judul Kajian */}
               <div className="space-y-1">
-                <Label htmlFor="judulKajian">Judul Kajian</Label>
+                <Label htmlFor="judul">Judul Kajian</Label>
                 <Input
-                  id="judulKajian"
-                  name="judulKajian"
-                  value={formData.judulKajian}
+                  id="judul"
+                  name="judul"
+                  value={formData.judul}
                   onChange={handleChange}
                   required
                   placeholder="Contoh: Analisis Efektivitas Pelayanan Digital"
@@ -367,17 +354,17 @@ export default function KajianPage() {
 
               {/* Jenis Produk */}
               <div className="space-y-1">
-                <Label htmlFor="jenisProduk">Jenis Produk</Label>
+                <Label htmlFor="jenis">Jenis Produk</Label>
                 <Select
-                  name="jenisProduk"
-                  value={formData.jenisProduk}
-                  onValueChange={(value) => handleSelectChange("jenisProduk", value)}
+                  name="jenis"
+                  value={formData.jenis}
+                  onValueChange={(value) => handleSelectChange("jenis", value)}
                 >
-                  <SelectTrigger id="jenisProduk">
+                  <SelectTrigger id="jenis">
                     <SelectValue placeholder="Pilih jenis produk kajian" />
                   </SelectTrigger>
                   <SelectContent>
-                    {jenisProdukOptions.map((option) => (
+                    {jenisOptions.map((option) => (
                       <SelectItem key={option} value={option}>
                         {option}
                       </SelectItem>
@@ -386,66 +373,19 @@ export default function KajianPage() {
                 </Select>
               </div>
 
-              {/* Status Penyelesaian */}
+              {/* Status */}
               <div className="space-y-1">
-                <Label htmlFor="statusPenyelesaian">Status Penyelesaian</Label>
+                <Label htmlFor="status">Status</Label>
                 <Select
-                  name="statusPenyelesaian"
-                  value={formData.statusPenyelesaian}
-                  onValueChange={(value) => handleSelectChange("statusPenyelesaian", value)}
+                  name="status"
+                  value={formData.status}
+                  onValueChange={(value) => handleSelectChange("status", value)}
                 >
-                  <SelectTrigger id="statusPenyelesaian">
-                    <SelectValue placeholder="Pilih status penyelesaian" />
+                  <SelectTrigger id="status">
+                    <SelectValue placeholder="Pilih status" />
                   </SelectTrigger>
                   <SelectContent>
                     {statusOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-
-              {/* Tanggal Mulai */}
-              <div className="space-y-1">
-                <Label htmlFor="tanggalMulai">Tanggal Mulai</Label>
-                <Input
-                  id="tanggalMulai"
-                  type="date"
-                  name="tanggalMulai"
-                  value={formData.tanggalMulai}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              {/* Target Selesai */}
-              <div className="space-y-1">
-                <Label htmlFor="targetSelesai">Target Selesai</Label>
-                <Input
-                  id="targetSelesai"
-                  type="date"
-                  name="targetSelesai"
-                  value={formData.targetSelesai}
-                  onChange={handleChange}
-                  required
-                />
-              </div>
-
-              {/* Penanggung Jawab */}
-              <div className="space-y-1">
-                <Label htmlFor="penanggungJawab">Penanggung Jawab</Label>
-                <Select
-                  name="penanggungJawab"
-                  value={formData.penanggungJawab}
-                  onValueChange={(value) => handleSelectChange("penanggungJawab", value)}
-                >
-                  <SelectTrigger id="penanggungJawab">
-                    <SelectValue placeholder="Pilih tim penanggung jawab" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {timOptions.map((option) => (
                       <SelectItem key={option} value={option}>
                         {option}
                       </SelectItem>
@@ -570,7 +510,7 @@ export default function KajianPage() {
                 <TableHead className="font-medium">No</TableHead>
                 <TableHead className="font-medium">Judul Kajian</TableHead>
                 <TableHead className="font-medium">Jenis Produk</TableHead>
-                <TableHead className="font-medium">Status Penyelesaian</TableHead>
+                <TableHead className="font-medium">Status</TableHead>
                 <TableHead className="font-medium text-center">Aksi</TableHead>
               </TableRow>
             </TableHeader>
@@ -581,33 +521,39 @@ export default function KajianPage() {
                   <TableCell className="font-medium text-gray-800">
                     <span className="inline-flex items-center">
                       <FileSearch className="w-3 h-3 mr-1 text-gray-400" />
-                      {item.judulKajian}
+                      {item.judul}
                     </span>
                   </TableCell>
                   <TableCell>
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      item.jenisProduk === 'Analisis Kebijakan' ? 'bg-blue-100 text-blue-800' :
-                      item.jenisProduk === 'Telaah Kebijakan' ? 'bg-green-100 text-green-800' :
-                      item.jenisProduk === 'Survei' ? 'bg-purple-100 text-purple-800' :
-                      item.jenisProduk === 'Policy Brief' ? 'bg-orange-100 text-orange-800' :
+                      item.jenis === 'Analisis Kebijakan' ? 'bg-blue-100 text-blue-800' :
+                      item.jenis === 'Telaah Kebijakan' ? 'bg-green-100 text-green-800' :
+                      item.jenis === 'Survei' ? 'bg-purple-100 text-purple-800' :
+                      item.jenis === 'Policy brief' ? 'bg-orange-100 text-orange-800' :
+                      item.jenis === 'Laporan' ? 'bg-cyan-100 text-cyan-800' :
+                      item.jenis === 'Buku' ? 'bg-pink-100 text-pink-800' :
                       'bg-gray-100 text-gray-800'
                     }`}>
                       <FileText className="w-3 h-3 mr-1" />
-                      {item.jenisProduk}
+                      {item.jenis}
                     </span>
                   </TableCell>
                   <TableCell>
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      item.statusPenyelesaian === 'Selesai' ? 'bg-green-100 text-green-800' :
-                      item.statusPenyelesaian === 'Berlangsung' ? 'bg-yellow-100 text-yellow-800' :
-                      item.statusPenyelesaian === 'Tertunda' ? 'bg-red-100 text-red-800' :
+                      item.status === 'Selesai' ? 'bg-green-100 text-green-800' :
+                      item.status === 'Review' ? 'bg-yellow-100 text-yellow-800' :
+                      item.status === 'Draft' ? 'bg-blue-100 text-blue-800' :
+                      item.status === 'Revisi' ? 'bg-orange-100 text-orange-800' :
+                      item.status === 'Ditunda' ? 'bg-red-100 text-red-800' :
                       'bg-gray-100 text-gray-800'
                     }`}>
-                      {item.statusPenyelesaian === 'Selesai' ? <CheckCircle className="w-3 h-3 mr-1" /> :
-                       item.statusPenyelesaian === 'Berlangsung' ? <Clock className="w-3 h-3 mr-1" /> :
-                       item.statusPenyelesaian === 'Tertunda' ? <AlertCircle className="w-3 h-3 mr-1" /> :
+                      {item.status === 'Selesai' ? <CheckCircle className="w-3 h-3 mr-1" /> :
+                       item.status === 'Review' ? <Clock className="w-3 h-3 mr-1" /> :
+                       item.status === 'Draft' ? <FileText className="w-3 h-3 mr-1" /> :
+                       item.status === 'Revisi' ? <AlertCircle className="w-3 h-3 mr-1" /> :
+                       item.status === 'Ditunda' ? <AlertCircle className="w-3 h-3 mr-1" /> :
                        <FileText className="w-3 h-3 mr-1" />}
-                      {item.statusPenyelesaian}
+                      {item.status || 'Belum ada status'}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -682,6 +628,8 @@ export default function KajianPage() {
           </div>
         </div>
       </div>
+        </>
+      )}
     </div>
   )
 }

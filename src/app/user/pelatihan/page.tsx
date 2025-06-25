@@ -29,7 +29,9 @@ import {
   Award,
   BarChart3,
   PieChart as PieChartIcon,
-  Target
+  Target,
+  Edit,
+  Trash2
 } from "lucide-react"
 import {
   BarChart,
@@ -95,6 +97,7 @@ export default function PelatihanPage() {
 
   const [showModal, setShowModal] = useState(false)
   const [data, setData] = useState<PelatihanItem[]>(initialData)
+  const [editingId, setEditingId] = useState<number | null>(null)
 
   const [formData, setFormData] = useState({
     nama: '',
@@ -211,28 +214,66 @@ export default function PelatihanPage() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
+  const handleEdit = (item: PelatihanItem) => {
+    setFormData({
+      nama: item.nama,
+      judul: item.judul,
+      jam: item.jam,
+      tanggal: item.tanggal
+    })
+    setEditingId(item.id)
+    setShowModal(true)
+  }
+
+  const handleDelete = (id: number) => {
+    if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
+      const updatedData = data.filter(item => item.id !== id)
+      setData(updatedData)
+      localStorage.setItem("pelatihanData", JSON.stringify(updatedData))
+      alert('Data berhasil dihapus!')
+    }
+  }
+
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
-    const newItem = {
-      id: Date.now(),
-      ...formData,
-      jam: Number(formData.jam),
-      unit: 'Pusdatin' // Unit tetap untuk semua entri
+    try {
+      let updatedData
+      
+      if (editingId) {
+        // Update existing item
+        updatedData = data.map(item => 
+          item.id === editingId 
+            ? { ...item, ...formData, jam: Number(formData.jam) }
+            : item
+        )
+      } else {
+        // Add new item
+        const newItem = {
+          id: Date.now(),
+          ...formData,
+          jam: Number(formData.jam),
+          unit: 'Pusdatin' // Unit tetap untuk semua entri
+        }
+        updatedData = [...data, newItem]
+      }
+
+      setData(updatedData)
+      localStorage.setItem("pelatihanData", JSON.stringify(updatedData))
+
+      // Reset form dan tutup modal
+      setFormData({
+        nama: '',
+        judul: '',
+        jam: 0,
+        tanggal: ''
+      })
+      setEditingId(null)
+      setShowModal(false)
+      alert(editingId ? 'Data berhasil diperbarui!' : 'Data berhasil disimpan!')
+    } catch {
+      alert('Terjadi kesalahan saat menyimpan data.')
     }
-
-    const updatedData = [...data, newItem]
-    setData(updatedData)
-    localStorage.setItem("pelatihanData", JSON.stringify(updatedData))
-
-    // Reset form dan tutup modal
-    setFormData({
-      nama: '',
-      judul: '',
-      jam: 0,
-      tanggal: ''
-    })
-    setShowModal(false)
   }
 
   return (
@@ -243,7 +284,18 @@ export default function PelatihanPage() {
           <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard Pengembangan Kompetensi</h1>
           <p className="text-blue-600">Kelola dan monitor kegiatan pelatihan pegawai</p>
         </div>
-        <Dialog open={showModal} onOpenChange={setShowModal}>
+        <Dialog open={showModal} onOpenChange={(open) => {
+          setShowModal(open)
+          if (!open) {
+            setEditingId(null)
+            setFormData({
+              nama: '',
+              judul: '',
+              jam: 0,
+              tanggal: ''
+            })
+          }
+        }}>
           <DialogTrigger asChild>
             <Button className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all">
               <GraduationCap className="w-4 h-4 mr-2" />
@@ -252,7 +304,9 @@ export default function PelatihanPage() {
           </DialogTrigger>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-blue-700">Form Pengisian Pelatihan</DialogTitle>
+              <DialogTitle className="text-blue-700">
+                {editingId ? 'Edit Pelatihan' : 'Form Pengisian Pelatihan'}
+              </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               {/* Nama Pegawai */}
@@ -320,7 +374,7 @@ export default function PelatihanPage() {
                   Batal
                 </Button>
                 <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                  Simpan
+                  {editingId ? 'Perbarui' : 'Simpan'}
                 </Button>
               </div>
             </form>
@@ -463,6 +517,7 @@ export default function PelatihanPage() {
                 <TableHead className="text-center font-medium">Jam</TableHead>
                 <TableHead className="font-medium">Tanggal</TableHead>
                 <TableHead className="text-center font-medium">Status</TableHead>
+                <TableHead className="text-center font-medium">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -492,6 +547,26 @@ export default function PelatihanPage() {
                       <Award className="w-3 h-3 mr-1" />
                       Selesai
                     </span>
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEdit(item)}
+                        className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDelete(item.id)}
+                        className="hover:bg-red-50 hover:border-red-300 hover:text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
                   </TableCell>
                 </TableRow>
               ))}

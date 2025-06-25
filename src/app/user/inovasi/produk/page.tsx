@@ -31,7 +31,9 @@ import {
   PieChart as PieChartIcon,
   Archive,
   Calendar,
-  FileText
+  FileText,
+  Edit,
+  Trash2
 } from "lucide-react"
 import {
   BarChart,
@@ -101,6 +103,7 @@ const initialData: ProdukInovasiItem[] = [
 export default function ProdukInovasiPage() {
   const [showModal, setShowModal] = useState(false)
   const [data, setData] = useState<ProdukInovasiItem[]>([])
+  const [editingId, setEditingId] = useState<number | null>(null)
 
   // Load data from localStorage on component mount
   useEffect(() => {
@@ -212,16 +215,50 @@ export default function ProdukInovasiPage() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
+  const handleEdit = (item: ProdukInovasiItem) => {
+    setFormData({
+      nama: item.nama,
+      unit: item.unit,
+      jenis: item.jenis,
+      status: item.status,
+      tanggalRilis: item.tanggalRilis,
+      keterangan: item.keterangan,
+    })
+    setEditingId(item.id)
+    setShowModal(true)
+  }
+
+  const handleDelete = (id: number) => {
+    if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
+      const updatedData = data.filter(item => item.id !== id)
+      setData(updatedData)
+      localStorage.setItem("produkInovasiData", JSON.stringify(updatedData))
+      alert('Data berhasil dihapus!')
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     try {
-      const newItem = {
-        id: Date.now(),
-        ...formData
+      let updatedData
+      
+      if (editingId) {
+        // Update existing item
+        updatedData = data.map(item => 
+          item.id === editingId 
+            ? { ...item, ...formData }
+            : item
+        )
+      } else {
+        // Add new item
+        const newItem = {
+          id: Date.now(),
+          ...formData
+        }
+        updatedData = [...data, newItem]
       }
 
-      const updatedData = [...data, newItem]
       setData(updatedData)
       localStorage.setItem("produkInovasiData", JSON.stringify(updatedData))
 
@@ -234,8 +271,9 @@ export default function ProdukInovasiPage() {
         tanggalRilis: '',
         keterangan: '',
       })
+      setEditingId(null)
       setShowModal(false)
-      alert('Data berhasil disimpan!')
+      alert(editingId ? 'Data berhasil diperbarui!' : 'Data berhasil disimpan!')
     } catch {
       alert('Terjadi kesalahan saat menyimpan data.')
     }
@@ -249,7 +287,20 @@ export default function ProdukInovasiPage() {
           <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard Produk Inovasi</h1>
           <p className="text-blue-600">Kelola dan monitor produk inovasi unit kerja</p>
         </div>
-        <Dialog open={showModal} onOpenChange={setShowModal}>
+        <Dialog open={showModal} onOpenChange={(open) => {
+          setShowModal(open)
+          if (!open) {
+            setEditingId(null)
+            setFormData({
+              nama: '',
+              unit: 'Pusat A',
+              jenis: 'Aplikasi Digital',
+              status: 'Aktif Digunakan',
+              tanggalRilis: '',
+              keterangan: '',
+            })
+          }
+        }}>
           <DialogTrigger asChild>
             <Button className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all">
               <Package className="w-4 h-4 mr-2" />
@@ -258,7 +309,9 @@ export default function ProdukInovasiPage() {
           </DialogTrigger>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-blue-700">Form Produk Inovasi</DialogTitle>
+              <DialogTitle className="text-blue-700">
+                {editingId ? 'Edit Produk Inovasi' : 'Form Produk Inovasi'}
+              </DialogTitle>
             </DialogHeader>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -372,7 +425,7 @@ export default function ProdukInovasiPage() {
                   Batal
                 </Button>
                 <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                  Simpan
+                  {editingId ? 'Perbarui' : 'Simpan'}
                 </Button>
               </div>
             </form>
@@ -516,6 +569,7 @@ export default function ProdukInovasiPage() {
                 <TableHead className="font-medium">Status</TableHead>
                 <TableHead className="font-medium">Tanggal Rilis</TableHead>
                 <TableHead className="font-medium">Keterangan</TableHead>
+                <TableHead className="font-medium text-center">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -562,6 +616,26 @@ export default function ProdukInovasiPage() {
                     </span>
                   </TableCell>
                   <TableCell className="text-gray-600">{item.keterangan}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEdit(item)}
+                        className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDelete(item.id)}
+                        className="hover:bg-red-50 hover:border-red-300 hover:text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

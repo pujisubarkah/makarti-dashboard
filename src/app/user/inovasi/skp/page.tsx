@@ -29,7 +29,9 @@ import {
   BarChart3,
   PieChart as PieChartIcon,
   Lightbulb,
-  Settings
+  Settings,
+  Edit,
+  Trash2
 } from "lucide-react"
 import {
   ResponsiveContainer,
@@ -97,6 +99,7 @@ const initialData: SkpTransformasionalItem[] = [
 export default function SkpTransformasionalPage() {
   const [showModal, setShowModal] = useState(false)
   const [data, setData] = useState<SkpTransformasionalItem[]>([])
+  const [editingId, setEditingId] = useState<number | null>(null)
 
   // Load data from localStorage on component mount
   useEffect(() => {
@@ -196,16 +199,49 @@ export default function SkpTransformasionalPage() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
+  const handleEdit = (item: SkpTransformasionalItem) => {
+    setFormData({
+      pegawai: item.pegawai,
+      inovasi: item.inovasi,
+      target: item.target,
+      status: item.status,
+      dampak: item.dampak,
+    })
+    setEditingId(item.id)
+    setShowModal(true)
+  }
+
+  const handleDelete = (id: number) => {
+    if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
+      const updatedData = data.filter(item => item.id !== id)
+      setData(updatedData)
+      localStorage.setItem("skpTransformasionalData", JSON.stringify(updatedData))
+      alert('Data berhasil dihapus!')
+    }
+  }
+
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     try {
-      const newItem = {
-        id: Date.now(),
-        ...formData
+      let updatedData
+      
+      if (editingId) {
+        // Update existing item
+        updatedData = data.map(item => 
+          item.id === editingId 
+            ? { ...item, ...formData }
+            : item
+        )
+      } else {
+        // Add new item
+        const newItem = {
+          id: Date.now(),
+          ...formData
+        }
+        updatedData = [...data, newItem]
       }
 
-      const updatedData = [...data, newItem]
       setData(updatedData)
       localStorage.setItem("skpTransformasionalData", JSON.stringify(updatedData))
 
@@ -217,8 +253,9 @@ export default function SkpTransformasionalPage() {
         status: 'Masih Ide',
         dampak: '',
       })
+      setEditingId(null)
       setShowModal(false)
-      alert('Data berhasil disimpan!')
+      alert(editingId ? 'Data berhasil diperbarui!' : 'Data berhasil disimpan!')
     } catch {
       alert('Terjadi kesalahan saat menyimpan data.')
     }
@@ -232,7 +269,19 @@ export default function SkpTransformasionalPage() {
           <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard SKP Transformasional</h1>
           <p className="text-blue-600">Kelola dan monitor SKP transformasional pegawai</p>
         </div>
-        <Dialog open={showModal} onOpenChange={setShowModal}>
+        <Dialog open={showModal} onOpenChange={(open) => {
+          setShowModal(open)
+          if (!open) {
+            setEditingId(null)
+            setFormData({
+              pegawai: '',
+              inovasi: '',
+              target: '',
+              status: 'Masih Ide',
+              dampak: '',
+            })
+          }
+        }}>
           <DialogTrigger asChild>
             <Button className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all">
               <Award className="w-4 h-4 mr-2" />
@@ -241,7 +290,9 @@ export default function SkpTransformasionalPage() {
           </DialogTrigger>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-blue-700">Form SKP Transformasional</DialogTitle>
+              <DialogTitle className="text-blue-700">
+                {editingId ? 'Edit SKP Transformasional' : 'Form SKP Transformasional'}
+              </DialogTitle>
             </DialogHeader>
 
             <form onSubmit={handleSubmit} className="space-y-4">
@@ -326,7 +377,7 @@ export default function SkpTransformasionalPage() {
                   Batal
                 </Button>
                 <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                  Simpan
+                  {editingId ? 'Perbarui' : 'Simpan'}
                 </Button>
               </div>
             </form>
@@ -487,6 +538,7 @@ export default function SkpTransformasionalPage() {
                 <TableHead className="font-medium">Target Transformasi</TableHead>
                 <TableHead className="font-medium">Status</TableHead>
                 <TableHead className="font-medium">Dampak Inovasi</TableHead>
+                <TableHead className="font-medium text-center">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -521,6 +573,26 @@ export default function SkpTransformasionalPage() {
                     </span>
                   </TableCell>
                   <TableCell className="text-gray-600">{item.dampak}</TableCell>
+                  <TableCell>
+                    <div className="flex items-center justify-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEdit(item)}
+                        className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDelete(item.id)}
+                        className="hover:bg-red-50 hover:border-red-300 hover:text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>

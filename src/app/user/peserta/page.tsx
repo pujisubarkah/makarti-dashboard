@@ -30,7 +30,9 @@ import {
   PieChart as PieChartIcon,
   Award,
   Clock,
-  Plus
+  Plus,
+  Edit2,
+  Trash2
 } from "lucide-react"
 import {
   BarChart,
@@ -51,10 +53,10 @@ interface PenyelenggaraanItem {
   namaKegiatan: string
   tanggal: string
   jumlahPeserta: number
-  jenis_bangkom_non_pelatihan?: {  // Make optional
+  jenis_bangkom_non_pelatihan?: {
     jenis_bangkom: string
   }
-  users?: {  // Make optional
+  users?: {
     unit_kerja: string
   }
 }
@@ -68,12 +70,20 @@ interface JenisBangkomOption {
 const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6', '#8b5cf6']
 
 export default function PenyelenggaraanBangkomPage() {
+  // All useState hooks - keep them at the top and in consistent order
   const [showModal, setShowModal] = useState(false)
+  const [showEditModal, setShowEditModal] = useState(false)
   const [data, setData] = useState<PenyelenggaraanItem[]>([])
   const [options, setOptions] = useState<JenisBangkomOption[]>([])
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [isSubmitting, setIsSubmitting] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
+  const [isDeleting, setIsDeleting] = useState(false)
+  const [editingItem, setEditingItem] = useState<PenyelenggaraanItem | null>(null)
+  const [filterJenis, setFilterJenis] = useState<string>('all') 
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(5)
 
   const [formData, setFormData] = useState({
     namaKegiatan: '',
@@ -82,20 +92,18 @@ export default function PenyelenggaraanBangkomPage() {
     jumlahPeserta: ''
   })
 
-  // Fetch data from API
+  // All useEffect hooks - keep them together after useState
   useEffect(() => {
     const fetchData = async () => {
       try {
         setLoading(true)
         
-        // Ambil unit_kerja_id dari localStorage
         const unitKerjaId = localStorage.getItem("id")
         
         if (!unitKerjaId) {
           throw new Error("Unit kerja ID tidak ditemukan di localStorage. Silakan login ulang.")
         }
 
-        // Fetch data penyelenggaraan dan jenis bangkom secara parallel
         const [penyelenggaraanResponse, jenisBangkomResponse] = await Promise.all([
           fetch(`/api/penyelenggaraan/${unitKerjaId}`),
           fetch('/api/jenis_bangkom')
@@ -123,8 +131,6 @@ export default function PenyelenggaraanBangkomPage() {
       } catch (err) {
         console.error('Error fetching data:', err)
         setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat memuat data')
-        
-        // Set empty data on error
         setData([])
         setOptions([])
       } finally {
@@ -132,56 +138,16 @@ export default function PenyelenggaraanBangkomPage() {
       }
     }
 
-    // Cek apakah kode berjalan di browser
     if (typeof window !== 'undefined') {
       fetchData()
     }
   }, [])
 
-  // Loading state
-  if (loading) {
-    return (
-      <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
-        <div className="flex items-center justify-center h-64">
-          <div className="text-center">
-            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-            <p className="text-gray-600">Memuat data penyelenggaraan...</p>
-            <p className="text-sm text-gray-500 mt-2">Mengambil informasi dari database...</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [filterJenis])
 
-  // Error state
-  if (error) {
-    return (
-      <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
-        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-2xl mx-auto">
-          <div className="flex items-center mb-4">
-            <div className="text-red-600 mr-3 text-2xl">⚠️</div>
-            <div>
-              <h3 className="text-red-800 font-medium text-lg">Gagal Memuat Data</h3>
-              <p className="text-red-600 text-sm mt-1">{error}</p>
-            </div>
-          </div>
-          <div className="mt-4">
-            <button 
-              onClick={() => {
-                window.location.reload()
-                toast.info("Memuat ulang halaman...")
-              }} 
-              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
-            >
-              Coba Lagi
-            </button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  // Calculate statistics
+  // Calculate statistics - move calculations after hooks
   const totalKegiatan = data.length
   const totalPeserta = data.reduce((sum, item) => sum + item.jumlahPeserta, 0)
   const rataRataPeserta = totalKegiatan > 0 ? Math.round(totalPeserta / totalKegiatan) : 0
@@ -190,6 +156,26 @@ export default function PenyelenggaraanBangkomPage() {
     const itemDate = new Date(item.tanggal)
     return itemDate.getMonth() === today.getMonth() && itemDate.getFullYear() === today.getFullYear()
   }).length
+
+  // Filter data based on selected jenis
+  const filteredData = filterJenis && filterJenis !== 'all'
+    ? data.filter(item => item.jenis_bangkom_non_pelatihan?.jenis_bangkom === filterJenis)
+    : data
+
+  // Get unique jenis bangkom for filter options
+  const uniqueJenisBangkom = Array.from(
+    new Set(
+      data
+        .map(item => item.jenis_bangkom_non_pelatihan?.jenis_bangkom)
+        .filter((jenis): jenis is string => typeof jenis === 'string')
+    )
+  ).sort()
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const paginatedData = filteredData.slice(startIndex, endIndex)
 
   // Data for charts
   const jenisCount = data.reduce((acc, item) => {
@@ -216,60 +202,67 @@ export default function PenyelenggaraanBangkomPage() {
     peserta,
   }))
 
+  // Summary cards data
   const summaryCards = [
     {
       title: "Total Kegiatan",
-      value: totalKegiatan,
-      icon: <GraduationCap className="w-6 h-6" />,
-      color: 'blue',
-      bgGradient: 'from-blue-500 to-blue-600',
-      bgLight: 'bg-blue-100',
-      textColor: 'text-blue-600',
-      textDark: 'text-blue-800',
-      borderColor: 'border-blue-500',
-      change: '+18%',
-      description: 'Kegiatan bangkom total'
+      value: totalKegiatan.toLocaleString(),
+      icon: <GraduationCap className="w-8 h-8" />,
+      bgLight: "bg-blue-100",
+      textColor: "text-blue-600",
+      textDark: "text-blue-800",
+      borderColor: "border-blue-500",
+      bgGradient: "from-blue-400 to-blue-600",
+      change: "+12.5%",
+      description: "Total kegiatan terdaftar"
     },
     {
       title: "Total Peserta",
       value: totalPeserta.toLocaleString(),
-      icon: <Users className="w-6 h-6" />,
-      color: 'green',
-      bgGradient: 'from-green-500 to-green-600',
-      bgLight: 'bg-green-100',
-      textColor: 'text-green-600',
-      textDark: 'text-green-800',
-      borderColor: 'border-green-500',
-      change: '+24%',
-      description: 'Peserta keseluruhan'
+      icon: <Users className="w-8 h-8" />,
+      bgLight: "bg-green-100",
+      textColor: "text-green-600",
+      textDark: "text-green-800",
+      borderColor: "border-green-500",
+      bgGradient: "from-green-400 to-green-600",
+      change: "+8.2%",
+      description: "Peserta keseluruhan"
     },
     {
       title: "Rata-rata Peserta",
-      value: rataRataPeserta,
-      icon: <BarChart3 className="w-6 h-6" />,
-      color: 'purple',
-      bgGradient: 'from-purple-500 to-purple-600',
-      bgLight: 'bg-purple-100',
-      textColor: 'text-purple-600',
-      textDark: 'text-purple-800',
-      borderColor: 'border-purple-500',
-      change: '+12%',
-      description: 'Per kegiatan'
+      value: rataRataPeserta.toLocaleString(),
+      icon: <BarChart3 className="w-8 h-8" />,
+      bgLight: "bg-yellow-100",
+      textColor: "text-yellow-600",
+      textDark: "text-yellow-800",
+      borderColor: "border-yellow-500",
+      bgGradient: "from-yellow-400 to-yellow-600",
+      change: "+3.1%",
+      description: "Per kegiatan"
     },
     {
-      title: "Bulan Ini",
-      value: bulanIni,
-      icon: <Calendar className="w-6 h-6" />,
-      color: 'orange',
-      bgGradient: 'from-orange-500 to-orange-600',
-      bgLight: 'bg-orange-100',
-      textColor: 'text-orange-600',
-      textDark: 'text-orange-800',
-      borderColor: 'border-orange-500',
-      change: '+30%',
-      description: 'Kegiatan periode ini'
-    },
+      title: "Kegiatan Bulan Ini",
+      value: bulanIni.toLocaleString(),
+      icon: <Calendar className="w-8 h-8" />,
+      bgLight: "bg-purple-100",
+      textColor: "text-purple-600",
+      textDark: "text-purple-800",
+      borderColor: "border-purple-500",
+      bgGradient: "from-purple-400 to-purple-600",
+      change: "+15.3%",
+      description: "Periode berjalan"
+    }
   ]
+
+  // Event handlers
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  const handleItemsPerPageChange = (value: string) => {
+    setItemsPerPage(parseInt(value))
+    setCurrentPage(1)
+  }
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const { name, value } = e.target
@@ -284,7 +277,6 @@ export default function PenyelenggaraanBangkomPage() {
     e.preventDefault()
     setIsSubmitting(true)
 
-    // Show loading toast
     const loadingPromise = new Promise((resolve, reject) => {
       setTimeout(async () => {
         try {
@@ -313,11 +305,9 @@ export default function PenyelenggaraanBangkomPage() {
 
           const newItem = await response.json()
           
-          // Pastikan data lengkap sebelum menambahkan ke state
           if (newItem && newItem.jenis_bangkom_non_pelatihan) {
             setData(prev => [newItem, ...prev])
           } else {
-            // Jika data tidak lengkap, refresh seluruh data
             const refreshResponse = await fetch(`/api/penyelenggaraan/${unitKerjaId}`)
             if (refreshResponse.ok) {
               const refreshedData = await refreshResponse.json()
@@ -325,7 +315,6 @@ export default function PenyelenggaraanBangkomPage() {
             }
           }
 
-          // Reset form
           setFormData({
             namaKegiatan: '',
             tanggal: '',
@@ -341,15 +330,156 @@ export default function PenyelenggaraanBangkomPage() {
         } finally {
           setIsSubmitting(false)
         }
-      }, 500) // Reduced delay
+      }, 500)
     })
 
-    // Use Sonner's promise toast
     toast.promise(loadingPromise, {
       loading: 'Menyimpan data kegiatan...',
       success: 'Data berhasil ditambahkan!',
       error: (err) => `Error: ${err.message || 'Terjadi kesalahan saat menyimpan data'}`,
     })
+  }
+
+  const handleEdit = (item: PenyelenggaraanItem) => {
+    setEditingItem(item)
+    setFormData({
+      namaKegiatan: item.namaKegiatan,
+      tanggal: item.tanggal,
+      jenis_bangkom_id: item.jenis_bangkom_non_pelatihan ? 
+        options.find(opt => opt.jenis_bangkom === item.jenis_bangkom_non_pelatihan?.jenis_bangkom)?.id.toString() || '' : '',
+      jumlahPeserta: item.jumlahPeserta.toString()
+    })
+    setShowEditModal(true)
+  }
+
+  const handleDelete = async (item: PenyelenggaraanItem) => {
+    if (!confirm(`Apakah Anda yakin ingin menghapus kegiatan "${item.namaKegiatan}"?`)) {
+      return
+    }
+
+    setIsDeleting(true)
+
+    try {
+      const unitKerjaId = localStorage.getItem("id")
+      if (!unitKerjaId) {
+        throw new Error("Unit kerja ID tidak ditemukan")
+      }
+
+      const response = await fetch(`/api/penyelenggaraan/${unitKerjaId}/${item.id}`, {
+        method: 'DELETE',
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+      }
+
+      setData(prev => prev.filter(dataItem => dataItem.id !== item.id))
+      toast.success('Kegiatan berhasil dihapus!')
+      
+    } catch (err) {
+      console.error('Error deleting data:', err)
+      toast.error(`Gagal menghapus: ${err instanceof Error ? err.message : 'Terjadi kesalahan'}`)
+    } finally {
+      setIsDeleting(false)
+    }
+  }
+
+  const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+    e.preventDefault()
+    if (!editingItem) return
+    
+    setIsEditing(true)
+
+    try {
+      const unitKerjaId = localStorage.getItem("id")
+      if (!unitKerjaId) {
+        throw new Error("Unit kerja ID tidak ditemukan")
+      }
+
+      const response = await fetch(`/api/penyelenggaraan/${unitKerjaId}/${editingItem.id}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          namaKegiatan: formData.namaKegiatan,
+          tanggal: formData.tanggal,
+          jenis_bangkom_id: parseInt(formData.jenis_bangkom_id),
+          jumlahPeserta: parseInt(formData.jumlahPeserta),
+        }),
+      })
+
+      if (!response.ok) {
+        const errorData = await response.json()
+        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+      }
+
+      const updatedItem = await response.json()
+      
+      setData(prev => prev.map(item => 
+        item.id === editingItem.id ? updatedItem : item
+      ))
+
+      setFormData({
+        namaKegiatan: '',
+        tanggal: '',
+        jenis_bangkom_id: '',
+        jumlahPeserta: ''
+      })
+      setEditingItem(null)
+      setShowEditModal(false)
+
+      toast.success('Data berhasil diperbarui!')
+      
+    } catch (err) {
+      console.error('Error updating data:', err)
+      toast.error(`Gagal memperbarui: ${err instanceof Error ? err.message : 'Terjadi kesalahan'}`)
+    } finally {
+      setIsEditing(false)
+    }
+  }
+
+  // Early returns after all hooks
+  if (loading) {
+    return (
+      <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
+        <div className="flex items-center justify-center h-64">
+          <div className="text-center">
+            <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+            <p className="text-gray-600">Memuat data penyelenggaraan...</p>
+            <p className="text-sm text-gray-500 mt-2">Mengambil informasi dari database...</p>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  if (error) {
+    return (
+      <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
+        <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-2xl mx-auto">
+          <div className="flex items-center mb-4">
+            <div className="text-red-600 mr-3 text-2xl">⚠️</div>
+            <div>
+              <h3 className="text-red-800 font-medium text-lg">Gagal Memuat Data</h3>
+              <p className="text-red-600 text-sm mt-1">{error}</p>
+            </div>
+          </div>
+          <div className="mt-4">
+            <button 
+              onClick={() => {
+                window.location.reload()
+                toast.info("Memuat ulang halaman...")
+              }} 
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+            >
+              Coba Lagi
+            </button>
+          </div>
+        </div>
+      </div>
+    )
   }
 
   return (
@@ -375,11 +505,11 @@ export default function PenyelenggaraanBangkomPage() {
         <div>
           <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard Penyelenggaraan Bangkom</h1>
           <p>Kelola dan monitor penyelenggaraan kegiatan bangkom non-pelatihan:
-  <br/>
-  <span>(Seminar, Webinar, Bimtek, Talkshow, Penilaian Kompetensi,</span>
-  <br/>
-  <span>Lab inovasi, Sosialisasi, dan lainnya)</span>
-</p>
+            <br/>
+            <span>(Seminar, Webinar, Bimtek, Talkshow, Penilaian Kompetensi,</span>
+            <br/>
+            <span>Lab inovasi, Sosialisasi, dan lainnya)</span>
+          </p>
         </div>
         <Dialog open={showModal} onOpenChange={setShowModal}>
           <DialogTrigger asChild>
@@ -493,7 +623,7 @@ export default function PenyelenggaraanBangkomPage() {
         </Dialog>
       </div>
 
-      {/* Enhanced Summary Cards */}
+      {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
         {summaryCards.map((card, idx) => (
           <div
@@ -524,7 +654,6 @@ export default function PenyelenggaraanBangkomPage() {
                 </div>
               </div>
               
-              {/* Progress Bar */}
               <div className="mt-4">
                 <div className="w-full bg-gray-200 rounded-full h-2">
                   <div 
@@ -548,7 +677,6 @@ export default function PenyelenggaraanBangkomPage() {
 
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Bar Chart */}
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
             <BarChart3 className="w-6 h-6 mr-2 text-blue-500" />
@@ -583,7 +711,6 @@ export default function PenyelenggaraanBangkomPage() {
           </div>
         </div>
 
-        {/* Pie Chart */}
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
             <PieChartIcon className="w-6 h-6 mr-2 text-green-500" />
@@ -611,11 +738,71 @@ export default function PenyelenggaraanBangkomPage() {
         </div>
       </div>
 
-      {/* Enhanced Table */}
+      {/* Enhanced Table with Filter and Pagination */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
           <h2 className="text-xl font-bold">Data Penyelenggaraan Bangkom</h2>
           <p className="text-blue-100 text-sm">Monitoring kegiatan bangkom non-pelatihan dan peserta</p>
+        </div>
+        
+        {/* Filter Section */}
+        <div className="px-6 py-4 bg-gray-50 border-b">
+          <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+            <div className="flex items-center gap-3">
+              <Label htmlFor="filterJenis" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                Filter Jenis:
+              </Label>
+              <Select value={filterJenis} onValueChange={setFilterJenis}>
+                <SelectTrigger id="filterJenis" className="w-64">
+                  <SelectValue placeholder="Semua Jenis Bangkom" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Jenis Bangkom</SelectItem>
+                  {uniqueJenisBangkom.map((jenis) => (
+                    <SelectItem key={jenis} value={jenis}>
+                      {jenis}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div className="flex items-center gap-4">
+              <div className="flex items-center gap-2">
+                <Label htmlFor="itemsPerPage" className="text-sm font-medium text-gray-700 whitespace-nowrap">
+                  Per halaman:
+                </Label>
+                <Select value={itemsPerPage.toString()} onValueChange={handleItemsPerPageChange}>
+                  <SelectTrigger id="itemsPerPage" className="w-20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="5">5</SelectItem>
+                    <SelectItem value="10">10</SelectItem>
+                    <SelectItem value="15">15</SelectItem>
+                    <SelectItem value="20">20</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div className="flex items-center gap-2 text-sm text-gray-600">
+                <span className="font-medium">Menampilkan:</span>
+                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full font-medium">
+                  {filteredData.length} dari {data.length} kegiatan
+                </span>
+                {filterJenis && filterJenis !== 'all' && (
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setFilterJenis('all')}
+                    className="text-blue-600 hover:text-blue-800 hover:bg-blue-50 ml-2"
+                  >
+                    Reset Filter
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
         </div>
         
         <div className="overflow-x-auto">
@@ -627,12 +814,13 @@ export default function PenyelenggaraanBangkomPage() {
                 <TableHead className="font-medium">Tanggal</TableHead>
                 <TableHead className="font-medium">Jenis Bangkom</TableHead>
                 <TableHead className="text-right font-medium">Jumlah Peserta</TableHead>
+                <TableHead className="text-center font-medium">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.map((item, index) => (
+              {paginatedData.map((item, index) => (
                 <TableRow key={item.id} className="hover:bg-blue-50 transition-colors">
-                  <TableCell className="text-gray-600">{index + 1}</TableCell>
+                  <TableCell className="text-gray-600">{startIndex + index + 1}</TableCell>
                   <TableCell className="font-medium text-gray-800">{item.namaKegiatan}</TableCell>
                   <TableCell className="text-gray-600">
                     <span className="inline-flex items-center">
@@ -660,11 +848,131 @@ export default function PenyelenggaraanBangkomPage() {
                       {item.jumlahPeserta}
                     </span>
                   </TableCell>
+                  <TableCell className="text-center">
+                    <div className="flex items-center justify-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleEdit(item)}
+                        disabled={isDeleting}
+                        className="h-8 px-2 hover:bg-blue-50 hover:border-blue-300 hover:text-blue-700"
+                      >
+                        <Edit2 className="w-3 h-3" />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleDelete(item)}
+                        disabled={isDeleting}
+                        className="h-8 px-2 hover:bg-red-50 hover:border-red-300 hover:text-red-700"
+                      >
+                        <Trash2 className="w-3 h-3" />
+                      </Button>
+                    </div>
+                  </TableCell>
                 </TableRow>
               ))}
             </TableBody>
           </Table>
         </div>
+
+        {/* Pagination */}
+        {filteredData.length > 0 && (
+          <div className="px-6 py-4 bg-gray-50 border-t">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              <div className="text-sm text-gray-600">
+                Menampilkan {startIndex + 1} - {Math.min(endIndex, filteredData.length)} dari {filteredData.length} data
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(1)}
+                  disabled={currentPage === 1}
+                  className="px-2"
+                >
+                  ⟪
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-2"
+                >
+                  ‹
+                </Button>
+                
+                {/* Page Numbers */}
+                <div className="flex items-center gap-1">
+                  {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
+                    let pageNumber
+                    if (totalPages <= 5) {
+                      pageNumber = i + 1
+                    } else if (currentPage <= 3) {
+                      pageNumber = i + 1
+                    } else if (currentPage >= totalPages - 2) {
+                      pageNumber = totalPages - 4 + i
+                    } else {
+                      pageNumber = currentPage - 2 + i
+                    }
+                    
+                    return (
+                      <Button
+                        key={pageNumber}
+                        variant={currentPage === pageNumber ? "default" : "outline"}
+                        size="sm"
+                        onClick={() => handlePageChange(pageNumber)}
+                        className={`w-8 h-8 p-0 ${
+                          currentPage === pageNumber 
+                            ? "bg-blue-600 text-white" 
+                            : "hover:bg-blue-50"
+                        }`}
+                      >
+                        {pageNumber}
+                      </Button>
+                    )
+                  })}
+                </div>
+                
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-2"
+                >
+                  ›
+                </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => handlePageChange(totalPages)}
+                  disabled={currentPage === totalPages}
+                  className="px-2"
+                >
+                  ⟫
+                </Button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {filteredData.length === 0 && data.length > 0 && (
+          <div className="text-center py-8 text-gray-500">
+            <div className="mb-2">🔍</div>
+            <p>Tidak ada kegiatan untuk jenis &quot;{filterJenis}&quot;</p>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => setFilterJenis('all')}
+              className="text-blue-600 hover:text-blue-800 mt-2"
+            >
+              Tampilkan Semua
+            </Button>
+          </div>
+        )}
 
         {data.length === 0 && (
           <div className="text-center py-8 text-gray-500">
@@ -672,6 +980,112 @@ export default function PenyelenggaraanBangkomPage() {
           </div>
         )}
       </div>
+
+      {/* Edit Modal */}
+      <Dialog open={showEditModal} onOpenChange={setShowEditModal}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-blue-700">Edit Penyelenggaraan Bangkom</DialogTitle>
+          </DialogHeader>
+
+          <form onSubmit={handleEditSubmit} className="space-y-4">
+            <div className="space-y-1">
+              <Label htmlFor="editNamaKegiatan">Nama Kegiatan</Label>
+              <Input
+                id="editNamaKegiatan"
+                name="namaKegiatan"
+                value={formData.namaKegiatan}
+                onChange={handleChange}
+                required
+                disabled={isEditing}
+                placeholder="Contoh: Lab. Inovasi Kab. Tanjung Jabung Timur"
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="editTanggal">Tanggal Kegiatan</Label>
+              <Input
+                id="editTanggal"
+                type="date"
+                name="tanggal"
+                value={formData.tanggal}
+                onChange={handleChange}
+                required
+                disabled={isEditing}
+              />
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="editJenisBangkom">Jenis Bangkom</Label>
+              <Select 
+                onValueChange={handleSelectChange} 
+                value={formData.jenis_bangkom_id}
+                disabled={isEditing}
+              >
+                <SelectTrigger id="editJenisBangkom">
+                  <SelectValue placeholder="Pilih jenis bangkom" />
+                </SelectTrigger>
+                <SelectContent>
+                  {options.map((option) => (
+                    <SelectItem key={option.id} value={option.id.toString()}>
+                      {option.jenis_bangkom}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="space-y-1">
+              <Label htmlFor="editJumlahPeserta">Jumlah Peserta</Label>
+              <Input
+                id="editJumlahPeserta"
+                type="number"
+                name="jumlahPeserta"
+                value={formData.jumlahPeserta}
+                onChange={handleChange}
+                min="1"
+                required
+                disabled={isEditing}
+                placeholder="Contoh: 30"
+              />
+            </div>
+
+            <div className="flex justify-end gap-3 pt-2">
+              <Button
+                variant="outline"
+                onClick={() => {
+                  setShowEditModal(false)
+                  setEditingItem(null)
+                  setFormData({
+                    namaKegiatan: '',
+                    tanggal: '',
+                    jenis_bangkom_id: '',
+                    jumlahPeserta: ''
+                  })
+                }}
+                type="button"
+                disabled={isEditing}
+              >
+                Batal
+              </Button>
+              <Button 
+                type="submit" 
+                className="bg-blue-600 hover:bg-blue-700"
+                disabled={isEditing}
+              >
+                {isEditing ? (
+                  <>
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
+                    Memperbarui...
+                  </>
+                ) : (
+                  'Perbarui'
+                )}
+              </Button>
+            </div>
+          </form>
+        </DialogContent>
+      </Dialog>
 
       {/* Recent Activities */}
       <div className="bg-white rounded-xl shadow-lg p-6">

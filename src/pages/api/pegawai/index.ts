@@ -16,7 +16,7 @@ export default async function handler(
       const pegawai = await prisma.pegawai.findMany();
       res.status(200).json(pegawai);
     } catch (error) {
-      console.error(error);
+      console.error('Error fetching pegawai data:', error);
       res.status(500).json({ error: 'Gagal mengambil data pegawai' });
     }
   } else if (req.method === 'POST') {
@@ -34,7 +34,7 @@ export default async function handler(
       });
       res.status(201).json(newPegawai);
     } catch (error) {
-      console.error(error);
+      console.error('Error creating pegawai:', error);
       res.status(500).json({ error: 'Gagal menambahkan pegawai' });
     }
   } else {

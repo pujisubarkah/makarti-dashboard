@@ -541,7 +541,6 @@ export default function InovasiPage() {
               <TableRow className="bg-gray-50">
                 <TableHead className="font-medium">No</TableHead>
                 <TableHead className="font-medium">Judul Inovasi</TableHead>
-                <TableHead className="font-medium">Pengusul</TableHead>
                 <TableHead className="font-medium">Tahap</TableHead>
                 <TableHead className="font-medium">Tanggal</TableHead>
                 <TableHead className="font-medium">Indikator Kinerja</TableHead>
@@ -553,7 +552,6 @@ export default function InovasiPage() {
                 <TableRow key={item.id} className="hover:bg-blue-50 transition-colors">
                   <TableCell className="text-gray-600">{index + 1}</TableCell>
                   <TableCell className="font-medium text-gray-800">{item.judul}</TableCell>
-                  <TableCell className="text-gray-600">{item.pengusul}</TableCell>
                   <TableCell>
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                       item.tahap === 'Implementasi' ? 'bg-green-100 text-green-800' :

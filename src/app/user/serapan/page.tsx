@@ -34,6 +34,8 @@ import {
   Loader2,
   TrendingUp,
   Plus,
+  Edit,
+  Trash2,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -102,6 +104,7 @@ export default function SerapanAnggaranPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState<number | null>(null);
   const [formData, setFormData] = useState({
     bulan: 'Januari',
     paguAnggaran: '',
@@ -131,6 +134,50 @@ export default function SerapanAnggaranPage() {
       revalidateOnReconnect: true,
     }
   );
+
+  // Handle edit data
+  const handleEdit = (item: SerapanDetailItem) => {
+    setFormData({
+      bulan: item.bulan,
+      paguAnggaran: item.pagu_anggaran.toString(),
+      realisasiPengeluaran: item.realisasi_pengeluaran.toString(),
+    });
+    setEditingId(item.id);
+    setShowModal(true);
+  };
+
+  // Handle delete data
+  const handleDelete = async (id: number) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus data ini?')) {
+      return;
+    }
+
+    const deletePromise = new Promise(async (resolve, reject) => {
+      try {
+        const response = await fetch(`/api/serapan/${userId}/${id}`, {
+          method: 'DELETE',
+        });
+
+        if (!response.ok) {
+          const errorData = await response.json();
+          throw new Error(errorData.message || 'Gagal menghapus data');
+        }
+
+        // Update data dengan SWR mutate
+        mutate(`/api/serapan/${userId}`);
+        resolve('Data berhasil dihapus');
+      } catch (err) {
+        console.error('Error deleting data:', err);
+        reject(err);
+      }
+    });
+
+    toast.promise(deletePromise, {
+      loading: 'Menghapus data...',
+      success: 'Data berhasil dihapus!',
+      error: (err) => `Error: ${err.message || 'Terjadi kesalahan saat menghapus data'}`,
+    });
+  };
 
   // Handle form submission
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -171,8 +218,11 @@ export default function SerapanAnggaranPage() {
         try {
           console.log('Submitting to API:', `/api/serapan/${userId}`);
           
-          const response = await fetch(`/api/serapan/${userId}`, {
-            method: 'POST',
+          const url = editingId ? `/api/serapan/${userId}/${editingId}` : `/api/serapan/${userId}`;
+          const method = editingId ? 'PUT' : 'POST';
+          
+          const response = await fetch(url, {
+            method: method,
             headers: {
               'Content-Type': 'application/json',
             },
@@ -200,6 +250,7 @@ export default function SerapanAnggaranPage() {
             paguAnggaran: '',
             realisasiPengeluaran: '',
           });
+          setEditingId(null);
           setShowModal(false);
 
           resolve(result);
@@ -214,8 +265,8 @@ export default function SerapanAnggaranPage() {
 
     // Use Sonner's promise toast
     toast.promise(loadingPromise, {
-      loading: 'Menyimpan data serapan anggaran...',
-      success: 'Data berhasil disimpan!',
+      loading: editingId ? 'Memperbarui data serapan anggaran...' : 'Menyimpan data serapan anggaran...',
+      success: editingId ? 'Data berhasil diperbarui!' : 'Data berhasil disimpan!',
       error: (err) => `Error: ${err.message || 'Terjadi kesalahan saat menyimpan data'}`,
     });
   };
@@ -433,7 +484,17 @@ export default function SerapanAnggaranPage() {
         </div>
         
         {/* Modal Dialog untuk Form */}
-        <Dialog open={showModal} onOpenChange={setShowModal}>
+        <Dialog open={showModal} onOpenChange={(open) => {
+          setShowModal(open);
+          if (!open) {
+            setEditingId(null);
+            setFormData({
+              bulan: 'Januari',
+              paguAnggaran: '',
+              realisasiPengeluaran: '',
+            });
+          }
+        }}>
           <DialogTrigger asChild>
             <Button className="bg-blue-600 hover:bg-blue-700 px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all">
               <Plus className="w-4 h-4 mr-2" />
@@ -442,7 +503,9 @@ export default function SerapanAnggaranPage() {
           </DialogTrigger>
           <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
             <DialogHeader>
-              <DialogTitle className="text-blue-700">Form Serapan Anggaran</DialogTitle>
+              <DialogTitle className="text-blue-700">
+                {editingId ? 'Edit Data Serapan Anggaran' : 'Form Serapan Anggaran'}
+              </DialogTitle>
             </DialogHeader>
             <form onSubmit={handleSubmit} className="space-y-4">
               <div className="space-y-1">
@@ -506,10 +569,10 @@ export default function SerapanAnggaranPage() {
                   {isSubmitting ? (
                     <>
                       <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                      Menyimpan...
+                      {editingId ? 'Memperbarui...' : 'Menyimpan...'}
                     </>
                   ) : (
-                    'Simpan'
+                    editingId ? 'Perbarui' : 'Simpan'
                   )}
                 </Button>
               </div>
@@ -676,6 +739,7 @@ export default function SerapanAnggaranPage() {
                 <TableHead className="font-medium text-right">Realisasi Pengeluaran</TableHead>
                 <TableHead className="font-medium text-center">Capaian Realisasi</TableHead>
                 <TableHead className="font-medium text-center">Capaian Kumulatif</TableHead>
+                <TableHead className="font-medium text-center">Aksi</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -722,11 +786,31 @@ export default function SerapanAnggaranPage() {
                         {item.capaian_realisasi_kumulatif.toFixed(2)}%
                       </span>
                     </TableCell>
+                    <TableCell>
+                      <div className="flex items-center justify-center gap-2">
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleEdit(item)}
+                          className="hover:bg-blue-50 hover:border-blue-300 hover:text-blue-600"
+                        >
+                          <Edit className="w-4 h-4" />
+                        </Button>
+                        <Button
+                          size="sm"
+                          variant="outline"
+                          onClick={() => handleDelete(item.id)}
+                          className="hover:bg-red-50 hover:border-red-300 hover:text-red-600"
+                        >
+                          <Trash2 className="w-4 h-4" />
+                        </Button>
+                      </div>
+                    </TableCell>
                   </TableRow>
                 ))
               ) : (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center py-8 text-gray-500">
+                  <TableCell colSpan={7} className="text-center py-8 text-gray-500">
                     <div className="flex flex-col items-center">
                       <AlertCircle className="w-8 h-8 text-gray-400 mb-2" />
                       <p>Tidak ada data untuk ditampilkan</p>

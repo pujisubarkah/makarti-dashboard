@@ -1,21 +1,10 @@
-// api/pelatihan/[unit_kerja_id]/index.ts
+// api/pelatihan/index.ts
 import { prisma } from "@/lib/prisma";
-import { NextRequest, NextResponse } from "next/server";
+import { NextResponse } from "next/server";
 
-type Params = {
-  params: { unit_kerja_id: string };
-};
-
-export async function GET(req: NextRequest, { params }: Params) {
+export async function GET() {
   try {
-    const unit_kerja_id = parseInt(params.unit_kerja_id);
-
-    if (isNaN(unit_kerja_id)) {
-      return NextResponse.json({ error: "unit_kerja_id tidak valid" }, { status: 400 });
-    }
-
     const data = await prisma.pelatihan.findMany({
-      where: { unit_kerja_id },
       include: {
         users_Pelatihan_pegawai_idTousers: true,
         users_Pelatihan_unit_kerja_idTousers: true,

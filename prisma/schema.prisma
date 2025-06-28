@@ -50,13 +50,14 @@ model Networking {
 }
 
 model Pelatihan {
-  id            Int      @id @default(autoincrement())
-  nama          String
-  unit_kerja_id Int
-  judul         String
-  jam           Int
-  tanggal       DateTime
-  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  id                                   Int      @id @default(autoincrement())
+  pegawai_id                           Int
+  unit_kerja_id                        Int
+  judul                                String
+  jam                                  Int
+  tanggal                              DateTime
+  users_Pelatihan_pegawai_idTousers    users    @relation("Pelatihan_pegawai_idTousers", fields: [pegawai_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_Pelatihan_unit_kerja_idTousers users    @relation("Pelatihan_unit_kerja_idTousers", fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("makarti")
 }
@@ -262,26 +263,27 @@ model status_inovasi {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model users {
-  created_at          DateTime              @default(now()) @db.Timestamptz(6)
-  unit_kerja          String?
-  username            String                @db.VarChar
-  password            String?               @db.VarChar
-  id                  Int                   @id @unique @default(autoincrement())
-  role_id             Int?
-  alias               String?               @db.VarChar(255)
-  Inovasi             Inovasi[]
-  Koordinasi          Koordinasi[]
-  Networking          Networking[]
-  Pelatihan           Pelatihan[]
-  Penyelenggaraan     Penyelenggaraan[]
-  ProdukInovasi       ProdukInovasi[]
-  Publikasi           Publikasi[]
-  SkpTransformasional SkpTransformasional[]
-  Sosialisasi         Sosialisasi[]
-  kajian              kajian[]
-  pegawai             pegawai[]
-  serapan_anggaran    serapan_anggaran[]
-  role_user           role_user?            @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  created_at                               DateTime              @default(now()) @db.Timestamptz(6)
+  unit_kerja                               String?
+  username                                 String                @db.VarChar @unique
+  password                                 String?               @db.VarChar
+  id                                       Int                   @id @unique @default(autoincrement())
+  role_id                                  Int?
+  alias                                    String?               @db.VarChar(255)
+  Inovasi                                  Inovasi[]
+  Koordinasi                               Koordinasi[]
+  Networking                               Networking[]
+  Pelatihan_Pelatihan_pegawai_idTousers    Pelatihan[]           @relation("Pelatihan_pegawai_idTousers")
+  Pelatihan_Pelatihan_unit_kerja_idTousers Pelatihan[]           @relation("Pelatihan_unit_kerja_idTousers")
+  Penyelenggaraan                          Penyelenggaraan[]
+  ProdukInovasi                            ProdukInovasi[]
+  Publikasi                                Publikasi[]
+  SkpTransformasional                      SkpTransformasional[]
+  Sosialisasi                              Sosialisasi[]
+  kajian                                   kajian[]
+  pegawai                                  pegawai[]
+  serapan_anggaran                         serapan_anggaran[]
+  role_user                                role_user?            @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("makarti")
 }

@@ -22,61 +22,73 @@ const menuItems = [
     label: 'Dashboard',
     href: '/user/dashboard',
     icon: LayoutDashboard,
+    status: 'maintenance',
   },
   {
     label: 'Media & Publikasi',
     href: '/user/media',
     icon: Newspaper,
+    status: 'ready',
   },
   {
     label: 'Pelatihan',
     href: '/user/sosialisasi',
     icon: BookOpen,
+    status: 'maintenance',
   },
   {
     label: 'Networking / Kunjungan',
     href: '/user/networking',
     icon: Users,
+    status: 'ready',
   },
   {
     label: 'Koordinasi Instansi',
     href: '/user/koordinasi',
     icon: Share2,
+    status: 'ready',
   },
   {
     label: 'Pelatihan Pegawai',
     href: '/user/pelatihan',
     icon: BookOpen,
+    status: 'maintenance',
   },
   {
     label: 'Peserta',
     href: '/user/peserta',
     icon: UserCheck,
+    status: 'ready',
   },
   {
     label: 'Inovasi',
     href: '/user/inovasi',
     icon: ActivitySquare,
+    status: 'maintenance',
   },
   {
     label: 'SKP Transformasional',
     href: '/user/inovasi/skp',
     icon: FileText,
+    status: 'maintenance',
   },
   {
     label: 'Produk Inovasi',
     href: '/user/inovasi/produk',
     icon: Package,
+    status: 'maintenance',
   },
   {
     label: 'Produk Kajian/Analisis Kebijakan',
     href: '/user/kajian',
     icon: FileSearch,
+    status: 'ready',
   },
   {
     label: 'Serapan Anggaran',
     href: '/user/serapan',
     icon: PieChart,
+    status: 'ready',
   },
 ]
 
@@ -93,13 +105,20 @@ export function SidebarUser() {
           
           return (
             <Link key={item.href} href={item.href}>
-              <div className={`flex items-center text-sm font-semibold p-2 rounded-lg transition-colors ${
+              <div className={`flex items-center justify-between text-sm font-semibold p-2 rounded-lg transition-colors ${
                 isActive 
                   ? 'bg-blue-100 text-blue-700 border-r-2 border-blue-700' 
                   : 'text-gray-600 hover:bg-gray-100 hover:text-blue-600'
               }`}>
-                <Icon className="mr-3 w-4 h-4" />
-                <span>{item.label}</span>
+                <div className="flex items-center">
+                  <Icon className="mr-3 w-4 h-4" />
+                  <span>{item.label}</span>
+                </div>
+                {item.status === 'maintenance' && (
+                  <span className="ml-2 text-xs text-orange-500 bg-orange-100 px-2 py-0.5 rounded-full">
+                    🚧
+                  </span>
+                )}
               </div>
             </Link>
           )

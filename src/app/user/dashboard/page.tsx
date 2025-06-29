@@ -18,7 +18,8 @@ import {
   Brain,
   Rocket,
   Trophy,
-  Lightbulb
+  Lightbulb,
+  GraduationCap
 } from "lucide-react";
 import {
   XAxis,
@@ -612,24 +613,146 @@ export default function UnitKerjaDashboard() {
 
             {/* Quick Actions */}
             <section className="bg-white rounded-xl shadow-lg p-6">
-                <h2 className="text-xl font-bold mb-4 text-gray-800">Aksi Cepat</h2>
-                <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-                    <button className="p-4 bg-blue-50 hover:bg-blue-100 rounded-lg border border-blue-200 transition-colors">
-                        <Award className="w-8 h-8 text-blue-500 mx-auto mb-2" />
-                        <p className="text-sm font-medium text-blue-800">Tambah Inovasi</p>
+                <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
+                    <Zap className="w-6 h-6 mr-2 text-orange-500" />
+                    Aksi Cepat
+                </h2>
+                <p className="text-gray-600 text-sm mb-6">Navigasi cepat ke modul utama MAKARTI 5.0</p>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                    {/* Tambah Data Pelatihan */}
+                    <button 
+                        onClick={() => window.location.href = '/user/pelatihan'}
+                        className="p-6 bg-gradient-to-br from-blue-50 to-blue-100 hover:from-blue-100 hover:to-blue-200 rounded-xl border border-blue-200 transition-all duration-300 hover:scale-105 hover:shadow-lg group"
+                    >
+                        <div className="text-center">
+                            <div className="bg-blue-500 group-hover:bg-blue-600 rounded-full p-3 w-12 h-12 mx-auto mb-3 transition-colors">
+                                <GraduationCap className="w-6 h-6 text-white" />
+                            </div>
+                            <h3 className="text-sm font-semibold text-blue-800 mb-1">Pelatihan</h3>
+                            <p className="text-xs text-blue-600">Kelola data pengembangan kompetensi</p>
+                        </div>
                     </button>
-                    <button className="p-4 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition-colors">
-                        <Calendar className="w-8 h-8 text-green-500 mx-auto mb-2" />
-                        <p className="text-sm font-medium text-green-800">Jadwal Kegiatan</p>
+
+                    {/* Input Koordinasi */}
+                    <button 
+                        onClick={() => window.location.href = '/user/koordinasi'}
+                        className="p-6 bg-gradient-to-br from-green-50 to-green-100 hover:from-green-100 hover:to-green-200 rounded-xl border border-green-200 transition-all duration-300 hover:scale-105 hover:shadow-lg group"
+                    >
+                        <div className="text-center">
+                            <div className="bg-green-500 group-hover:bg-green-600 rounded-full p-3 w-12 h-12 mx-auto mb-3 transition-colors">
+                                <Users className="w-6 h-6 text-white" />
+                            </div>
+                            <h3 className="text-sm font-semibold text-green-800 mb-1">Koordinasi</h3>
+                            <p className="text-xs text-green-600">Rapat dan koordinasi internal</p>
+                        </div>
                     </button>
-                    <button className="p-4 bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-200 transition-colors">
-                        <Users className="w-8 h-8 text-purple-500 mx-auto mb-2" />
-                        <p className="text-sm font-medium text-purple-800">Kelola Tim</p>
+
+                    {/* Networking */}
+                    <button 
+                        onClick={() => window.location.href = '/user/networking'}
+                        className="p-6 bg-gradient-to-br from-purple-50 to-purple-100 hover:from-purple-100 hover:to-purple-200 rounded-xl border border-purple-200 transition-all duration-300 hover:scale-105 hover:shadow-lg group"
+                    >
+                        <div className="text-center">
+                            <div className="bg-purple-500 group-hover:bg-purple-600 rounded-full p-3 w-12 h-12 mx-auto mb-3 transition-colors">
+                                <Target className="w-6 h-6 text-white" />
+                            </div>
+                            <h3 className="text-sm font-semibold text-purple-800 mb-1">Networking</h3>
+                            <p className="text-xs text-purple-600">Jaringan dan kerjasama eksternal</p>
+                        </div>
                     </button>
-                    <button className="p-4 bg-orange-50 hover:bg-orange-100 rounded-lg border border-orange-200 transition-colors">
-                        <BarChart3 className="w-8 h-8 text-orange-500 mx-auto mb-2" />
-                        <p className="text-sm font-medium text-orange-800">Lihat Laporan</p>
+
+                    {/* Serapan Anggaran */}
+                    <button 
+                        onClick={() => window.location.href = '/user/serapan'}
+                        className="p-6 bg-gradient-to-br from-orange-50 to-orange-100 hover:from-orange-100 hover:to-orange-200 rounded-xl border border-orange-200 transition-all duration-300 hover:scale-105 hover:shadow-lg group"
+                    >
+                        <div className="text-center">
+                            <div className="bg-orange-500 group-hover:bg-orange-600 rounded-full p-3 w-12 h-12 mx-auto mb-3 transition-colors">
+                                <BarChart3 className="w-6 h-6 text-white" />
+                            </div>
+                            <h3 className="text-sm font-semibold text-orange-800 mb-1">Serapan</h3>
+                            <p className="text-xs text-orange-600">Monitor realisasi anggaran</p>
+                        </div>
                     </button>
+
+                    {/* Input Inovasi */}
+                    <button 
+                        onClick={() => window.location.href = '/user/inovasi'}
+                        className="p-6 bg-gradient-to-br from-pink-50 to-pink-100 hover:from-pink-100 hover:to-pink-200 rounded-xl border border-pink-200 transition-all duration-300 hover:scale-105 hover:shadow-lg group"
+                    >
+                        <div className="text-center">
+                            <div className="bg-pink-500 group-hover:bg-pink-600 rounded-full p-3 w-12 h-12 mx-auto mb-3 transition-colors">
+                                <Lightbulb className="w-6 h-6 text-white" />
+                            </div>
+                            <h3 className="text-sm font-semibold text-pink-800 mb-1">Inovasi</h3>
+                            <p className="text-xs text-pink-600">Tambah ide dan inovasi baru</p>
+                        </div>
+                    </button>
+
+                    {/* Media Publikasi */}
+                    <button 
+                        onClick={() => window.location.href = '/user/media'}
+                        className="p-6 bg-gradient-to-br from-indigo-50 to-indigo-100 hover:from-indigo-100 hover:to-indigo-200 rounded-xl border border-indigo-200 transition-all duration-300 hover:scale-105 hover:shadow-lg group"
+                    >
+                        <div className="text-center">
+                            <div className="bg-indigo-500 group-hover:bg-indigo-600 rounded-full p-3 w-12 h-12 mx-auto mb-3 transition-colors">
+                                <Activity className="w-6 h-6 text-white" />
+                            </div>
+                            <h3 className="text-sm font-semibold text-indigo-800 mb-1">Media</h3>
+                            <p className="text-xs text-indigo-600">Publikasi dan dokumentasi</p>
+                        </div>
+                    </button>
+
+                    {/* Kajian Penelitian */}
+                    <button 
+                        onClick={() => window.location.href = '/user/kajian'}
+                        className="p-6 bg-gradient-to-br from-teal-50 to-teal-100 hover:from-teal-100 hover:to-teal-200 rounded-xl border border-teal-200 transition-all duration-300 hover:scale-105 hover:shadow-lg group"
+                    >
+                        <div className="text-center">
+                            <div className="bg-teal-500 group-hover:bg-teal-600 rounded-full p-3 w-12 h-12 mx-auto mb-3 transition-colors">
+                                <Brain className="w-6 h-6 text-white" />
+                            </div>
+                            <h3 className="text-sm font-semibold text-teal-800 mb-1">Kajian</h3>
+                            <p className="text-xs text-teal-600">Riset dan analisis kebijakan</p>
+                        </div>
+                    </button>
+
+                    {/* Sosialisasi */}
+                    <button 
+                        onClick={() => window.location.href = '/user/sosialisasi'}
+                        className="p-6 bg-gradient-to-br from-cyan-50 to-cyan-100 hover:from-cyan-100 hover:to-cyan-200 rounded-xl border border-cyan-200 transition-all duration-300 hover:scale-105 hover:shadow-lg group"
+                    >
+                        <div className="text-center">
+                            <div className="bg-cyan-500 group-hover:bg-cyan-600 rounded-full p-3 w-12 h-12 mx-auto mb-3 transition-colors">
+                                <Users className="w-6 h-6 text-white" />
+                            </div>
+                            <h3 className="text-sm font-semibold text-cyan-800 mb-1">Sosialisasi</h3>
+                            <p className="text-xs text-cyan-600">Kegiatan sosialisasi program</p>
+                        </div>
+                    </button>
+                </div>
+
+                {/* Additional Quick Stats */}
+                <div className="mt-6 pt-6 border-t border-gray-200">
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-center">
+                        <div className="p-3">
+                            <div className="text-2xl font-bold text-blue-600">8</div>
+                            <div className="text-xs text-gray-600">Modul Aktif</div>
+                        </div>
+                        <div className="p-3">
+                            <div className="text-2xl font-bold text-green-600">{unitData?.total_pegawai || 0}</div>
+                            <div className="text-xs text-gray-600">Total Pegawai</div>
+                        </div>
+                        <div className="p-3">
+                            <div className="text-2xl font-bold text-purple-600">15</div>
+                            <div className="text-xs text-gray-600">Target Bulanan</div>
+                        </div>
+                        <div className="p-3">
+                            <div className="text-2xl font-bold text-orange-600">75%</div>
+                            <div className="text-xs text-gray-600">Progress</div>
+                        </div>
+                    </div>
                 </div>
             </section>
         </main>

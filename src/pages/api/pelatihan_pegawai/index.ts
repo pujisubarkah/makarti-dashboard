@@ -1,19 +1,33 @@
 // api/pelatihan/index.ts
 import { prisma } from "@/lib/prisma";
-import { NextResponse } from "next/server";
+import { NextApiRequest, NextApiResponse } from "next";
 
-export async function GET() {
-  try {
-    const data = await prisma.pelatihan.findMany({
-      include: {
-        users_Pelatihan_pegawai_idTousers: true,
-        users_Pelatihan_unit_kerja_idTousers: true,
-      },
-    });
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method === "GET") {
+    try {
+      const data = await prisma.pelatihan.findMany({
+        include: {
+          pegawai: {
+            select: {
+              nama: true,
 
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error("Error fetching pelatihan data:", error);
-    return NextResponse.json({ error: "Gagal mengambil data pelatihan" }, { status: 500 });
+            },
+          },
+          users: {
+            select: {
+              unit_kerja: true,
+            }
+          }
+        },
+      });
+
+      return res.status(200).json(data);
+    } catch (error) {
+      console.error("Error fetching pelatihan data:", error);
+      return res.status(500).json({ error: "Gagal mengambil data pelatihan" });
+    }
+  } else {
+    res.setHeader("Allow", ["GET"]);
+    return res.status(405).json({ error: "Method not allowed" });
   }
 }

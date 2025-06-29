@@ -1,30 +1,35 @@
 // api/pelatihan/[unit_kerja_id]/index.ts
 import { prisma } from "@/lib/prisma";
-import { NextRequest, NextResponse } from "next/server";
+import { NextApiRequest, NextApiResponse } from "next";
 
-type Params = {
-  params: { unit_kerja_id: string };
-};
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const { unit_kerja_id } = req.query;
 
-export async function GET(req: NextRequest, { params }: Params) {
-  try {
-    const unit_kerja_id = parseInt(params.unit_kerja_id);
+  if (req.method === "GET") {
+    try {
+      const unitKerjaId = parseInt(unit_kerja_id as string);
 
-    if (isNaN(unit_kerja_id)) {
-      return NextResponse.json({ error: "unit_kerja_id tidak valid" }, { status: 400 });
+      if (isNaN(unitKerjaId)) {
+        return res.status(400).json({ error: "unit_kerja_id tidak valid" });
+      }
+
+      const data = await prisma.pelatihan.findMany({
+        where: { unit_kerja_id: unitKerjaId },
+        include: {
+          pegawai: {
+            select: { nama: true },
+          }
+         
+        },
+      });
+
+      return res.status(200).json(data);
+    } catch (error) {
+      console.error("Error fetching pelatihan data:", error);
+      return res.status(500).json({ error: "Gagal mengambil data pelatihan" });
     }
-
-    const data = await prisma.pelatihan.findMany({
-      where: { unit_kerja_id },
-      include: {
-        users_Pelatihan_pegawai_idTousers: true,
-        users_Pelatihan_unit_kerja_idTousers: true,
-      },
-    });
-
-    return NextResponse.json(data);
-  } catch (error) {
-    console.error("Error fetching pelatihan data:", error);
-    return NextResponse.json({ error: "Gagal mengambil data pelatihan" }, { status: 500 });
+  } else {
+    res.setHeader("Allow", ["GET"]);
+    return res.status(405).json({ error: "Method not allowed" });
   }
 }

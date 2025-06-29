@@ -52,7 +52,7 @@ const menuItems = [
     label: 'Pelatihan Pegawai',
     href: '/user/pelatihan',
     icon: BookOpen,
-    status: 'maintenance',
+    status: 'ready',
   },
   {
     label: 'Peserta',

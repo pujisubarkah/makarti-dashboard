@@ -13,8 +13,8 @@ export async function GET(req: NextRequest, { params }: Params) {
     const pelatihan = await prisma.pelatihan.findUnique({
       where: { id },
       include: {
-        users_Pelatihan_pegawai_idTousers: true,
-        users_Pelatihan_unit_kerja_idTousers: true,
+        pegawai: true,
+        users: true,
       },
     });
 

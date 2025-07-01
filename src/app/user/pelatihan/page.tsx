@@ -406,6 +406,18 @@ export default function PelatihanPage() {
           {/* Main Content */}
           {!loading && !error && (
             <>
+            {/* Maintenance Warning */}
+            <div className="flex items-center bg-red-100 border border-red-300 rounded-lg p-4 mb-6">
+                <span className="text-red-600 mr-3">
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12A9 9 0 113 12a9 9 0 0118 0z" />
+                    </svg>
+                </span>
+                <div>
+                    <p className="text-red-800 font-semibold">Peringatan: Halaman masih dalam pengembangan.</p>
+                    <p className="text-red-700 text-sm">Beberapa fitur belum sepenuhnya dapat digunakan.</p>
+                </div>
+            </div>
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <div>

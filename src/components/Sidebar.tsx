@@ -26,40 +26,40 @@ const menuItems = [
     icon: Lightbulb,
     children: [
       { title: "Kinerja Inovasi", href: "/admin/inovasi/kinerja" },
-      { title: "SKP Transformasional", href: "/admin/inovasi/skp" },
-      { title: "Jumlah Produk", href: "/admin/inovasi/produk" },
+      // { title: "SKP Transformasional", href: "/admin/inovasi/skp" },
+      { title: "Produk Inovasi", href: "/admin/inovasi/produk" },
     ],
   },
   {
-    title: "Komunikasi & Branding",
+    title: "Branding",
     icon: Megaphone,
     children: [
-      { title: "Postingan Media", href: "/admin/komunikasi/media" },
-      { title: "Jumlah Sosialisasi", href: "/admin/komunikasi/sosialisasi" },
+      { title: "Publikasi Media", href: "/admin/branding/media" },
+      //{ title: "Sosialisasi Branding", href: "/admin/branding/sosialisasi" },
     ],
   },
   {
     title: "Networking",
     icon: Users,
     children: [
-      { title: "Instansi yang Dikunjungi", href: "/admin/networking/kunjungan" },
-      { title: "Kegiatan Koordinasi", href: "/admin/networking/koordinasi" },
+      { title: "Networking Eksternal", href: "/admin/networking/kunjungan" },
+      { title: "Koordinasi Eksternal", href: "/admin/networking/koordinasi" },
     ],
   },
   {
     title: "Learning",
     icon: BookOpenCheck,
     children: [
-      { title: "Jumlah Pelatihan", href: "/admin/learning/pelatihan" },
-      { title: "Jumlah Peserta", href: "/admin/learning/peserta" },
-      { title: "Penyelenggaraan", href: "/admin/learning/penyelenggaraan" },
+      { title: "Bangkom Pegawai Internal", href: "/admin/learning/pelatihan" },
+      { title: "Penyelenggaraan Bangkom", href: "/admin/learning/peserta" },
+      // { title: "Penyelenggaraan Bangkom", href: "/admin/learning/penyelenggaraan" },
     ],
   },
   {
-    title: "Serapan Anggaran",
+    title: "Anggaran",
     icon: PieChart,
     children: [
-      { title: "Grafik Serapan", href: "/admin/serapan" },
+      { title: "Serapan Anggaran", href: "/admin/serapan" },
     ],
   },
 ]

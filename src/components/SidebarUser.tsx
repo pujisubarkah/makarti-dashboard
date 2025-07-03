@@ -88,9 +88,9 @@ export function SidebarUser({ roleId }: SidebarUserProps) {
   const pathname = usePathname()
 
   return (
-    <aside className="w-64 bg-white border-r h-screen p-4 sticky top-0 overflow-y-auto shadow-xl">
-      <h1 className="text-2xl font-extrabold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-500 to-pink-500 flex items-center gap-2">
-        <span className="text-3xl">🌟</span> MAKARTI 5.0
+    <aside className="w-64 min-w-64 max-w-64 bg-white border-r h-screen p-4 sticky top-0 overflow-y-auto shadow-xl flex-shrink-0">      <h1 className="text-2xl font-extrabold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-500 to-pink-500 flex items-center gap-2 truncate">
+        <span className="text-3xl flex-shrink-0">🌟</span> 
+        <span className="truncate">MAKARTI 5.0</span>
       </h1>
       <nav className="space-y-2">
         {menuItems
@@ -115,14 +115,13 @@ export function SidebarUser({ roleId }: SidebarUserProps) {
                         ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-r-4 border-blue-600 shadow-lg scale-[1.03]'
                         : 'text-gray-600 hover:bg-blue-50 hover:text-blue-700 hover:scale-[1.01]'
                     }`}
-                >
-                  <div className="flex items-center gap-3">
+                >                  <div className="flex items-center gap-3 min-w-0">
                     <span
-                      className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${iconBg} group-hover:scale-110`}
+                      className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors flex-shrink-0 ${iconBg} group-hover:scale-110`}
                     >
                       <Icon className="w-5 h-5" />
                     </span>
-                    <span className="truncate">{item.label}</span>
+                    <span className="truncate text-sm leading-tight">{item.label}</span>
                   </div>
                   {item.status === 'maintenance' && (
                     <span className="ml-2 text-xs font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full border border-orange-300 shadow-sm animate-pulse">

@@ -54,9 +54,15 @@ interface ProdukInovasiItem {
   id: number
   nama: string
   jenis: string
+  status_id: number
   status: string
   tanggalRilis: string
   keterangan: string
+}
+
+interface StatusInovasi {
+  id: number
+  status: string
 }
 
 const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6']
@@ -64,10 +70,10 @@ const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6']
 export default function ProdukInovasiPage() {
   const [showModal, setShowModal] = useState(false)
   const [data, setData] = useState<ProdukInovasiItem[]>([])
+  const [statusOptions, setStatusOptions] = useState<StatusInovasi[]>([])
   const [editingId, setEditingId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-
   // Fetch data from API on mount
   useEffect(() => {
     const fetchData = async () => {
@@ -76,36 +82,51 @@ export default function ProdukInovasiPage() {
       try {
         const id = typeof window !== 'undefined' ? localStorage.getItem('id') : null
         if (!id) throw new Error('ID unit kerja tidak ditemukan di localStorage')
+        
+        // Fetch status options
+        const statusRes = await fetch('/api/status-inovasi')
+        if (!statusRes.ok) throw new Error('Gagal mengambil data status inovasi')
+        const statusData: StatusInovasi[] = await statusRes.json()
+        setStatusOptions(statusData)
+        
+        // Fetch product data
         const res = await fetch(`/api/produkinovasi/${id}`)
         if (!res.ok) throw new Error('Gagal mengambil data produk inovasi dari server')
-        const apiData: ProdukInovasiItem[] = await res.json()
-        setData(apiData.map((item: ProdukInovasiItem) => ({
+        const apiData = await res.json()
+        
+        const transformedData: ProdukInovasiItem[] = apiData.map((item: any) => ({
           id: item.id,
           nama: item.nama,
           jenis: item.jenis,
-          status: item.status,
+          status_id: item.status_id,
+          status: item.status_inovasi?.status || 'Unknown',
           tanggalRilis: item.tanggalRilis.split('T')[0],
           keterangan: item.keterangan,
-        })))
+        }))
+        
+        setData(transformedData)
       } catch (err) {
         setError(err instanceof Error ? err.message : 'Gagal memuat data')
       } finally {
         setLoading(false)
-      }
-    }
+      }    }
     fetchData()
   }, [])
 
   const [formData, setFormData] = useState({
     nama: '',
     jenis: 'Aplikasi Digital',
-    status: 'Aktif Digunakan',
+    status_id: 1,
     tanggalRilis: '',
     keterangan: '',
   })
 
-  const jenisOptions = ["Aplikasi Digital", "Dashboard", "Modul Pelatihan", "SOP"]
-  const statusOptions = ["Aktif Digunakan", "Uji Coba", "Arsip"]
+  const jenisOptions = ["Aplikasi Digital", "Dashboard", "Modul Pelatihan", "SOP"]  // Update form data when status options are loaded
+  useEffect(() => {
+    if (statusOptions.length > 0 && formData.status_id === 1 && !editingId) {
+      setFormData(prev => ({ ...prev, status_id: statusOptions[0].id }))
+    }
+  }, [statusOptions, formData.status_id, editingId])
 
   // Calculate statistics
   const totalProduk = data.length
@@ -193,33 +214,48 @@ export default function ProdukInovasiPage() {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
   }
-
   const handleSelectChange = (name: string, value: string) => {
-    setFormData(prev => ({ ...prev, [name]: value }))
+    if (name === 'status_id') {
+      setFormData(prev => ({ ...prev, [name]: parseInt(value) }))
+    } else {
+      setFormData(prev => ({ ...prev, [name]: value }))
+    }
   }
-
   const handleEdit = (item: ProdukInovasiItem) => {
     setFormData({
       nama: item.nama,
       jenis: item.jenis,
-      status: item.status,
+      status_id: item.status_id,
       tanggalRilis: item.tanggalRilis,
       keterangan: item.keterangan,
     })
     setEditingId(item.id)
     setShowModal(true)
   }
-
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     toast(
       "Apakah Anda yakin ingin menghapus data ini?",
       {
         action: {
           label: "Hapus",
-          onClick: () => {
-            const updatedData = data.filter(item => item.id !== id)
-            setData(updatedData)
-            toast.success("Data berhasil dihapus!")
+          onClick: async () => {
+            try {
+              const unitKerjaId = localStorage.getItem('id')
+              const response = await fetch(`/api/produkinovasi/${unitKerjaId}/${id}`, {
+                method: 'DELETE',
+              })
+              
+              if (!response.ok) {
+                throw new Error('Gagal menghapus data dari server')
+              }
+              
+              const updatedData = data.filter(item => item.id !== id)
+              setData(updatedData)
+              toast.success("Data berhasil dihapus!")
+            } catch (error) {
+              console.error('Error deleting:', error)
+              toast.error("Gagal menghapus data!")
+            }
           }
         },
         cancel: {
@@ -230,45 +266,85 @@ export default function ProdukInovasiPage() {
       }
     )
   }
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     try {
+      const unitKerjaId = localStorage.getItem('id')
+      if (!unitKerjaId) throw new Error('ID unit kerja tidak ditemukan')
+
+      const requestData = {
+        nama: formData.nama,
+        jenis: formData.jenis,
+        status_id: formData.status_id,
+        tanggalRilis: formData.tanggalRilis,
+        keterangan: formData.keterangan,
+      }
+
+      let response
       let updatedData
       
       if (editingId) {
         // Update existing item
+        response = await fetch(`/api/produkinovasi/${unitKerjaId}/${editingId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestData),
+        })
+        
+        if (!response.ok) throw new Error('Gagal memperbarui data di server')
+        
+        // Find the status name for the updated item
+        const statusName = statusOptions.find(s => s.id === formData.status_id)?.status || 'Unknown'
+        
         updatedData = data.map(item => 
           item.id === editingId 
-            ? { ...item, ...formData }
+            ? { ...item, ...formData, status: statusName }
             : item
         )
       } else {
         // Add new item
-        const newItem = {
-          id: Date.now(),
-          ...formData
+        response = await fetch(`/api/produkinovasi/${unitKerjaId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(requestData),
+        })
+        
+        if (!response.ok) throw new Error('Gagal menyimpan data ke server')
+        
+        const newItem = await response.json()
+        const statusName = statusOptions.find(s => s.id === formData.status_id)?.status || 'Unknown'
+        
+        const newItemFormatted = {
+          id: newItem.id,
+          nama: newItem.nama,
+          jenis: newItem.jenis,
+          status_id: newItem.status_id,
+          status: statusName,
+          tanggalRilis: newItem.tanggalRilis.split('T')[0],
+          keterangan: newItem.keterangan,
         }
-        updatedData = [...data, newItem]
+        updatedData = [...data, newItemFormatted]
       }
 
-      setData(updatedData)
-      // No localStorage update, only update state
-
-      // Reset form and close modal
+      setData(updatedData)      // Reset form and close modal
       setFormData({
         nama: '',
         jenis: 'Aplikasi Digital',
-        status: 'Aktif Digunakan',
+        status_id: statusOptions.length > 0 ? statusOptions[0].id : 1,
         tanggalRilis: '',
         keterangan: '',
       })
       setEditingId(null)
       setShowModal(false)
       toast.success(editingId ? 'Data berhasil diperbarui!' : 'Data berhasil disimpan!')
-    } catch {
-      toast.error('Terjadi kesalahan saat menyimpan data.')
+    } catch (error) {
+      console.error('Error submitting:', error)
+      toast.error(error instanceof Error ? error.message : 'Terjadi kesalahan saat menyimpan data.')
     }
   }
 
@@ -306,15 +382,14 @@ export default function ProdukInovasiPage() {
         <div>
           <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard Produk Inovasi</h1>
           <p className="text-blue-600">Kelola dan pantau seluruh produk inovasi yang dikembangkan oleh unit kerja untuk memastikan kemanfaatan, keberlanjutan, dan dampaknya</p>
-        </div>
-        <Dialog open={showModal} onOpenChange={(open) => {
+        </div>        <Dialog open={showModal} onOpenChange={(open) => {
           setShowModal(open)
           if (!open) {
             setEditingId(null)
             setFormData({
               nama: '',
               jenis: 'Aplikasi Digital',
-              status: 'Aktif Digunakan',
+              status_id: statusOptions.length > 0 ? statusOptions[0].id : 1,
               tanggalRilis: '',
               keterangan: '',
             })
@@ -366,23 +441,21 @@ export default function ProdukInovasiPage() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-
-              {/* Status Produk */}
+              </div>              {/* Status Produk */}
               <div className="space-y-1">
                 <Label htmlFor="status">Status</Label>
                 <Select
-                  name="status"
-                  value={formData.status}
-                  onValueChange={(value) => handleSelectChange("status", value)}
+                  name="status_id"
+                  value={formData.status_id.toString()}
+                  onValueChange={(value) => handleSelectChange("status_id", value)}
                 >
                   <SelectTrigger id="status">
                     <SelectValue placeholder="Pilih status produk" />
                   </SelectTrigger>
                   <SelectContent>
                     {statusOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
+                      <SelectItem key={option.id} value={option.id.toString()}>
+                        {option.status}
                       </SelectItem>
                     ))}
                   </SelectContent>

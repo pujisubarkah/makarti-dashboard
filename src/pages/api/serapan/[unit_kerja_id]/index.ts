@@ -6,10 +6,13 @@ interface SerapanAnggaranItem {
   id: number;
   unit_kerja_id: number;
   bulan: string;
-  pagu_anggaran: number | bigint;
-  realisasi_pengeluaran: number | bigint;
+  pagu_anggaran: number;
+  realisasi_pengeluaran: number;
   created_at?: Date;
   updated_at?: Date;
+  users?: {
+    alias: string;
+  };
 }
 
 // Helper function untuk urutan bulan
@@ -31,99 +34,166 @@ const getBulanUrutan = (bulan: string): number => {
   return urutanBulan[bulan as keyof typeof urutanBulan] || 0;
 };
 
-// Fungsi sort berdasarkan urutan bulan kalender - PERBAIKAN: ganti any dengan interface
+// Fungsi sort berdasarkan urutan bulan
 const sortByBulanUrutan = (data: SerapanAnggaranItem[]): SerapanAnggaranItem[] =>
   [...data].sort((a, b) => getBulanUrutan(a.bulan) - getBulanUrutan(b.bulan));
 
-export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
-) {
-  const { unit_kerja_id } = req.query;
-
-  if (typeof unit_kerja_id !== 'string') {
-    return res.status(400).json({ error: 'unit_kerja_id tidak valid' });
-  }
-
-  const unitKerjaId = parseInt(unit_kerja_id, 10);
-  if (isNaN(unitKerjaId)) {
-    return res.status(400).json({ error: 'unit_kerja_id harus berupa angka' });
-  }
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Ambil unit_kerja_id dari query atau body
+  const unit_kerja_id =
+    typeof req.query.unit_kerja_id === 'string' ? req.query.unit_kerja_id :
+    typeof req.body.unit_kerja_id === 'string' ? req.body.unit_kerja_id : null;
 
   try {
     if (req.method === 'GET') {
-      const serapanDataRaw = await prisma.serapan_anggaran.findMany({
-        where: {
-          unit_kerja_id: unitKerjaId,
-        },
-      });
+      if (!unit_kerja_id) {
+        // GET all: tanpa unit_kerja_id
+        const allDataRaw = await prisma.serapan_anggaran.findMany({
+          include: {
+            users: {
+              select: { alias: true }
+            }
+          }
+        });
+        if (!allDataRaw.length) {
+          return res.status(200).json([]);
+        }
+        // Group by alias (nama alias), bukan unit_kerja_id
+        const grouped: { [key: string]: SerapanAnggaranItem[] } = {};
+        allDataRaw.forEach(item => {
+          const alias = item.users?.alias || '-';
+          if (!grouped[alias]) grouped[alias] = [];
+          grouped[alias].push({
+            ...item,
+            id: Number(item.id),
+            pagu_anggaran: typeof item.pagu_anggaran === 'object' && 'toNumber' in item.pagu_anggaran ? item.pagu_anggaran.toNumber() : Number(item.pagu_anggaran),
+            realisasi_pengeluaran: typeof item.realisasi_pengeluaran === 'object' && 'toNumber' in item.realisasi_pengeluaran ? item.realisasi_pengeluaran.toNumber() : Number(item.realisasi_pengeluaran),
+            created_at: item.created_at ?? undefined,
+            updated_at: item.updated_at ?? undefined,
+            users: {
+              alias: item.users?.alias ?? ''
+            }
+          });
+        });
+        // Untuk setiap alias, hitung summary dan detail
+        const result = Object.entries(grouped).map(([alias, items]) => {
+          const serapanData = sortByBulanUrutan(items);
+          const paguAnggaran = Number(serapanData[0]?.pagu_anggaran) || 0;
+          const totalRealisasi = serapanData.reduce((sum, item) => sum + Number(item.realisasi_pengeluaran), 0);
+          const sisaAnggaran = paguAnggaran - totalRealisasi;
+          const capaianRealisasi = paguAnggaran > 0 
+            ? parseFloat(((totalRealisasi / paguAnggaran) * 100).toFixed(2)) 
+            : 0;
+          let realisasiKumulatif = 0;
+          const detailPerBulan = serapanData.map(item => {
+            const realisasi = Number(item.realisasi_pengeluaran);
+            realisasiKumulatif += realisasi;
+            const capaianPerBulan = item.pagu_anggaran > 0
+              ? parseFloat(((realisasi / Number(item.pagu_anggaran)) * 100).toFixed(2))
+              : 0;
+            const capaianKumulatif = paguAnggaran > 0
+              ? parseFloat(((realisasiKumulatif / paguAnggaran) * 100).toFixed(2))
+              : 0;
+            return {
+              id: item.id,
+              bulan: item.bulan,
+              pagu_anggaran: Number(item.pagu_anggaran),
+              realisasi_pengeluaran: realisasi,
+              capaian_realisasi: capaianPerBulan,
+              capaian_realisasi_kumulatif: capaianKumulatif
+            };
+          });
+          return {
+            unit_kerja: alias,
+            pagu_anggaran: paguAnggaran,
+            total_realisasi: totalRealisasi,
+            sisa_anggaran: sisaAnggaran,
+            capaian_realisasi: capaianRealisasi,
+            detail_per_bulan: detailPerBulan
+          };
+        });
+        return res.status(200).json(result);
+      } else {
+        // GET by unit_kerja_id
+        const unitKerjaId = parseInt(unit_kerja_id, 10);
+        if (isNaN(unitKerjaId)) {
+          return res.status(400).json({ error: 'unit_kerja_id harus berupa angka' });
+        }
+        const serapanDataRaw = await prisma.serapan_anggaran.findMany({
+          where: {
+            unit_kerja_id: unitKerjaId,
+          },
+          include: {
+            users: {
+              select: { alias: true }
+            }
+          }
+        });
 
-      if (!serapanDataRaw.length) {
+        if (!serapanDataRaw.length) {
+          return res.status(200).json({
+            pagu_anggaran: 0,
+            total_realisasi: 0,
+            sisa_anggaran: 0,
+            capaian_realisasi: 0,
+            detail_per_bulan: []
+          });
+        }
+
+        const serapanData = sortByBulanUrutan(
+          serapanDataRaw.map(item => ({
+            ...item,
+            pagu_anggaran: typeof item.pagu_anggaran === 'object' && 'toNumber' in item.pagu_anggaran ? item.pagu_anggaran.toNumber() : Number(item.pagu_anggaran),
+            realisasi_pengeluaran: typeof item.realisasi_pengeluaran === 'object' && 'toNumber' in item.realisasi_pengeluaran ? item.realisasi_pengeluaran.toNumber() : Number(item.realisasi_pengeluaran),
+            created_at: item.created_at ?? undefined,
+            updated_at: item.updated_at ?? undefined,
+            users: {
+              alias: item.users?.alias ?? ''
+            }
+          }))
+        );
+
+        const paguAnggaran = Number(serapanData[0]?.pagu_anggaran) || 0;
+        const totalRealisasi = serapanData.reduce((sum, item) => sum + Number(item.realisasi_pengeluaran), 0);
+        const sisaAnggaran = paguAnggaran - totalRealisasi;
+        const capaianRealisasi = paguAnggaran > 0 
+          ? parseFloat(((totalRealisasi / paguAnggaran) * 100).toFixed(2)) 
+          : 0;
+
+        let realisasiKumulatif = 0;
+        const detailPerBulan = serapanData.map(item => {
+          const realisasi = Number(item.realisasi_pengeluaran);
+          realisasiKumulatif += realisasi;
+          const capaianPerBulan = item.pagu_anggaran > 0
+            ? parseFloat(((realisasi / Number(item.pagu_anggaran)) * 100).toFixed(2))
+            : 0;
+          const capaianKumulatif = paguAnggaran > 0
+            ? parseFloat(((realisasiKumulatif / paguAnggaran) * 100).toFixed(2))
+            : 0;
+
+          return {
+            id: item.id,
+            bulan: item.bulan,
+            pagu_anggaran: Number(item.pagu_anggaran),
+            realisasi_pengeluaran: realisasi,
+            capaian_realisasi: capaianPerBulan,
+            capaian_realisasi_kumulatif: capaianKumulatif
+          };
+        });
+
         return res.status(200).json({
-          pagu_anggaran: 0,
-          total_realisasi: 0,
-          sisa_anggaran: 0,
-          capaian_realisasi: 0,
-          detail_per_bulan: []
+          pagu_anggaran: paguAnggaran,
+          total_realisasi: totalRealisasi,
+          sisa_anggaran: sisaAnggaran,
+          capaian_realisasi: capaianRealisasi,
+          detail_per_bulan: detailPerBulan
         });
       }
+    }
 
-      const serapanData = sortByBulanUrutan(
-        serapanDataRaw.map(item => ({
-          ...item,
-          pagu_anggaran: Number(item.pagu_anggaran),
-          realisasi_pengeluaran: Number(item.realisasi_pengeluaran),
-          created_at: item.created_at ?? undefined,
-          updated_at: item.updated_at ?? undefined,
-        }))
-      );
-
-      // Ambil paguAnggaran sebagai Number
-      const paguAnggaran = Number(serapanData[0]?.pagu_anggaran) || 0;
-
-      // Hitung total realisasi dengan benar sebagai Number
-      const totalRealisasi = serapanData.reduce((sum, item) => {
-        const realisasi = Number(item.realisasi_pengeluaran || 0);
-        return sum + realisasi;
-      }, 0);
-
-      const sisaAnggaran = paguAnggaran - totalRealisasi;
-
-      const capaianRealisasi = paguAnggaran > 0 
-        ? parseFloat(((totalRealisasi / paguAnggaran) * 100).toFixed(2)) 
-        : 0;
-
-      let realisasiKumulatif = 0;
-
-      const detailPerBulan = serapanData.map(item => {
-        const realisasi = Number(item.realisasi_pengeluaran || 0);
-        realisasiKumulatif += realisasi;
-
-        const capaianPerBulan = item.pagu_anggaran > 0
-          ? parseFloat(((realisasi / Number(item.pagu_anggaran)) * 100).toFixed(2))
-          : 0;
-
-        const capaianKumulatif = paguAnggaran > 0
-          ? parseFloat(((realisasiKumulatif / paguAnggaran) * 100).toFixed(2))
-          : 0;
-
-        return {
-          id: item.id,
-          bulan: item.bulan,
-          pagu_anggaran: Number(item.pagu_anggaran),
-          realisasi_pengeluaran: realisasi,
-          capaian_realisasi: capaianPerBulan,
-          capaian_realisasi_kumulatif: capaianKumulatif
-        };
-      });
-
-      return res.status(200).json({
-        pagu_anggaran: paguAnggaran,
-        total_realisasi: totalRealisasi,
-        sisa_anggaran: sisaAnggaran,
-        capaian_realisasi: capaianRealisasi,
-        detail_per_bulan: detailPerBulan
-      });
+    // POST & DELETE tetap butuh unit_kerja_id
+    if ((req.method === 'POST' || req.method === 'DELETE') && !unit_kerja_id) {
+      return res.status(400).json({ error: 'unit_kerja_id diperlukan' });
     }
 
     if (req.method === 'POST') {
@@ -144,15 +214,18 @@ export default async function handler(
         return res.status(400).json({ message: "Realisasi tidak boleh melebihi pagu" });
       }
 
-      // Cek apakah sudah ada entri bulan ini
       const existingData = await prisma.serapan_anggaran.findFirst({
         where: {
-          unit_kerja_id: unitKerjaId,
+          unit_kerja_id: unit_kerja_id,
           bulan
+        },
+        include: {
+          users: {
+            select: { alias: true }
+          }
         }
       });
 
-      // PERBAIKAN: Hapus variabel updatedData yang tidak digunakan
       if (existingData) {
         await prisma.serapan_anggaran.update({
           where: { id: existingData.id },
@@ -165,7 +238,7 @@ export default async function handler(
       } else {
         await prisma.serapan_anggaran.create({
           data: {
-            unit_kerja_id: unitKerjaId,
+            unit_kerja_id: unit_kerja_id,
             bulan,
             pagu_anggaran: parsedPagu,
             realisasi_pengeluaran: parsedRealisasi,
@@ -175,160 +248,25 @@ export default async function handler(
         });
       }
 
-      // Fetch ulang data agar konsisten
-      const allDataRaw = await prisma.serapan_anggaran.findMany({
-        where: { unit_kerja_id: unitKerjaId }
-      });
-
-      const allData = sortByBulanUrutan(
-        allDataRaw.map(item => ({
-          ...item,
-          pagu_anggaran: Number(item.pagu_anggaran),
-          realisasi_pengeluaran: Number(item.realisasi_pengeluaran),
-          created_at: item.created_at ?? undefined,
-          updated_at: item.updated_at ?? undefined,
-        }))
-      );
-
-      const paguAnggaran = Number(allData[0]?.pagu_anggaran) || 0;
-
-      const totalRealisasi = allData.reduce((sum, item) => {
-        return sum + Number(item.realisasi_pengeluaran || 0);
-      }, 0);
-
-      const sisaAnggaran = paguAnggaran - totalRealisasi;
-
-      const capaianRealisasi = paguAnggaran > 0
-        ? parseFloat(((totalRealisasi / paguAnggaran) * 100).toFixed(2))
-        : 0;
-
-      let realisasiKumulatif = 0;
-
-      const detail_per_bulan = allData.map(item => {
-        const realisasi = Number(item.realisasi_pengeluaran || 0);
-        realisasiKumulatif += realisasi;
-
-        return {
-          id: item.id,
-          bulan: item.bulan,
-          pagu_anggaran: Number(item.pagu_anggaran),
-          realisasi_pengeluaran: realisasi,
-          capaian_realisasi: item.pagu_anggaran > 0
-            ? parseFloat(((realisasi / Number(item.pagu_anggaran)) * 100).toFixed(2))
-            : 0,
-          capaian_realisasi_kumulatif: paguAnggaran > 0
-            ? parseFloat(((realisasiKumulatif / paguAnggaran) * 100).toFixed(2))
-            : 0
-        };
-      });
-
-      return res.status(201).json({
-        pagu_anggaran: paguAnggaran,
-        total_realisasi: totalRealisasi,
-        sisa_anggaran: sisaAnggaran,
-        capaian_realisasi: capaianRealisasi,
-        detail_per_bulan
-      });
-
-      const { id } = req.body;
-      const parsedId = parseInt(id, 10);
-      if (isNaN(parsedId)) {
-        return res.status(400).json({ message: "ID harus berupa angka" });
-      }
-
-      const existingEntry = await prisma.serapan_anggaran.findFirst({
-        where: { 
-          id: parsedId, 
-          unit_kerja_id: unitKerjaId 
-        }
-      });
-
-      if (!existingEntry) {
-        return res.status(404).json({ message: "Data tidak ditemukan" });
-      }
-
-      // parsedPagu and parsedRealisasi already declared above, reuse them here
-      if (isNaN(parsedPagu) || isNaN(parsedRealisasi)) {
-        return res.status(400).json({ message: "Pagu dan realisasi harus berupa angka" });
-      }
-
-      if (parsedRealisasi > parsedPagu) {
-        return res.status(400).json({ message: "Realisasi tidak boleh melebihi pagu" });
-      }
-
-      await prisma.serapan_anggaran.update({
-        where: { id: parsedId },
-        data: {
-          bulan,
-          pagu_anggaran: parsedPagu,
-          realisasi_pengeluaran: parsedRealisasi,
-          updated_at: new Date()
-        }
-      });
-
-      const allDataRawUpdate = await prisma.serapan_anggaran.findMany({
-        where: { unit_kerja_id: unitKerjaId }
-      });
-
-      const allDataUpdate = sortByBulanUrutan(
-        allDataRawUpdate.map(item => ({
-          ...item,
-          pagu_anggaran: Number(item.pagu_anggaran),
-          realisasi_pengeluaran: Number(item.realisasi_pengeluaran),
-          created_at: item.created_at ?? undefined,
-          updated_at: item.updated_at ?? undefined,
-        }))
-      );
-
-      const paguAnggaranUpdate = Number(allDataUpdate[0]?.pagu_anggaran || 0);
-      const totalRealisasiUpdate = allDataUpdate.reduce((sum, item) => sum + Number(item.realisasi_pengeluaran || 0), 0);
-      const sisaAnggaranUpdate = paguAnggaranUpdate - totalRealisasiUpdate;
-      const capaianRealisasiUpdate = paguAnggaranUpdate > 0
-        ? parseFloat(((totalRealisasiUpdate / paguAnggaranUpdate) * 100).toFixed(2))
-        : 0;
-
-      let realisasiKumulatifUpdate = 0;
-
-      const detail_per_bulan_update = allDataUpdate.map(item => {
-        const realisasi = Number(item.realisasi_pengeluaran || 0);
-        realisasiKumulatifUpdate += realisasi;
-
-        return {
-          id: item.id,
-          bulan: item.bulan,
-          pagu_anggaran: Number(item.pagu_anggaran),
-          realisasi_pengeluaran: realisasi,
-          capaian_realisasi: item.pagu_anggaran > 0
-            ? parseFloat(((realisasi / Number(item.pagu_anggaran)) * 100).toFixed(2))
-            : 0,
-          capaian_realisasi_kumulatif: paguAnggaranUpdate > 0
-            ? parseFloat(((realisasiKumulatifUpdate / paguAnggaranUpdate) * 100).toFixed(2))
-            : 0
-        };
-      });
-
-      return res.status(200).json({
-        pagu_anggaran: paguAnggaranUpdate,
-        total_realisasi: totalRealisasiUpdate,
-        sisa_anggaran: sisaAnggaranUpdate,
-        capaian_realisasi: capaianRealisasiUpdate,
-        detail_per_bulan: detail_per_bulan_update
-      });
+      return res.status(201).json({ message: "Data berhasil disimpan" });
     }
 
     if (req.method === 'DELETE') {
       const { id } = req.body;
-
       if (!id || isNaN(parseInt(id))) {
         return res.status(400).json({ message: "ID tidak valid" });
       }
 
       const parsedId = parseInt(id, 10);
-
       const existingEntry = await prisma.serapan_anggaran.findFirst({
         where: { 
           id: parsedId, 
-          unit_kerja_id: unitKerjaId 
+          unit_kerja_id: unit_kerja_id 
+        },
+        include: {
+          users: {
+            select: { alias: true }
+          }
         }
       });
 

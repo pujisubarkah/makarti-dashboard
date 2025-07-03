@@ -50,71 +50,93 @@ export default function LoginPage() {
   }
 
   return (
-    <div className="relative min-h-screen w-full">
-      <Image
-        src="/bigger.jpg"
-        alt="Background"
-        fill
-        className="object-cover object-top"
-        priority
-      />
-      <div className="absolute inset-0 bg-black bg-opacity-40" />
-      <div className="absolute inset-0 flex items-center justify-start pl-12">
-        <div className="bg-black bg-opacity-60 backdrop-blur-md p-6 rounded-xl shadow-xl w-full max-w-sm z-10 text-white">
-          <div className="text-center mb-5">
-            <h1 className="text-2xl font-bold text-white mb-1">Selamat Datang</h1>
-            <p className="text-blue-200 text-4xl font-extrabold">MAKARTI 5.0</p>
-          </div>
-
-          {error && (
-            <div className="bg-red-500 bg-opacity-80 text-white px-3 py-2 rounded-lg mb-3 text-xs flex items-center">
-              <span className="mr-2">⚠️</span>
-              {error}
+    <div className="flex h-screen m-0 p-0">
+      {/* Kiri: Form Login */}
+      <div className="w-full md:w-1/4 flex flex-col justify-center items-center bg-white p-8 min-h-screen">
+        <div className="flex flex-col items-center mb-6">
+          <Image 
+            src="/lanri.png" 
+            alt="Logo MAKARTI" 
+            width={200} 
+            height={120} 
+           
+          />
+          <h1 className="text-6xl font-bold mb-2 text-[#3781c7]">MAKARTI 5.0</h1>
+          <p className="text-black text-center text-lg md:text-xl font-medium">Dashboard Monitoring Kinerja & Inovasi ASN LAN</p>
+        </div>
+        <div className="w-full max-w-md">
+          <form onSubmit={handleLogin} className="space-y-6 text-base md:text-lg">
+            {error && (
+              <p className="text-red-500 text-base md:text-lg">{error}</p>
+            )}
+            <div className="mb-4">
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-gray-500"><Eye size={22} /></span>
+                <input
+                  className="shadow appearance-none border rounded w-full py-3 pl-12 pr-3 text-gray-700 leading-tight focus:outline-none focus:shadow-outline text-base md:text-lg"
+                  id="username"
+                  type="text"
+                  placeholder="Username"
+                  value={username}
+                  onChange={(e) => setUsername(e.target.value)}
+                  required
+                />
+              </div>
             </div>
-          )}
-
-          <form onSubmit={handleLogin} className="space-y-4">
-            <div>
-              <label className="block text-xs font-medium mb-1 text-blue-100">Username</label>
-              <input
-                type="text"
-                value={username}
-                onChange={(e) => setUsername(e.target.value)}
-                required
-                placeholder="Masukkan username"
-                className="w-full rounded-lg px-3 py-2 bg-white bg-opacity-10 text-white border border-blue-300 border-opacity-30 text-sm focus:ring-2 focus:ring-blue-400"
-              />
+            <div className="mb-4">
+              <div className="relative">
+                <span className="absolute left-3 top-2.5 text-gray-500"><EyeOff size={22} /></span>
+                <input
+                  className="shadow appearance-none border rounded w-full py-3 pl-12 pr-12 text-gray-700 leading-tight focus:outline-none focus:shadow-outline text-base md:text-lg"
+                  id="password"
+                  type={showPassword ? 'text' : 'password'}
+                  placeholder="Password"
+                  value={password}
+                  onChange={(e) => setPassword(e.target.value)}
+                  required
+                />
+                <button
+                  type="button"
+                  onClick={() => setShowPassword(!showPassword)}
+                  className="absolute right-3 top-2.5 text-gray-500 hover:text-gray-700"
+                  tabIndex={-1}
+                >
+                  {showPassword ? <EyeOff size={22} /> : <Eye size={22} />}
+                </button>
+              </div>
             </div>
-
-            <div className="relative">
-              <label className="block text-xs font-medium mb-1 text-blue-100">Password</label>
-              <input
-                type={showPassword ? 'text' : 'password'}
-                value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                required
-                placeholder="Masukkan password"
-                className="w-full rounded-lg px-3 py-2 bg-white bg-opacity-10 text-white border border-blue-300 border-opacity-30 text-sm focus:ring-2 focus:ring-blue-400 pr-10"
-              />
+            <div className="mb-6">
+              <label className="inline-flex items-center text-base md:text-lg">
+                <input
+                  type="checkbox"
+                  className="form-checkbox text-[#3781c7] scale-110"
+                  checked={false}
+                  onChange={() => {}}
+                  disabled
+                />
+                <span className="ml-2 text-gray-700">Ingat saya?</span>
+              </label>
+            </div>
+            <div className="flex items-center justify-between">
               <button
-                type="button"
-                onClick={() => setShowPassword(!showPassword)}
-                className="absolute right-3 top-9 text-white opacity-70 hover:opacity-100"
+                className="bg-[#3781c7] hover:bg-[#2d6ca1] text-white font-bold py-3 w-full rounded focus:outline-none focus:shadow-outline text-base md:text-lg"
+                type="submit"
               >
-                {showPassword ? <EyeOff size={18} /> : <Eye size={18} />}
+                Masuk
               </button>
             </div>
-
-            <button
-              type="submit"
-              className="w-full bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-700 hover:to-indigo-700 text-white font-semibold py-2.5 rounded-lg shadow-lg transition-all duration-300 transform hover:scale-[1.02] text-sm"
-            >
-              Masuk
-            </button>
           </form>
-
-       
         </div>
+      </div>
+      {/* Kanan: Background Image */}
+      <div className="hidden md:flex w-3/4 bg-gray-100 items-center justify-center m-0 p-0 relative min-h-screen">
+        <Image
+          src="/smarter.png"
+          alt="Background MAKARTI"
+          fill
+          className="object-cover"
+          priority
+        />
       </div>
     </div>
   )

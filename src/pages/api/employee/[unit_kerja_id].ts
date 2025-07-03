@@ -8,24 +8,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: "unit_kerja_id tidak valid" });
   }
 
+  const unitKerjaId = parseInt(unit_kerja_id);
   try {
-    const pegawai = await prisma.pegawai.findMany({
+    const pegawaiList = await prisma.pegawai.findMany({
       where: {
-        unit_kerja_id: parseInt(unit_kerja_id),
+        unit_kerja_id: unitKerjaId,
       },
       select: {
+        id: true,
         nama: true,
       },
     });
 
-    const nama_pegawai = pegawai.map(p => p.nama);
-
-    res.status(200).json({
-      unit_kerja_id: parseInt(unit_kerja_id),
-      nama_pegawai,
-    });
+    // Return the employee list directly as an array of objects
+    return res.status(200).json(pegawaiList);
   } catch (error) {
     console.error("Error fetching employee data:", error);
-    res.status(500).json({ error: "Terjadi kesalahan saat mengambil data pegawai" });
+    return res.status(500).json({ error: "Terjadi kesalahan saat mengambil data pegawai" });
   }
 }

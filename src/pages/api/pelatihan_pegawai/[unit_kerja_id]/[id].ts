@@ -1,65 +1,121 @@
-// api/pelatihan/[unit_kerja_id]/[id].ts
+// api/pelatihan_pegawai/[unit_kerja_id]/[id].ts
 import { prisma } from "@/lib/prisma";
-import { NextRequest, NextResponse } from "next/server";
+import { NextApiRequest, NextApiResponse } from "next";
 
-type Params = {
-  params: { unit_kerja_id: string; id: string };
-};
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  const { unit_kerja_id, id } = req.query;
 
-export async function GET(req: NextRequest, { params }: Params) {
+  if (!unit_kerja_id || !id || Array.isArray(unit_kerja_id) || Array.isArray(id)) {
+    return res.status(400).json({ error: "Parameter tidak valid" });
+  }
+
+  const pelatihanId = parseInt(id);
+  const unitKerjaId = parseInt(unit_kerja_id);
+
+  if (isNaN(pelatihanId) || isNaN(unitKerjaId)) {
+    return res.status(400).json({ error: "ID tidak valid" });
+  }
+
   try {
-    const id = parseInt(params.id);
+    if (req.method === "GET") {
+      const pelatihan = await prisma.pelatihan.findUnique({
+        where: { id: pelatihanId },
+        include: {
+          pegawai: {
+            select: { id: true, nama: true },
+          },
+        },
+      });
 
-    const pelatihan = await prisma.pelatihan.findUnique({
-      where: { id },
-      include: {
-        pegawai: true,
-        users: true,
-      },
-    });
+      if (!pelatihan) {
+        return res.status(404).json({ error: "Data tidak ditemukan" });
+      }
 
-    if (!pelatihan) {
-      return NextResponse.json({ error: "Data tidak ditemukan" }, { status: 404 });
+      // Format respons sesuai frontend
+      const formattedData = {
+        id: pelatihan.id,
+        pegawai_id: pelatihan.pegawai_id,
+        unit_kerja_id: pelatihan.unit_kerja_id,
+        judul: pelatihan.judul,
+        jam: pelatihan.jam,
+        tanggal: pelatihan.tanggal.toISOString().split("T")[0],
+        pegawai: {
+          id: pelatihan.pegawai.id,
+          nama: pelatihan.pegawai.nama,
+        },
+      };
+
+      return res.status(200).json(formattedData);
+    } else if (req.method === "PUT") {
+      const { pegawai_id, judul, jam, tanggal } = req.body;
+
+      // Validasi data
+      if (!judul || !tanggal || !pegawai_id || !jam) {
+        return res.status(400).json({ error: "Data pelatihan tidak lengkap" });
+      }
+
+      const updated = await prisma.pelatihan.update({
+        where: { id: pelatihanId },
+        data: {
+          judul,
+          jam: parseInt(jam.toString()),
+          tanggal: new Date(tanggal),
+          pegawai_id: parseInt(pegawai_id.toString()),
+          unit_kerja_id: unitKerjaId,
+        },
+        include: {
+          pegawai: {
+            select: { id: true, nama: true },
+          },
+        },
+      });
+
+      // Format respons sesuai frontend
+      const formattedData = {
+        id: updated.id,
+        pegawai_id: updated.pegawai_id,
+        unit_kerja_id: updated.unit_kerja_id,
+        judul: updated.judul,
+        jam: updated.jam,
+        tanggal: updated.tanggal.toISOString().split("T")[0],
+        pegawai: {
+          id: updated.pegawai.id,
+          nama: updated.pegawai.nama,
+        },
+      };
+
+      return res.status(200).json(formattedData);
+    } else if (req.method === "DELETE") {
+      // Cek apakah data exists
+      const existingPelatihan = await prisma.pelatihan.findUnique({
+        where: { id: pelatihanId },
+      });
+
+      if (!existingPelatihan) {
+        return res.status(404).json({ error: "Data tidak ditemukan" });
+      }
+
+      await prisma.pelatihan.delete({ 
+        where: { id: pelatihanId } 
+      });
+
+      return res.status(200).json({ 
+        message: "Pelatihan berhasil dihapus",
+        id: pelatihanId 
+      });
+    } else {
+      res.setHeader("Allow", ["GET", "PUT", "DELETE"]);
+      return res.status(405).json({ error: "Method not allowed" });
     }
-
-    return NextResponse.json(pelatihan);
   } catch (error) {
-    console.error("Error fetching pelatihan:", error);
-    return NextResponse.json({ error: "Gagal mengambil data pelatihan" }, { status: 500 });
-  }
-}
-
-export async function PUT(req: NextRequest, { params }: Params) {
-  try {
-    const id = parseInt(params.id);
-    const body = await req.json();
-
-    const updated = await prisma.pelatihan.update({
-      where: { id },
-      data: {
-        ...body,
-        tanggal: body.tanggal ? new Date(body.tanggal) : undefined,
-        jam: body.jam ? parseInt(body.jam) : undefined,
-        pegawai_id: body.pegawai_id ? parseInt(body.pegawai_id) : undefined,
-      },
-    });
-
-    return NextResponse.json(updated);
-  } catch (error) {
-    console.error("Error updating pelatihan:", error);
-    return NextResponse.json({ error: "Gagal memperbarui data pelatihan" }, { status: 500 });
-  }
-}
-
-export async function DELETE(req: NextRequest, { params }: Params) {
-  try {
-    const id = parseInt(params.id);
-
-    await prisma.pelatihan.delete({ where: { id } });
-
-    return NextResponse.json({ message: "Pelatihan berhasil dihapus" });
-  } catch (error) {
-    console.error("Error deleting pelatihan:", error);
-    return NextResponse.json({ error: "Gagal menghapus data pelatihan" }, { status: 500 });
+    console.error(`Error handling ${req.method} request:`, error);
+    
+    if (req.method === "PUT") {
+      return res.status(500).json({ error: "Gagal memperbarui data pelatihan" });
+    } else if (req.method === "DELETE") {
+      return res.status(500).json({ error: "Gagal menghapus data pelatihan" });
+    } else {
+      return res.status(500).json({ error: "Gagal mengambil data pelatihan" });
+    }
   }
 }

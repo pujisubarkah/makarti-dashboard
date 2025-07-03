@@ -56,21 +56,24 @@ interface PelatihanItem {
   jam: number
   tanggal: string
   pegawai: {
+    id: number
     nama: string
   }
 }
 
 interface ProcessedData {
+  id_pegawai: string
   id: number
+  pegawai_id: number
   nama: string
   judul: string
   jam: number
   tanggal: string
 }
 
-interface EmployeeData {
-  unit_kerja_id: number
-  nama_pegawai: string[]
+interface Employee {
+  id: number
+  nama: string
 }
 
 const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6', '#8b5cf6']
@@ -161,15 +164,15 @@ function TrainingWordCloud({ data }: { data: ProcessedData[] }) {
 }
 
 export default function PelatihanPage() {
-  const [showModal, setShowModal] = useState(false)
+  const [showModal, setShowModal] = useState(false)  
   const [data, setData] = useState<ProcessedData[]>([])
-  const [employees, setEmployees] = useState<string[]>([])
+  const [employees, setEmployees] = useState<Employee[]>([])
   const [editingId, setEditingId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
   const [formData, setFormData] = useState({
-    nama: '',
+    id_pegawai: null as string | null,
     judul: '',
     jam: 0,
     tanggal: ''
@@ -196,23 +199,23 @@ export default function PelatihanPage() {
       setLoading(false)
     }
   }, [mounted])
-
-  const fetchPelatihanData = async (id: number) => {
-    try {
+  const fetchPelatihanData = async (id: number) => {    try {
       setLoading(true)
       const response = await fetch(`/api/pelatihan_pegawai/${id}`)
       if (!response.ok) throw new Error('Failed to fetch pelatihan data')
       const apiData: PelatihanItem[] = await response.json()
+      
       const processedData: ProcessedData[] = apiData.map(item => ({
+        id_pegawai: item.pegawai?.id?.toString() ?? '', 
         id: item.id,
+        pegawai_id: item.pegawai_id,
         nama: item.pegawai?.nama || 'Unknown',
         judul: item.judul,
         jam: item.jam,
-        tanggal: new Date(item.tanggal).toLocaleDateString('id-ID')
+        tanggal: new Date(item.tanggal).toISOString().split('T')[0] // Format yyyy-mm-dd for input
       }))
       setData(processedData)
-    } catch (err) {
-      console.error('Error fetching pelatihan data:', err)
+    } catch (err) {      console.error('Error fetching pelatihan data:', err)
       setError('Failed to load pelatihan data')
       toast.error('Gagal memuat data pelatihan')
     } finally {
@@ -221,15 +224,22 @@ export default function PelatihanPage() {
   }
 
   const fetchEmployeesData = async (id: number) => {
-    try {
-      const response = await fetch(`/api/employee/${id}`)
-      if (!response.ok) throw new Error('Failed to fetch employees data')
-      const employeeData: EmployeeData = await response.json()
-      setEmployees(employeeData.nama_pegawai || [])
-    } catch (err) {
-      console.error('Error fetching employees data:', err)
-      toast.error('Gagal memuat data pegawai')
-    }
+  try {
+    const response = await fetch(`/api/employee/${id}`)
+    if (!response.ok) throw new Error('Failed to fetch employees data')
+    const employeeList: Employee[] = await response.json()
+
+    setEmployees(employeeList)
+  } catch (err) {
+    console.error('Error fetching employees data:', err)
+    toast.error('Gagal memuat data pegawai')
+  }
+}
+
+  // Helper function to get employee name by ID
+  const getEmployeeNameById = (id: number): string => {
+    const employee = employees.find(emp => emp.id === id)
+    return employee ? employee.nama : 'Unknown'
   }
 
   // Calculate statistics
@@ -237,11 +247,9 @@ export default function PelatihanPage() {
   const totalPeserta = data.length
   const totalJam = data.reduce((sum, item) => sum + item.jam, 0)
   const rataRataJam = totalPelatihan > 0 ? Math.round(totalJam / totalPelatihan) : 0
-
   // Data for charts
   const monthlyData = data.reduce((acc, item) => {
-    const dateParts = item.tanggal.split('/')
-    const date = new Date(parseInt(dateParts[2]), parseInt(dateParts[1]) - 1, parseInt(dateParts[0]))
+    const date = new Date(item.tanggal) // tanggal sudah dalam format ISO yyyy-mm-dd
     const monthYear = date.toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })
     acc[monthYear] = (acc[monthYear] || 0) + 1
     return acc
@@ -314,10 +322,9 @@ export default function PelatihanPage() {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
   }
-
   const handleEdit = (item: ProcessedData) => {
     setFormData({
-      nama: item.nama || 'Unknown',
+      id_pegawai: item.pegawai_id.toString(),
       judul: item.judul,
       jam: item.jam,
       tanggal: item.tanggal
@@ -325,60 +332,82 @@ export default function PelatihanPage() {
     setEditingId(item.id)
     setShowModal(true)
   }
-
-  const handleDelete = (id: number) => {
+  const handleDelete = async (id: number) => {
     if (typeof window !== 'undefined' && confirm('Apakah Anda yakin ingin menghapus data ini?')) {
-      const updatedData = data.filter(item => item.id !== id)
-      setData(updatedData)
-      if (typeof window !== 'undefined') {
-        localStorage.setItem("pelatihanData", JSON.stringify(updatedData))
-      }
-      toast.success('Data berhasil dihapus!')
-    }
-  }
+      try {
+        const unitKerjaId = localStorage.getItem("id")
+        setLoading(true)
+        
+        const response = await fetch(`/api/pelatihan_pegawai/${unitKerjaId}/${id}`, {
+          method: 'DELETE',
+        })
 
-  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
-    e.preventDefault()
-    try {
-      setLoading(true)
-      let response
-      if (editingId) {
-        // Update data
-        response = await fetch(`/api/pelatihan_pegawai/${editingId}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...formData,
-            jam: Number(formData.jam),
-          })
-        })
-      } else {
-        // Create new data
-        response = await fetch('/api/pelatihan_pegawai', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            ...formData,
-            jam: Number(formData.jam),
-          })
-        })
+        if (!response.ok) throw new Error('Gagal menghapus data dari server')
+
+        // Refresh data from server
+        if (unitKerjaId) {
+          await fetchPelatihanData(parseInt(unitKerjaId))
+        }
+        
+        toast.success('Data berhasil dihapus!')
+      } catch (error) {
+        console.error('Error deleting data:', error)
+        toast.error('Gagal menghapus data')
+      } finally {
+        setLoading(false)
       }
-      if (!response.ok) throw new Error('Gagal menyimpan data ke server')
-      // Fetch ulang data dari backend
-      const id = localStorage.getItem('id')
-      if (id) {
-        await fetchPelatihanData(parseInt(id))
-      }
-      setFormData({ nama: '', judul: '', jam: 0, tanggal: '' })
-      setEditingId(null)
-      setShowModal(false)
-      toast.success(editingId ? 'Data berhasil diperbarui!' : 'Data berhasil disimpan!')
-    } catch {
-      toast.error('Terjadi kesalahan saat menyimpan data.')
-    } finally {
-      setLoading(false)
     }
   }
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
+  e.preventDefault()
+  try {
+    const unitKerjaId = localStorage.getItem("id")
+    setLoading(true)
+
+    let response
+    if (editingId) {
+      // Update data
+      response = await fetch(`/api/pelatihan_pegawai/${unitKerjaId}/${editingId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pegawai_id: Number(formData.id_pegawai), // langsung gunakan ID pegawai
+          judul: formData.judul,
+          jam: Number(formData.jam),
+          tanggal: formData.tanggal
+        })
+      })
+    } else {
+      // Create new data
+      response = await fetch(`/api/pelatihan_pegawai/${unitKerjaId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          pegawai_id: Number(formData.id_pegawai), // langsung gunakan ID pegawai
+          judul: formData.judul,
+          jam: Number(formData.jam),
+          tanggal: formData.tanggal
+        })
+      })
+    }
+
+    if (!response.ok) throw new Error('Gagal menyimpan data ke server')
+
+    const id = localStorage.getItem('id')
+    if (id) {
+      await fetchPelatihanData(parseInt(id))
+    }
+
+    setFormData({ id_pegawai: null, judul: '', jam: 0, tanggal: '' })
+    setEditingId(null)
+    setShowModal(false)
+    toast.success(editingId ? 'Data berhasil diperbarui!' : 'Data berhasil disimpan!')
+  } catch {
+    toast.error('Terjadi kesalahan saat menyimpan data.')
+  } finally {
+    setLoading(false)
+  }
+}
 
   return (
     <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
@@ -437,7 +466,7 @@ export default function PelatihanPage() {
               setShowModal(open)
               if (!open) {
                 setEditingId(null)
-                setFormData({ nama: '', judul: '', jam: 0, tanggal: '' })
+                setFormData({ id_pegawai: null, judul: '', jam: 0, tanggal: '' })
               }
             }}>
               <DialogTrigger asChild>
@@ -453,37 +482,36 @@ export default function PelatihanPage() {
                   </DialogTitle>
                 </DialogHeader>
                 <form onSubmit={handleSubmit} className="space-y-4">
-                  {/* Nama Pegawai */}
-                  <div className="space-y-1">
-                    <Label htmlFor="nama">Nama Pegawai</Label>
-                    <Select
-                      value={formData.nama}
-                      onValueChange={(value) => setFormData(prev => ({ ...prev, nama: value }))}
-                      required
+                    {/* Nama Pegawai */}
+                    <div className="space-y-1">
+                    <Label htmlFor="nama">Nama Pegawai</Label>                    <Select
+                      value={formData.id_pegawai ?? undefined}
+                      onValueChange={(value) => setFormData(prev => ({ ...prev, id_pegawai: value }))}
                     >
                       <SelectTrigger>
-                        <SelectValue placeholder="Pilih nama pegawai" />
-                      </SelectTrigger>
-                      <SelectContent className="max-h-[200px] overflow-y-auto">
-                        {employees.length > 0 ? (
-                          <>
-                            <div className="px-2 py-1 text-xs text-gray-500 font-medium border-b border-gray-100">
-                              {employees.length} pegawai tersedia
-                            </div>
-                            {employees.map((nama, index) => (
-                              <SelectItem key={index} value={nama} className="cursor-pointer hover:bg-blue-50">
-                                {nama}
-                              </SelectItem>
-                            ))}
-                          </>
-                        ) : (
-                          <SelectItem value="" disabled>
-                            Tidak ada data pegawai
+                      <SelectValue placeholder="Pilih nama pegawai">
+                        {formData.id_pegawai ? getEmployeeNameById(Number(formData.id_pegawai)) : "Pilih nama pegawai"}
+                      </SelectValue>
+                      </SelectTrigger><SelectContent className="max-h-[200px] overflow-y-auto">
+                      {employees.length > 0 ? (
+                        <>
+                        <div className="px-2 py-1 text-xs text-gray-500 font-medium border-b border-gray-100">
+                          {employees.length} pegawai tersedia
+                        </div>
+                        {employees.map((employee) => (
+                          <SelectItem key={employee.id} value={employee.id.toString()}>
+                            {employee.nama}
                           </SelectItem>
-                        )}
+                        ))}
+                        </>
+                      ) : (
+                        <SelectItem value="" disabled>
+                        Tidak ada data pegawai
+                        </SelectItem>
+                      )}
                       </SelectContent>
                     </Select>
-                  </div>
+                    </div>
 
                   {/* Judul Pelatihan */}
                   <div className="space-y-1">
@@ -679,7 +707,7 @@ export default function PelatihanPage() {
                           <Clock className="w-3 h-3 mr-1" /> {item.jam} jam
                         </span>
                       </TableCell>
-                      <TableCell>{item.tanggal}</TableCell>
+                      <TableCell>{new Date(item.tanggal).toLocaleDateString('id-ID')}</TableCell>
                       <TableCell className="text-center">
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                           <Award className="w-3 h-3 mr-1" /> Selesai

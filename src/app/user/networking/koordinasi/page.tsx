@@ -733,7 +733,7 @@ export default function TambahKoordinasiPage() {
               </Button>
             </div>
           </div>
-          <p className="text-blue-600">Kelola dan monitor kegiatan koordinasi lintas instansi</p>
+          <p className="text-blue-600">Catat, kelola, dan pantau seluruh kegiatan kunjungan dari instansi lain untuk memastikan koordinasi berjalan efektif dan terstruktur</p>
           {data.length > 0 && (
             <p className="text-sm text-gray-600 mt-1">
               Unit Kerja: {data[0].users.unit_kerja} • Data terbaru: {new Date().toLocaleTimeString('id-ID')}
@@ -1407,6 +1407,16 @@ export default function TambahKoordinasiPage() {
             ))
           )}
         </div>
+      </div>
+
+      {/* Status Legend */}
+      <div className="mt-2 text-xs text-gray-600 bg-gray-50 rounded-b-xl px-6 py-3 border-t border-gray-100">
+        <strong>Keterangan Status:</strong>
+        <ul className="list-disc ml-5 mt-1 space-y-0.5">
+          <li><span className="font-semibold text-yellow-700">Progress</span>: Kegiatan koordinasi sedang berlangsung atau dalam proses pelaksanaan.</li>
+          <li><span className="font-semibold text-blue-700">Tindak Lanjut</span>: Kegiatan memerlukan aksi lanjutan atau follow-up dari pihak terkait.</li>
+          <li><span className="font-semibold text-green-700">Selesai</span>: Kegiatan koordinasi telah selesai dan tidak ada tindak lanjut yang diperlukan.</li>
+        </ul>
       </div>
     </div>
   )

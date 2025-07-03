@@ -75,69 +75,78 @@ interface EmployeeData {
 
 const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6', '#8b5cf6']
 
-// WordCloud Component - dynamically loaded to avoid SSR issues
+// WordCloud Component
+// Minimal WordCloudOptions type for type safety
+interface WordCloudOptions {
+  list: [string, number][];
+  gridSize?: number;
+  weightFactor?: (size: number) => number;
+  fontFamily?: string;
+  color?: () => string;
+  rotateRatio?: number;
+  backgroundColor?: string;
+  minSize?: number;
+  drawOutOfBound?: boolean;
+  shrinkToFit?: boolean;
+}
+
 function TrainingWordCloud({ data }: { data: ProcessedData[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
-  
   useEffect(() => {
-    // Only load WordCloud on client side
-    if (typeof window === 'undefined' || !canvasRef.current || data.length === 0) return
-    
-    const loadWordCloud = async () => {
-      try {
-        // Dynamic import to avoid SSR issues
-        const WordCloud = (await import('wordcloud')).default
-        
-        const canvas = canvasRef.current
-        if (!canvas) return
-        
-        const ctx = canvas.getContext('2d')
-        if (!ctx) return
+    let WordCloud: ((canvas: HTMLCanvasElement, options: WordCloudOptions) => void) | undefined;
+    let isMounted = true;
+    if (!canvasRef.current || data.length === 0) return;
+    const canvas = canvasRef.current;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
 
-        // Clear canvas
-        ctx.clearRect(0, 0, canvas.width, canvas.height)
+    const wordFreq: Record<string, number> = {};
+    data.forEach(item => {
+      const words = item.judul
+        .toLowerCase()
+        .replace(/[^\w\s]/g, ' ')
+        .split(/\s+/)
+        .filter(word => word.length > 3);
+      words.forEach(word => {
+        wordFreq[word] = (wordFreq[word] || 0) + 1;
+      });
+    });
 
-        const wordFreq: Record<string, number> = {}
-        data.forEach(item => {
-          const words = item.judul
-            .toLowerCase()
-            .replace(/[^\w\s]/g, ' ')
-            .split(/\s+/)
-            .filter(word => word.length > 3)
-          words.forEach(word => {
-            wordFreq[word] = (wordFreq[word] || 0) + 1
-          })
-        })
+    const wordList: [string, number][] = Object.entries(wordFreq)
+      .sort(([, a], [, b]) => b - a)
+      .slice(0, 50)
+      .map(([word, freq]) => [word, freq * 10]);
 
-        const wordList: [string, number][] = Object.entries(wordFreq)
-          .sort(([, a], [, b]) => b - a)
-          .slice(0, 50)
-          .map(([word, freq]) => [word, freq * 10])
+    if (wordList.length === 0) return;
 
-        if (wordList.length === 0) return
-
-        WordCloud(canvas, {
-          list: wordList,
-          gridSize: Math.round(16 * canvas.width / 1024),
-          weightFactor: function (size: number) {
-            return Math.pow(size, 2.3) * canvas.width / 1024
-          },
-          fontFamily: 'Inter, sans-serif',
-          color: function () {
-            return COLORS[Math.floor(Math.random() * COLORS.length)]
-          },
-          rotateRatio: 0.3,
-          backgroundColor: 'transparent',
-          minSize: 12,
-          drawOutOfBound: false,
-          shrinkToFit: true
-        })
-      } catch (error) {
-        console.error('WordCloud loading error:', error)
+    // Dynamically import wordcloud only on client
+    import('wordcloud').then((mod) => {
+      if (!isMounted) return;
+      WordCloud = mod.default || mod;
+      if (WordCloud) {
+        try {
+          WordCloud(canvas, {
+            list: wordList,
+            gridSize: Math.round(16 * canvas.width / 1024),
+            weightFactor: function (size: number) {
+              return Math.pow(size, 2.3) * canvas.width / 1024;
+            },
+            fontFamily: 'Inter, sans-serif',
+            color: function () {
+              return COLORS[Math.floor(Math.random() * COLORS.length)];
+            },
+            rotateRatio: 0.3,
+            backgroundColor: 'transparent',
+            minSize: 12,
+            drawOutOfBound: false,
+            shrinkToFit: true
+          });
+        } catch (error) {
+          console.error('WordCloud error:', error);
+        }
       }
-    }
-    
-    loadWordCloud()
+    });
+    return () => { isMounted = false; };
   }, [data])
 
   return (
@@ -328,28 +337,37 @@ export default function PelatihanPage() {
     }
   }
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
     try {
-      let updatedData
+      setLoading(true)
+      let response
       if (editingId) {
-        updatedData = data.map(item => 
-          item.id === editingId 
-            ? { ...item, ...formData, jam: Number(formData.jam) }
-            : item
-        )
+        // Update data
+        response = await fetch(`/api/pelatihan_pegawai/${editingId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...formData,
+            jam: Number(formData.jam),
+          })
+        })
       } else {
-        const newItem = {
-          id: Date.now(),
-          ...formData,
-          jam: Number(formData.jam),
-          unit: 'Pusdatin'
-        }
-        updatedData = [...data, newItem]
+        // Create new data
+        response = await fetch('/api/pelatihan_pegawai', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            ...formData,
+            jam: Number(formData.jam),
+          })
+        })
       }
-      setData(updatedData)
-      if (typeof window !== 'undefined') {
-        localStorage.setItem("pelatihanData", JSON.stringify(updatedData))
+      if (!response.ok) throw new Error('Gagal menyimpan data ke server')
+      // Fetch ulang data dari backend
+      const id = localStorage.getItem('id')
+      if (id) {
+        await fetchPelatihanData(parseInt(id))
       }
       setFormData({ nama: '', judul: '', jam: 0, tanggal: '' })
       setEditingId(null)
@@ -357,6 +375,8 @@ export default function PelatihanPage() {
       toast.success(editingId ? 'Data berhasil diperbarui!' : 'Data berhasil disimpan!')
     } catch {
       toast.error('Terjadi kesalahan saat menyimpan data.')
+    } finally {
+      setLoading(false)
     }
   }
 
@@ -406,7 +426,6 @@ export default function PelatihanPage() {
           {/* Main Content */}
           {!loading && !error && (
             <>
-            
           {/* Header */}
           <div className="flex justify-between items-center mb-8">
             <div>

@@ -290,9 +290,20 @@ export default function PublikasiPage() {
       throw new Error(errorData.message || 'Failed to update publikasi');
     }
 
-    // ... rest of the code
+    // Mutate SWR cache to trigger revalidation
+    await mutate();
+    
+    // Show success toast
+    toast.success("Publikasi berhasil diperbarui!", {
+      description: `"${editData.judul}" telah diperbarui.`,
+      duration: 4000,
+    });
+    
   } catch {
-    // ... error handling
+    toast.error("Gagal memperbarui publikasi", {
+      description: 'Terjadi kesalahan saat memperbarui data.',
+      duration: 5000,
+    })
   } finally {
     setEditLoading(false);
   }

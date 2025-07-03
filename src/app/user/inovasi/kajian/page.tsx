@@ -44,7 +44,7 @@ interface KajianItem {
   unit_kerja_id: number
 }
 
-const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6']
+const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6', '#8b5cf6', '#ef4444', '#06b6d4', '#84cc16']
 
 export default function KajianPage() {
   const [showModal, setShowModal] = useState(false)
@@ -94,10 +94,9 @@ export default function KajianPage() {
   const withStatus = data.filter(item => item.status && item.status.trim() !== '').length
   const withoutStatus = data.filter(item => !item.status || item.status.trim() === '').length
   const laporan = data.filter(item => item.jenis === 'Laporan').length
-
   // Data for charts - updated for new structure
   const statusCount = data.reduce((acc, item) => {
-    const status = item.status && item.status.trim() !== '' ? 'Ada Status' : 'Belum Ada Status'
+    const status = item.status && item.status.trim() !== '' ? item.status : 'Belum Ada Status'
     acc[status] = (acc[status] || 0) + 1
     return acc
   }, {} as Record<string, number>)
@@ -449,26 +448,99 @@ export default function KajianPage() {
       </div>
 
       {/* Charts Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Status Distribution Chart */}
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">        {/* Status Distribution Chart */}
         <div className="bg-white rounded-xl shadow-lg p-6">
           <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
             <PieChartIcon className="w-6 h-6 mr-2 text-blue-500" />
             Distribusi Status Produk
           </h2>
-          <div className="h-[300px] flex items-center justify-center">
-            <div className="grid grid-cols-2 gap-4 w-full">
-              {pieData.map((item, index) => (
-                <div key={item.name} className="text-center">
-                  <div 
-                    className="w-16 h-16 rounded-full mx-auto mb-2"
-                    style={{ backgroundColor: COLORS[index % COLORS.length] }}
-                  ></div>
-                  <p className="text-sm font-medium text-gray-700">{item.name}</p>
-                  <p className="text-lg font-bold text-gray-900">{item.value}</p>
+          <div className="h-[400px] flex items-center justify-center">
+            {pieData.length > 0 ? (
+              <div className="flex items-center justify-center w-full">
+                {/* Pie Chart Circle */}
+                <div className="relative">
+                  <svg width="280" height="280" viewBox="0 0 280 280">
+                    {(() => {
+                      let cumulativeAngle = 0;
+                      const centerX = 140;
+                      const centerY = 140;
+                      const radius = 100;
+                      
+                      return pieData.map((item, index) => {
+                        const percentage = (item.value / data.length) * 100;
+                        const angle = (percentage / 100) * 360;
+                        
+                        // Calculate start and end points
+                        const startAngle = cumulativeAngle;
+                        const endAngle = cumulativeAngle + angle;
+                        
+                        const startAngleRad = (startAngle * Math.PI) / 180;
+                        const endAngleRad = (endAngle * Math.PI) / 180;
+                        
+                        const startX = centerX + radius * Math.cos(startAngleRad);
+                        const startY = centerY + radius * Math.sin(startAngleRad);
+                        const endX = centerX + radius * Math.cos(endAngleRad);
+                        const endY = centerY + radius * Math.sin(endAngleRad);
+                        
+                        const largeArcFlag = angle > 180 ? 1 : 0;
+                        
+                        const pathData = [
+                          `M ${centerX} ${centerY}`,
+                          `L ${startX} ${startY}`,
+                          `A ${radius} ${radius} 0 ${largeArcFlag} 1 ${endX} ${endY}`,
+                          'Z'
+                        ].join(' ');
+                        
+                        cumulativeAngle += angle;
+                        
+                        return (
+                          <path
+                            key={item.name}
+                            d={pathData}
+                            fill={COLORS[index % COLORS.length]}
+                            stroke="white"
+                            strokeWidth="2"
+                            className="transition-all duration-300 hover:opacity-80"
+                          />
+                        );
+                      });
+                    })()}
+                  </svg>
+                  
+                  {/* Center Text */}
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-gray-800">{data.length}</div>
+                      <div className="text-sm text-gray-600">Total Produk</div>
+                    </div>
+                  </div>
                 </div>
-              ))}
-            </div>
+                
+                {/* Legend */}
+                <div className="ml-8 space-y-3">
+                  {pieData.map((item, index) => (
+                    <div key={item.name} className="flex items-center space-x-3">
+                      <div 
+                        className="w-4 h-4 rounded-full shadow-sm"
+                        style={{ backgroundColor: COLORS[index % COLORS.length] }}
+                      ></div>
+                      <div className="flex-1">
+                        <div className="text-sm font-medium text-gray-700">{item.name}</div>
+                        <div className="text-xs text-gray-500">
+                          {item.value} produk ({((item.value / data.length) * 100).toFixed(1)}%)
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ) : (
+              <div className="text-center text-gray-500">
+                <PieChartIcon className="w-16 h-16 mx-auto mb-4 opacity-50" />
+                <p className="text-lg font-medium">Belum ada data untuk ditampilkan</p>
+                <p className="text-sm">Tambahkan produk kajian untuk melihat distribusi status</p>
+              </div>
+            )}
           </div>
         </div>
 

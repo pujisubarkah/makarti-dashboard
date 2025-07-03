@@ -1,8 +1,8 @@
 // components/SidebarUser.tsx
-"use client"
+'use client'
 
-import Link from "next/link"
-import { usePathname } from "next/navigation"
+import Link from 'next/link'
+import { usePathname } from 'next/navigation'
 import {
   LayoutDashboard,
   Newspaper,
@@ -11,11 +11,14 @@ import {
   BookOpen,
   UserCheck,
   ActivitySquare,
-//  FileText,
   Package,
   PieChart,
   FileSearch,
 } from 'lucide-react'
+
+type SidebarUserProps = {
+  roleId: number
+}
 
 const menuItems = [
   {
@@ -25,62 +28,50 @@ const menuItems = [
     status: 'maintenance',
   },
   {
-    label: 'Publikasi Media',
-    href: '/user/branding/media',
+    label: 'Media & Publikasi',
+    href: '/user/media',
     icon: Newspaper,
     status: 'ready',
   },
-//  {
-//    label: 'Sosialisasi Branding',
-//    href: '/user/branding/sosialisasi',
-//    icon: BookOpen,
-//    status: 'maintenance',
-//  },
   {
-    label: 'Networking Eksternal',
-    href: '/user/networking/kunjungan',
+    label: 'Networking / Kunjungan',
+    href: '/user/networking',
     icon: Users,
     status: 'ready',
   },
   {
-    label: 'Koordinasi Eksternal',
-    href: '/user/networking/koordinasi',
+    label: 'Koordinasi Instansi',
+    href: '/user/koordinasi',
     icon: Share2,
     status: 'ready',
   },
   {
     label: 'Pelatihan Pegawai',
-    href: '/user/learning/pelatihan',
+    href: '/user/pelatihan',
     icon: BookOpen,
     status: 'ready',
   },
   {
-    label: 'Penyelenggaraan Bangkom',
-    href: '/user/learning/peserta',
+    label: 'Peserta',
+    href: '/user/peserta',
     icon: UserCheck,
     status: 'ready',
   },
   {
-    label: 'Kinerja Inovasi',
-    href: '/user/inovasi/kinerja',
+    label: 'Inovasi',
+    href: '/user/inovasi',
     icon: ActivitySquare,
-    status: 'maintenance',
+    status: 'ready',
   },
-//  {
-//    label: 'SKP Transformasional',
-//    href: '/user/inovasi/skp',
-//    icon: FileText,
-//    status: 'maintenance',
-//  },
   {
     label: 'Produk Inovasi',
     href: '/user/inovasi/produk',
     icon: Package,
-    status: 'maintenance',
+    status: 'ready',
   },
   {
-    label: 'Produk Kajian',
-    href: '/user/inovasi/kajian',
+    label: 'Produk Kajian/Analisis Kebijakan',
+    href: '/user/kajian',
     icon: FileSearch,
     status: 'ready',
   },
@@ -89,40 +80,59 @@ const menuItems = [
     href: '/user/serapan',
     icon: PieChart,
     status: 'ready',
+    allowedRoles: [3], // hanya untuk role_id 3
   },
 ]
 
-export function SidebarUser() {
+export function SidebarUser({ roleId }: SidebarUserProps) {
   const pathname = usePathname()
 
   return (
-    <aside className="w-64 bg-white border-r h-screen p-4 sticky top-0 overflow-y-auto shadow-md">
-      <h1 className="text-xl font-bold mb-6 text-blue-700">🌟 MAKARTI 5.0</h1>
-      <nav className="space-y-1">
-        {menuItems.map((item) => {
-          const Icon = item.icon
-          const isActive = pathname === item.href
-          
-          return (
-            <Link key={item.href} href={item.href}>
-              <div className={`flex items-center justify-between text-sm font-semibold p-2 rounded-lg transition-colors ${
-                isActive 
-                  ? 'bg-blue-100 text-blue-700 border-r-2 border-blue-700' 
-                  : 'text-gray-600 hover:bg-gray-100 hover:text-blue-600'
-              }`}>
-                <div className="flex items-center">
-                  <Icon className="mr-3 w-4 h-4" />
-                  <span>{item.label}</span>
+    <aside className="w-64 bg-white border-r h-screen p-4 sticky top-0 overflow-y-auto shadow-xl">
+      <h1 className="text-2xl font-extrabold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-500 to-pink-500 flex items-center gap-2">
+        <span className="text-3xl">🌟</span> MAKARTI 5.0
+      </h1>
+      <nav className="space-y-2">
+        {menuItems
+          .filter((item) => {
+            if (!item.allowedRoles) return true
+            return item.allowedRoles.includes(roleId)
+          })
+          .map((item) => {
+            const Icon = item.icon
+            const isActive = pathname === item.href
+            const iconBg =
+              item.status === 'ready'
+                ? 'bg-blue-100 text-blue-600'
+                : 'bg-orange-100 text-orange-500'
+
+            return (
+              <Link key={item.href} href={item.href} className="block">
+                <div
+                  className={`flex items-center justify-between text-base font-semibold p-2 rounded-xl transition-all duration-200 group shadow-sm
+                    ${
+                      isActive
+                        ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-r-4 border-blue-600 shadow-lg scale-[1.03]'
+                        : 'text-gray-600 hover:bg-blue-50 hover:text-blue-700 hover:scale-[1.01]'
+                    }`}
+                >
+                  <div className="flex items-center gap-3">
+                    <span
+                      className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors ${iconBg} group-hover:scale-110`}
+                    >
+                      <Icon className="w-5 h-5" />
+                    </span>
+                    <span className="truncate">{item.label}</span>
+                  </div>
+                  {item.status === 'maintenance' && (
+                    <span className="ml-2 text-xs font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full border border-orange-300 shadow-sm animate-pulse">
+                      🚧
+                    </span>
+                  )}
                 </div>
-                {item.status === 'maintenance' && (
-                  <span className="ml-2 text-xs text-orange-500 bg-orange-100 px-2 py-0.5 rounded-full">
-                    🚧
-                  </span>
-                )}
-              </div>
-            </Link>
-          )
-        })}
+              </Link>
+            )
+          })}
       </nav>
     </aside>
   )

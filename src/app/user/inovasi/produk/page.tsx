@@ -48,11 +48,11 @@ import {
   Cell,
   Legend,
 } from 'recharts'
+import { toast } from "sonner"
 
 interface ProdukInovasiItem {
   id: number
   nama: string
-  unit: string
   jenis: string
   status: string
   tanggalRilis: string
@@ -61,66 +61,49 @@ interface ProdukInovasiItem {
 
 const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6']
 
-const initialData: ProdukInovasiItem[] = [
-  {
-    id: 1,
-    nama: 'Sistem e-Integritas',
-    unit: 'Pusat A',
-    jenis: 'Aplikasi Digital',
-    status: 'Aktif Digunakan',
-    tanggalRilis: '2024-03-15',
-    keterangan: 'Sistem pelaporan benturan kepentingan'
-  },
-  {
-    id: 2,
-    nama: 'Dashboard Analytics',
-    unit: 'Pusat B',
-    jenis: 'Dashboard',
-    status: 'Aktif Digunakan',
-    tanggalRilis: '2024-02-20',
-    keterangan: 'Dashboard monitoring kinerja unit'
-  },
-  {
-    id: 3,
-    nama: 'Modul Pelatihan Digital',
-    unit: 'Pusat C',
-    jenis: 'Modul Pelatihan',
-    status: 'Uji Coba',
-    tanggalRilis: '2024-04-10',
-    keterangan: 'E-learning untuk pengembangan SDM'
-  },
-  {
-    id: 4,
-    nama: 'SOP Layanan Terpadu',
-    unit: 'Pusat A',
-    jenis: 'SOP',
-    status: 'Arsip',
-    tanggalRilis: '2023-12-05',
-    keterangan: 'Standar operasional prosedur pelayanan'
-  },
-]
-
 export default function ProdukInovasiPage() {
   const [showModal, setShowModal] = useState(false)
   const [data, setData] = useState<ProdukInovasiItem[]>([])
   const [editingId, setEditingId] = useState<number | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  // Load data from localStorage on component mount
+  // Fetch data from API on mount
   useEffect(() => {
-    const savedData = localStorage.getItem("produkInovasiData")
-    setData(savedData ? JSON.parse(savedData) : initialData)
+    const fetchData = async () => {
+      setLoading(true)
+      setError(null)
+      try {
+        const id = typeof window !== 'undefined' ? localStorage.getItem('id') : null
+        if (!id) throw new Error('ID unit kerja tidak ditemukan di localStorage')
+        const res = await fetch(`/api/produkinovasi/${id}`)
+        if (!res.ok) throw new Error('Gagal mengambil data produk inovasi dari server')
+        const apiData: ProdukInovasiItem[] = await res.json()
+        setData(apiData.map((item: ProdukInovasiItem) => ({
+          id: item.id,
+          nama: item.nama,
+          jenis: item.jenis,
+          status: item.status,
+          tanggalRilis: item.tanggalRilis.split('T')[0],
+          keterangan: item.keterangan,
+        })))
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Gagal memuat data')
+      } finally {
+        setLoading(false)
+      }
+    }
+    fetchData()
   }, [])
 
   const [formData, setFormData] = useState({
     nama: '',
-    unit: 'Pusat A',
     jenis: 'Aplikasi Digital',
     status: 'Aktif Digunakan',
     tanggalRilis: '',
     keterangan: '',
   })
 
-  const unitOptions = ["Pusat A", "Pusat B", "Pusat C", "Pusat D"]
   const jenisOptions = ["Aplikasi Digital", "Dashboard", "Modul Pelatihan", "SOP"]
   const statusOptions = ["Aktif Digunakan", "Uji Coba", "Arsip"]
 
@@ -218,7 +201,6 @@ export default function ProdukInovasiPage() {
   const handleEdit = (item: ProdukInovasiItem) => {
     setFormData({
       nama: item.nama,
-      unit: item.unit,
       jenis: item.jenis,
       status: item.status,
       tanggalRilis: item.tanggalRilis,
@@ -229,12 +211,24 @@ export default function ProdukInovasiPage() {
   }
 
   const handleDelete = (id: number) => {
-    if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
-      const updatedData = data.filter(item => item.id !== id)
-      setData(updatedData)
-      localStorage.setItem("produkInovasiData", JSON.stringify(updatedData))
-      alert('Data berhasil dihapus!')
-    }
+    toast(
+      "Apakah Anda yakin ingin menghapus data ini?",
+      {
+        action: {
+          label: "Hapus",
+          onClick: () => {
+            const updatedData = data.filter(item => item.id !== id)
+            setData(updatedData)
+            toast.success("Data berhasil dihapus!")
+          }
+        },
+        cancel: {
+          label: "Batal",
+          onClick: () => toast("Penghapusan dibatalkan")
+        },
+        duration: 6000
+      }
+    )
   }
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -260,12 +254,11 @@ export default function ProdukInovasiPage() {
       }
 
       setData(updatedData)
-      localStorage.setItem("produkInovasiData", JSON.stringify(updatedData))
+      // No localStorage update, only update state
 
       // Reset form and close modal
       setFormData({
         nama: '',
-        unit: 'Pusat A',
         jenis: 'Aplikasi Digital',
         status: 'Aktif Digunakan',
         tanggalRilis: '',
@@ -273,31 +266,46 @@ export default function ProdukInovasiPage() {
       })
       setEditingId(null)
       setShowModal(false)
-      alert(editingId ? 'Data berhasil diperbarui!' : 'Data berhasil disimpan!')
+      toast.success(editingId ? 'Data berhasil diperbarui!' : 'Data berhasil disimpan!')
     } catch {
-      alert('Terjadi kesalahan saat menyimpan data.')
+      toast.error('Terjadi kesalahan saat menyimpan data.')
     }
   }
 
+  // Loading & error state
+  if (loading) {
+    return (
+      <div className="p-6 min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Clock className="w-8 h-8 animate-spin text-blue-600 mx-auto mb-4" />
+          <p className="text-gray-600">Memuat data produk inovasi...</p>
+        </div>
+      </div>
+    )
+  }
+  if (error) {
+    return (
+      <div className="p-6 min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <Package className="w-8 h-8 text-red-600 mx-auto mb-4" />
+          <p className="text-red-600 mb-4">{error}</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Produk terbaru: ambil 3 produk terbaru dari data API, urutkan berdasarkan tanggalRilis desc
+  const produkTerbaru = [...data]
+    .sort((a, b) => new Date(b.tanggalRilis).getTime() - new Date(a.tanggalRilis).getTime())
+    .slice(0, 3)
+
   return (
     <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
-      {/* Maintenance Warning */}
-            <div className="flex items-center bg-red-100 border border-red-300 rounded-lg p-4 mb-6">
-                <span className="text-red-600 mr-3">
-                    <svg xmlns="http://www.w3.org/2000/svg" className="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01M21 12A9 9 0 113 12a9 9 0 0118 0z" />
-                    </svg>
-                </span>
-                <div>
-                    <p className="text-red-800 font-semibold">Peringatan: Halaman masih dalam pengembangan.</p>
-                    <p className="text-red-700 text-sm">Beberapa fitur belum sepenuhnya dapat digunakan.</p>
-                </div>
-            </div>
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard Produk Inovasi</h1>
-          <p className="text-blue-600">Kelola dan monitor produk inovasi unit kerja</p>
+          <p className="text-blue-600">Kelola dan pantau seluruh produk inovasi yang dikembangkan oleh unit kerja untuk memastikan kemanfaatan, keberlanjutan, dan dampaknya</p>
         </div>
         <Dialog open={showModal} onOpenChange={(open) => {
           setShowModal(open)
@@ -305,7 +313,6 @@ export default function ProdukInovasiPage() {
             setEditingId(null)
             setFormData({
               nama: '',
-              unit: 'Pusat A',
               jenis: 'Aplikasi Digital',
               status: 'Aktif Digunakan',
               tanggalRilis: '',
@@ -338,27 +345,6 @@ export default function ProdukInovasiPage() {
                   required
                   placeholder="Contoh: Sistem e-Integritas"
                 />
-              </div>
-
-              {/* Unit Kerja */}
-              <div className="space-y-1">
-                <Label htmlFor="unit">Unit Kerja</Label>
-                <Select
-                  name="unit"
-                  value={formData.unit}
-                  onValueChange={(value) => handleSelectChange("unit", value)}
-                >
-                  <SelectTrigger id="unit">
-                    <SelectValue placeholder="Pilih unit kerja" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {unitOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
               </div>
 
               {/* Jenis Produk */}
@@ -576,7 +562,6 @@ export default function ProdukInovasiPage() {
               <TableRow className="bg-gray-50">
                 <TableHead className="font-medium">No</TableHead>
                 <TableHead className="font-medium">Nama Produk</TableHead>
-                <TableHead className="font-medium">Unit Kerja</TableHead>
                 <TableHead className="font-medium">Jenis</TableHead>
                 <TableHead className="font-medium">Status</TableHead>
                 <TableHead className="font-medium">Tanggal Rilis</TableHead>
@@ -594,7 +579,6 @@ export default function ProdukInovasiPage() {
                       {item.nama}
                     </span>
                   </TableCell>
-                  <TableCell className="text-gray-600">{item.unit}</TableCell>
                   <TableCell>
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                       item.jenis === 'Aplikasi Digital' ? 'bg-blue-100 text-blue-800' :
@@ -662,38 +646,57 @@ export default function ProdukInovasiPage() {
           Produk Terbaru
         </h2>
         <div className="space-y-4">
-          <div className="flex items-start space-x-3 p-4 bg-green-50 rounded-lg border-l-4 border-green-500">
-            <div className="bg-green-500 rounded-full p-2">
-              <CheckCircle className="w-4 h-4 text-white" />
+          {produkTerbaru.map((item) => (
+            <div
+              key={item.id}
+              className={`flex items-start space-x-3 p-4 ${
+                item.status === 'Aktif Digunakan'
+                  ? 'bg-green-50 border-l-4 border-green-500'
+                  : item.status === 'Uji Coba'
+                  ? 'bg-yellow-50 border-l-4 border-yellow-500'
+                  : 'bg-gray-50 border-l-4 border-gray-400'
+              } rounded-lg`}
+            >
+              <div className={
+                item.status === 'Aktif Digunakan'
+                  ? 'bg-green-500 rounded-full p-2'
+                  : item.status === 'Uji Coba'
+                  ? 'bg-yellow-500 rounded-full p-2'
+                  : 'bg-gray-400 rounded-full p-2'
+              }>
+                {item.status === 'Aktif Digunakan' ? (
+                  <CheckCircle className="w-4 h-4 text-white" />
+                ) : item.status === 'Uji Coba' ? (
+                  <Clock className="w-4 h-4 text-white" />
+                ) : (
+                  <Archive className="w-4 h-4 text-white" />
+                )}
+              </div>
+              <div className="flex-1">
+                <h3 className={`font-medium ${
+                  item.status === 'Aktif Digunakan'
+                    ? 'text-green-800'
+                    : item.status === 'Uji Coba'
+                    ? 'text-yellow-800'
+                    : 'text-gray-800'
+                }`}>{item.nama}</h3>
+                <p className={`text-sm ${
+                  item.status === 'Aktif Digunakan'
+                    ? 'text-green-600'
+                    : item.status === 'Uji Coba'
+                    ? 'text-yellow-600'
+                    : 'text-gray-600'
+                }`}>{item.keterangan}</p>
+                <p className={`text-xs mt-1 ${
+                  item.status === 'Aktif Digunakan'
+                    ? 'text-green-500'
+                    : item.status === 'Uji Coba'
+                    ? 'text-yellow-500'
+                    : 'text-gray-500'
+                }`}>{item.tanggalRilis}</p>
+              </div>
             </div>
-            <div className="flex-1">
-              <h3 className="font-medium text-green-800">Sistem e-Integritas</h3>
-              <p className="text-sm text-green-600">Aktif digunakan untuk pelaporan benturan kepentingan</p>
-              <p className="text-xs text-green-500 mt-1">Pusat A • 2 bulan yang lalu</p>
-            </div>
-          </div>
-          
-          <div className="flex items-start space-x-3 p-4 bg-green-50 rounded-lg border-l-4 border-green-500">
-            <div className="bg-green-500 rounded-full p-2">
-              <Monitor className="w-4 h-4 text-white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-medium text-green-800">Dashboard Analytics</h3>
-              <p className="text-sm text-green-600">Dashboard monitoring kinerja unit sudah beroperasi</p>
-              <p className="text-xs text-green-500 mt-1">Pusat B • 3 bulan yang lalu</p>
-            </div>
-          </div>
-          
-          <div className="flex items-start space-x-3 p-4 bg-yellow-50 rounded-lg border-l-4 border-yellow-500">
-            <div className="bg-yellow-500 rounded-full p-2">
-              <Clock className="w-4 h-4 text-white" />
-            </div>
-            <div className="flex-1">
-              <h3 className="font-medium text-yellow-800">Modul Pelatihan Digital</h3>
-              <p className="text-sm text-yellow-600">E-learning sedang dalam tahap uji coba</p>
-              <p className="text-xs text-yellow-500 mt-1">Pusat C • 1 bulan yang lalu</p>
-            </div>
-          </div>
+          ))}
         </div>
       </div>
     </div>

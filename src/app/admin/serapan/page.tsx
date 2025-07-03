@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import {
   PieChart,
   Pie,
@@ -8,14 +8,30 @@ import {
   Tooltip,
   ResponsiveContainer,
   Legend,
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
 } from 'recharts'
 
-const dataSerapan = [
-  { unit: 'Unit A', anggaran: 500_000_000, realisasi: 450_000_000 },
-  { unit: 'Unit B', anggaran: 500_000_000, realisasi: 320_000_000 },
-  { unit: 'Unit C', anggaran: 500_000_000, realisasi: 220_000_000 },
-  { unit: 'Unit D', anggaran: 300_000_000, realisasi: 250_000_000 },
-]
+interface DetailPerBulan {
+  id: number
+  bulan: string
+  pagu_anggaran: number
+  realisasi_pengeluaran: number
+  capaian_realisasi: number
+  capaian_realisasi_kumulatif: number
+}
+
+interface SerapanData {
+  unit_kerja: string
+  pagu_anggaran: number
+  total_realisasi: number
+  sisa_anggaran: number
+  capaian_realisasi: number
+  detail_per_bulan: DetailPerBulan[]
+}
 
 function getPersentase(realisasi: number, anggaran: number) {
   return Math.round((realisasi / anggaran) * 100)
@@ -27,44 +43,193 @@ function getStatusColor(persen: number) {
   return 'bg-red-500'
 }
 
+function formatUnitName(unitKerja: string) {
+  return unitKerja.replace(/_/g, ' ')
+}
+
 const COLORS = ['#4ade80', '#e2e8f0'] // hijau & abu-abu
 
 export default function SerapanTablePage() {
-  const [selectedUnit, setSelectedUnit] = useState<null | typeof dataSerapan[0]>(null)
+  const [dataSerapan, setDataSerapan] = useState<SerapanData[]>([])
+  const [selectedUnit, setSelectedUnit] = useState<null | SerapanData>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+  const [showLowestUnitAlert, setShowLowestUnitAlert] = useState(false)
 
-  const handleRowClick = (unit: typeof dataSerapan[0]) => {
+  // Fetch data from API
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        const response = await fetch('/api/serapan')
+        if (!response.ok) {
+          throw new Error('Gagal mengambil data serapan')
+        }
+        const data: SerapanData[] = await response.json()
+        setDataSerapan(data)
+        
+        // Show alert for lowest absorption unit after data loads
+        if (data.length > 0) {
+          setTimeout(() => setShowLowestUnitAlert(true), 1000)
+        }
+      } catch (err) {
+        setError(err instanceof Error ? err.message : 'Terjadi kesalahan')
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
+  }, [])
+
+  const handleRowClick = (unit: SerapanData) => {
     setSelectedUnit(unit)
   }
 
+  // Loading state
+  if (loading) {
+    return (
+      <div className="p-6 min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
+          <p className="text-gray-600">Memuat data serapan anggaran...</p>
+        </div>
+      </div>
+    )
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="p-6 min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-600 text-xl mb-4">⚠️</div>
+          <p className="text-red-600 mb-4">{error}</p>
+          <button 
+            onClick={() => window.location.reload()} 
+            className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
+          >
+            Muat Ulang
+          </button>
+        </div>
+      </div>
+    )
+  }
+
   // Hitung summary data
-  const totalAnggaran = dataSerapan.reduce((sum, item) => sum + item.anggaran, 0)
-  const totalRealisasi = dataSerapan.reduce((sum, item) => sum + item.realisasi, 0)
-  const sisaAnggaran = totalAnggaran - totalRealisasi
-  const rataRataSerapan = Math.round((totalRealisasi / totalAnggaran) * 100)
+  const totalAnggaran = dataSerapan.reduce((sum, item) => sum + item.pagu_anggaran, 0)
+  const totalRealisasi = dataSerapan.reduce((sum, item) => sum + item.total_realisasi, 0)
+  const totalSisaAnggaran = dataSerapan.reduce((sum, item) => sum + item.sisa_anggaran, 0)
+  const rataRataSerapan = dataSerapan.length > 0 ? 
+    Math.round(dataSerapan.reduce((sum, item) => sum + item.capaian_realisasi, 0) / dataSerapan.length) : 0
+  
+  // Find unit with lowest absorption rate
+  const unitTerendah = dataSerapan.length > 0 ? 
+    dataSerapan.reduce((lowest, current) => 
+      current.capaian_realisasi < lowest.capaian_realisasi ? current : lowest
+    ) : null
   
   // Hitung unit berdasarkan status
-  const unitBaik = dataSerapan.filter(item => getPersentase(item.realisasi, item.anggaran) >= 80).length
+  const unitBaik = dataSerapan.filter(item => item.capaian_realisasi >= 80).length
   const unitCukup = dataSerapan.filter(item => {
-    const persen = getPersentase(item.realisasi, item.anggaran)
+    const persen = item.capaian_realisasi
     return persen >= 60 && persen < 80
   }).length
-  const unitKurang = dataSerapan.filter(item => getPersentase(item.realisasi, item.anggaran) < 60).length
+  const unitKurang = dataSerapan.filter(item => item.capaian_realisasi < 60).length
 
   const pieData =
     selectedUnit && [
       {
         name: 'Realisasi',
-        value: selectedUnit.realisasi,
+        value: selectedUnit.total_realisasi,
       },
       {
         name: 'Sisa Anggaran',
-        value: selectedUnit.anggaran - selectedUnit.realisasi,
+        value: selectedUnit.sisa_anggaran,
       },
     ]
 
   return (
     <div className="p-6">
-      <h1 className="text-3xl font-bold text-blue-800 mb-6">Dashboard Serapan Anggaran</h1>
+      {/* Alert Modal for Lowest Unit */}
+      {showLowestUnitAlert && unitTerendah && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-md w-full p-6 transform transition-all">
+            <div className="text-center">
+              <div className="bg-red-100 rounded-full p-3 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <span className="text-2xl">⚠️</span>
+              </div>
+              <h3 className="text-lg font-bold text-gray-800 mb-2">
+                Perhatian: Unit dengan Serapan Terendah
+              </h3>
+              <div className="bg-red-50 border border-red-200 rounded-lg p-4 mb-4">
+                <h4 className="font-semibold text-red-800 mb-2">
+                  {formatUnitName(unitTerendah.unit_kerja)}
+                </h4>
+                <div className="text-sm text-red-700 space-y-1">
+                  <p>
+                    <span className="font-medium">Persentase Serapan:</span> 
+                    <span className="font-bold text-red-800 ml-1">
+                      {Math.round(unitTerendah.capaian_realisasi)}%
+                    </span>
+                  </p>
+                  <p>
+                    <span className="font-medium">Anggaran:</span> 
+                    <span className="ml-1">Rp {unitTerendah.pagu_anggaran.toLocaleString('id-ID')}</span>
+                  </p>
+                  <p>
+                    <span className="font-medium">Realisasi:</span> 
+                    <span className="ml-1">Rp {unitTerendah.total_realisasi.toLocaleString('id-ID')}</span>
+                  </p>
+                  <p>
+                    <span className="font-medium">Sisa:</span> 
+                    <span className="ml-1">Rp {unitTerendah.sisa_anggaran.toLocaleString('id-ID')}</span>
+                  </p>
+                </div>
+              </div>
+              <p className="text-gray-600 text-sm mb-6">
+                Unit ini memerlukan perhatian khusus untuk meningkatkan serapan anggaran.
+              </p>
+              <div className="flex gap-3">
+                <button
+                  onClick={() => {
+                    setSelectedUnit(unitTerendah)
+                    setShowLowestUnitAlert(false)
+                  }}
+                  className="flex-1 bg-blue-600 text-white px-4 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Lihat Detail
+                </button>
+                <button
+                  onClick={() => setShowLowestUnitAlert(false)}
+                  className="flex-1 bg-gray-200 text-gray-800 px-4 py-2 rounded-lg hover:bg-gray-300 transition-colors"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <div className="flex justify-between items-center mb-6">
+        <h1 className="text-3xl font-bold text-blue-800">Dashboard Serapan Anggaran</h1>
+        
+        {/* Alert Button for Lowest Unit */}
+        {unitTerendah && (
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => setShowLowestUnitAlert(true)}
+              className="bg-red-100 text-red-800 px-4 py-2 rounded-lg hover:bg-red-200 transition-colors flex items-center gap-2 border border-red-200"
+            >
+              <span>⚠️</span>
+              <span className="text-sm font-medium">
+                Unit Terendah: {Math.round(unitTerendah.capaian_realisasi)}%
+              </span>
+            </button>
+          </div>
+        )}
+      </div>
 
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -100,7 +265,7 @@ export default function SerapanTablePage() {
             </div>
           </div>
           <p className="text-green-600 text-xs mt-2">
-            {rataRataSerapan}% dari total anggaran
+            Rp {totalRealisasi.toLocaleString('id-ID')}
           </p>
         </div>
 
@@ -110,7 +275,7 @@ export default function SerapanTablePage() {
             <div>
               <p className="text-orange-800 text-sm font-medium">Sisa Anggaran</p>
               <p className="text-2xl font-bold text-orange-600">
-                Rp {(sisaAnggaran / 1_000_000_000).toFixed(1)}M
+                Rp {(totalSisaAnggaran / 1_000_000_000).toFixed(1)}M
               </p>
             </div>
             <div className="bg-orange-100 p-3 rounded-full">
@@ -118,7 +283,7 @@ export default function SerapanTablePage() {
             </div>
           </div>
           <p className="text-orange-600 text-xs mt-2">
-            {100 - rataRataSerapan}% belum terserap
+            Rp {totalSisaAnggaran.toLocaleString('id-ID')}
           </p>
         </div>
 
@@ -182,9 +347,9 @@ export default function SerapanTablePage() {
             </thead>
             <tbody className="text-sm divide-y divide-gray-200">
               {dataSerapan.map((item, index) => {
-                const persen = getPersentase(item.realisasi, item.anggaran)
+                const persen = Math.round(item.capaian_realisasi)
                 const badgeColor = getStatusColor(persen)
-                const isSelected = selectedUnit?.unit === item.unit
+                const isSelected = selectedUnit?.unit_kerja === item.unit_kerja
                 
                 return (
                   <tr
@@ -195,12 +360,12 @@ export default function SerapanTablePage() {
                     onClick={() => handleRowClick(item)}
                   >
                     <td className="px-6 py-4">{index + 1}</td>
-                    <td className="px-6 py-4 font-medium">{item.unit}</td>
+                    <td className="px-6 py-4 font-medium">{formatUnitName(item.unit_kerja)}</td>
                     <td className="px-6 py-4 text-right">
-                      Rp {item.anggaran.toLocaleString('id-ID')}
+                      Rp {item.pagu_anggaran.toLocaleString('id-ID')}
                     </td>
                     <td className="px-6 py-4 text-right">
-                      Rp {item.realisasi.toLocaleString('id-ID')}
+                      Rp {item.total_realisasi.toLocaleString('id-ID')}
                     </td>
                     <td className="px-6 py-4 text-right font-bold">{persen}%</td>
                     <td className="px-6 py-4 text-center">
@@ -230,7 +395,7 @@ export default function SerapanTablePage() {
         <div className="bg-white shadow-lg rounded-xl p-6">
           <h2 className="text-xl font-semibold mb-4 text-gray-800 flex items-center">
             <span className="mr-2">📊</span>
-            Detail Serapan - {selectedUnit.unit}
+            Detail Serapan - {formatUnitName(selectedUnit.unit_kerja)}
           </h2>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <div className="h-[300px]">
@@ -261,28 +426,80 @@ export default function SerapanTablePage() {
                 <div className="space-y-2 text-sm">
                   <div className="flex justify-between">
                     <span>Total Anggaran:</span>
-                    <span className="font-medium">Rp {selectedUnit.anggaran.toLocaleString('id-ID')}</span>
+                    <span className="font-medium">Rp {selectedUnit.pagu_anggaran.toLocaleString('id-ID')}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Realisasi:</span>
-                    <span className="font-medium text-green-600">Rp {selectedUnit.realisasi.toLocaleString('id-ID')}</span>
+                    <span className="font-medium text-green-600">Rp {selectedUnit.total_realisasi.toLocaleString('id-ID')}</span>
                   </div>
                   <div className="flex justify-between">
                     <span>Sisa:</span>
                     <span className="font-medium text-orange-600">
-                      Rp {(selectedUnit.anggaran - selectedUnit.realisasi).toLocaleString('id-ID')}
+                      Rp {selectedUnit.sisa_anggaran.toLocaleString('id-ID')}
                     </span>
                   </div>
                   <div className="flex justify-between border-t pt-2">
                     <span>Persentase Serapan:</span>
                     <span className="font-bold text-blue-600">
-                      {getPersentase(selectedUnit.realisasi, selectedUnit.anggaran)}%
+                      {Math.round(selectedUnit.capaian_realisasi)}%
                     </span>
                   </div>
                 </div>
               </div>
             </div>
           </div>
+          
+          {/* Monthly Breakdown */}
+          {selectedUnit.detail_per_bulan && selectedUnit.detail_per_bulan.length > 0 && (
+            <div className="mt-8">
+              <h3 className="text-lg font-semibold mb-4 text-gray-800">Breakdown Per Bulan</h3>
+              <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                {/* Monthly Chart */}
+                <div className="h-[300px]">
+                  <ResponsiveContainer>
+                    <BarChart data={selectedUnit.detail_per_bulan}>
+                      <CartesianGrid strokeDasharray="3 3" />
+                      <XAxis dataKey="bulan" tick={{ fontSize: 12 }} />
+                      <YAxis 
+                        tick={{ fontSize: 12 }}
+                        tickFormatter={(value) => `${(value / 1000000).toFixed(0)}M`}
+                      />
+                      <Tooltip 
+                        formatter={(value: number) => [`Rp ${value.toLocaleString('id-ID')}`, 'Realisasi']}
+                      />
+                      <Bar dataKey="realisasi_pengeluaran" fill="#3b82f6" />
+                    </BarChart>
+                  </ResponsiveContainer>
+                </div>
+                
+                {/* Monthly Table */}
+                <div className="overflow-x-auto">
+                  <table className="min-w-full text-sm">
+                    <thead className="bg-gray-50">
+                      <tr>
+                        <th className="px-3 py-2 text-left">Bulan</th>
+                        <th className="px-3 py-2 text-right">Realisasi</th>
+                        <th className="px-3 py-2 text-right">%</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {selectedUnit.detail_per_bulan.map((detail, idx) => (
+                        <tr key={idx} className="hover:bg-gray-50">
+                          <td className="px-3 py-2 font-medium">{detail.bulan}</td>
+                          <td className="px-3 py-2 text-right">
+                            Rp {detail.realisasi_pengeluaran.toLocaleString('id-ID')}
+                          </td>
+                          <td className="px-3 py-2 text-right font-bold">
+                            {detail.capaian_realisasi.toFixed(2)}%
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       )}
     </div>

@@ -106,8 +106,8 @@ const serapanData = [
   { name: 'Sisa', value: 125 },
 ]
 
-// Data Bigger Better Smarter yang dicapai melalui 4 pilar MAKARTI
-const biggerBetterSmarterAchievements = [
+// Data Bigger Smarter Better yang dicapai melalui 4 pilar MAKARTI
+const biggerSmarterBetterAchievements = [
   {
     category: 'BIGGER',
     subtitle: 'Dampak & Jangkauan',
@@ -130,27 +130,6 @@ const biggerBetterSmarterAchievements = [
     borderColor: 'border-blue-500'
   },
   {
-    category: 'BETTER',
-    subtitle: 'Kualitas & Efisiensi',
-    description: 'Dicapai melalui Learning dan Inovasi',
-    contributingPillars: [
-      { pillar: 'Learning', contribution: 80, description: '10 kegiatan pembelajaran meningkatkan kualitas SDM' },
-      { pillar: 'Inovasi', contribution: 75, description: 'Inovasi mengoptimalkan proses kerja' }
-    ],
-    metrics: [
-      { label: 'Kepuasan Layanan', value: '92', unit: '%', progress: 92, source: 'Learning & Inovasi' },
-      { label: 'Efisiensi Proses', value: '85', unit: '%', progress: 85, source: 'Inovasi' },
-      { label: 'Kualitas Output', value: '88', unit: '%', progress: 88, source: 'Learning' },
-      { label: 'Pengurangan Biaya', value: '35', unit: '%', progress: 70, source: 'Inovasi' }
-    ],
-    overallScore: 84,
-    icon: <Star className="w-6 h-6" />,
-    color: 'green',
-    bgLight: 'bg-green-50',
-    textColor: 'text-green-600',
-    borderColor: 'border-green-500'
-  },
-  {
     category: 'SMARTER',
     subtitle: 'Teknologi & Inovasi',
     description: 'Dicapai melalui Inovasi dan Komunikasi & Branding',
@@ -170,37 +149,58 @@ const biggerBetterSmarterAchievements = [
     bgLight: 'bg-purple-50',
     textColor: 'text-purple-600',
     borderColor: 'border-purple-500'
+  },
+  {
+    category: 'BETTER',
+    subtitle: 'Kualitas & Efisiensi',
+    description: 'Dicapai melalui Learning dan Inovasi',
+    contributingPillars: [
+      { pillar: 'Learning', contribution: 80, description: '10 kegiatan pembelajaran meningkatkan kualitas SDM' },
+      { pillar: 'Inovasi', contribution: 75, description: 'Inovasi mengoptimalkan proses kerja' }
+    ],
+    metrics: [
+      { label: 'Kepuasan Layanan', value: '92', unit: '%', progress: 92, source: 'Learning & Inovasi' },
+      { label: 'Efisiensi Proses', value: '85', unit: '%', progress: 85, source: 'Inovasi' },
+      { label: 'Kualitas Output', value: '88', unit: '%', progress: 88, source: 'Learning' },
+      { label: 'Pengurangan Biaya', value: '35', unit: '%', progress: 70, source: 'Inovasi' }
+    ],
+    overallScore: 84,
+    icon: <Star className="w-6 h-6" />,
+    color: 'green',
+    bgLight: 'bg-green-50',
+    textColor: 'text-green-600',
+    borderColor: 'border-green-500'
   }
 ]
 
-// Data kontribusi setiap pilar terhadap BBS
+// Data kontribusi setiap pilar terhadap BSB
 const pillarContributionData = [
   { 
     pillar: 'Inovasi', 
     bigger: 70, 
-    better: 75, 
-    smarter: 85,
+    smarter: 85, 
+    better: 75,
     description: '15 inovasi aktif'
   },
   { 
     pillar: 'Komunikasi & Branding', 
     bigger: 45, 
-    better: 50, 
-    smarter: 60,
+    smarter: 60, 
+    better: 50,
     description: '42 postingan komunikasi'
   },
   { 
     pillar: 'Networking', 
     bigger: 65, 
-    better: 40, 
-    smarter: 35,
+    smarter: 35, 
+    better: 40,
     description: '8 kunjungan instansi'
   },
   { 
     pillar: 'Learning', 
     bigger: 55, 
-    better: 80, 
-    smarter: 45,
+    smarter: 45, 
+    better: 80,
     description: '10 kegiatan pembelajaran'
   }
 ]
@@ -267,20 +267,20 @@ export default function RingkasanMakartiPage() {
         ))}
       </div>
 
-      {/* Bigger Better Smarter Section */}
+      {/* Bigger Smarter Better Section */}
       <div className="bg-white rounded-xl shadow-lg p-6">
         <div className="flex items-center space-x-3 mb-6">
           <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-3 rounded-full">
             <Target className="w-6 h-6 text-white" />
           </div>
           <div>
-            <h2 className="text-2xl font-bold text-gray-800">Bigger Better Smarter</h2>
+            <h2 className="text-2xl font-bold text-gray-800">Bigger Smarter Better</h2>
             <p className="text-gray-600">Dicapai melalui 4 pilar MAKARTI: Inovasi, Komunikasi & Branding, Networking, dan Learning</p>
           </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {biggerBetterSmarterAchievements.map((achievement) => (
+          {biggerSmarterBetterAchievements.map((achievement) => (
             <div key={achievement.category} className={`${achievement.bgLight} rounded-xl p-6 border-l-4 ${achievement.borderColor} hover:shadow-lg transition-all duration-300`}>
               {/* Header */}
               <div className="flex items-center justify-between mb-4">
@@ -392,13 +392,6 @@ export default function RingkasanMakartiPage() {
               <div className="text-xs opacity-75">via Inovasi & Networking</div>
             </div>
           </div>
-          <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 text-white">
-            <div className="text-center">
-              <div className="text-2xl font-bold">84%</div>
-              <div className="text-sm opacity-90">BETTER Score</div>
-              <div className="text-xs opacity-75">via Learning & Inovasi</div>
-            </div>
-          </div>
           <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-4 text-white">
             <div className="text-center">
               <div className="text-2xl font-bold">71%</div>
@@ -406,14 +399,21 @@ export default function RingkasanMakartiPage() {
               <div className="text-xs opacity-75">via Inovasi & Komunikasi</div>
             </div>
           </div>
+          <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 text-white">
+            <div className="text-center">
+              <div className="text-2xl font-bold">84%</div>
+              <div className="text-sm opacity-90">BETTER Score</div>
+              <div className="text-xs opacity-75">via Learning & Inovasi</div>
+            </div>
+          </div>
         </div>
       </div>
 
-      {/* Kontribusi Pilar terhadap BBS */}
+      {/* Kontribusi Pilar terhadap BSB */}
       <div className="bg-white rounded-xl shadow-lg p-6">
         <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
           <Award className="w-6 h-6 mr-2 text-orange-500" />
-          Kontribusi Pilar MAKARTI terhadap Bigger Better Smarter
+          Kontribusi Pilar MAKARTI terhadap Bigger Smarter Better
         </h2>
         <div className="h-[400px]">
           <ResponsiveContainer width="100%" height="100%">
@@ -431,8 +431,8 @@ export default function RingkasanMakartiPage() {
               />
               <Legend />
               <Bar dataKey="bigger" fill="#3b82f6" radius={[2, 2, 0, 0]} name="BIGGER" />
-              <Bar dataKey="better" fill="#10b981" radius={[2, 2, 0, 0]} name="BETTER" />
               <Bar dataKey="smarter" fill="#8b5cf6" radius={[2, 2, 0, 0]} name="SMARTER" />
+              <Bar dataKey="better" fill="#10b981" radius={[2, 2, 0, 0]} name="BETTER" />
             </BarChart>
           </ResponsiveContainer>
         </div>
@@ -543,7 +543,7 @@ export default function RingkasanMakartiPage() {
 
         {/* Monthly Highlights */}
         <div className="bg-white p-6 rounded-xl shadow-lg lg:col-span-2">
-          <h2 className="text-xl font-bold mb-4 text-gray-800">Highlight: Pilar MAKARTI → Bigger Better Smarter</h2>
+          <h2 className="text-xl font-bold mb-4 text-gray-800">Highlight: Pilar MAKARTI → Bigger Smarter Better</h2>
           <div className="space-y-4">
             <div className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
               <div className="bg-blue-500 rounded-full p-2">
@@ -556,17 +556,6 @@ export default function RingkasanMakartiPage() {
               </div>
             </div>
             
-            <div className="flex items-start space-x-3 p-3 bg-green-50 rounded-lg border-l-4 border-green-500">
-              <div className="bg-green-500 rounded-full p-2">
-                <Star className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h3 className="font-medium text-green-800">BETTER: Melalui Learning & Inovasi</h3>
-                <p className="text-sm text-green-600">10 kegiatan pembelajaran dan inovasi menghasilkan kepuasan layanan 92% dan efisiensi 85%</p>
-                <p className="text-xs text-green-500 mt-1">Kontribusi: Learning 80% • Inovasi 75%</p>
-              </div>
-            </div>
-            
             <div className="flex items-start space-x-3 p-3 bg-purple-50 rounded-lg border-l-4 border-purple-500">
               <div className="bg-purple-500 rounded-full p-2">
                 <Brain className="w-4 h-4 text-white" />
@@ -575,6 +564,17 @@ export default function RingkasanMakartiPage() {
                 <h3 className="font-medium text-purple-800">SMARTER: Melalui Inovasi & Komunikasi</h3>
                 <p className="text-sm text-purple-600">Inovasi teknologi dan 42 komunikasi mencapai digitalisasi 78% dan literasi digital 68%</p>
                 <p className="text-xs text-purple-500 mt-1">Kontribusi: Inovasi 85% • Komunikasi 60%</p>
+              </div>
+            </div>
+            
+            <div className="flex items-start space-x-3 p-3 bg-green-50 rounded-lg border-l-4 border-green-500">
+              <div className="bg-green-500 rounded-full p-2">
+                <Star className="w-4 h-4 text-white" />
+              </div>
+              <div>
+                <h3 className="font-medium text-green-800">BETTER: Melalui Learning & Inovasi</h3>
+                <p className="text-sm text-green-600">10 kegiatan pembelajaran dan inovasi menghasilkan kepuasan layanan 92% dan efisiensi 85%</p>
+                <p className="text-xs text-green-500 mt-1">Kontribusi: Learning 80% • Inovasi 75%</p>
               </div>
             </div>
           </div>

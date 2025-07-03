@@ -65,8 +65,28 @@ export default function MediaPage() {
     dedupingInterval: 10000,
   })
 
+  // State for popup
+  const [showInactiveUnitsAlert, setShowInactiveUnitsAlert] = React.useState(false)
+
   // Transform and calculate data
   const dataPublikasi = publikasiData || []
+
+  // Define all possible units (you can modify this list based on your system)
+  const allUnits = [
+    'BIRO_RENAKU',
+    'DIT_APK2', 
+    'POLTEK_JKT',
+    'POLTEK_BDG',
+    'POLTEK_SBY',
+    'POLTEK_MLG',
+    'POLTEK_SMG',
+    'POLTEK_MDN',
+    'POLTEK_PLB',
+    'POLTEK_DPR',
+    'POLTEK_BTN',
+    'POLTEK_KSR',
+    // Add more units as needed
+  ]
 
   // Calculate media counts
   const mediaCount = dataPublikasi.reduce((acc, item) => {
@@ -80,6 +100,20 @@ export default function MediaPage() {
     acc[unitName] = (acc[unitName] || 0) + 1
     return acc
   }, {} as Record<string, number>)
+
+  // Find units that haven't posted anything
+  const activeUnits = Object.keys(unitCount)
+  const inactiveUnits = allUnits.filter(unit => !activeUnits.includes(unit))
+
+  // Show popup when data loads and there are inactive units
+  React.useEffect(() => {
+    if (dataPublikasi.length > 0 && inactiveUnits.length > 0) {
+      const timer = setTimeout(() => {
+        setShowInactiveUnitsAlert(true)
+      }, 1500)
+      return () => clearTimeout(timer)
+    }
+  }, [dataPublikasi.length, inactiveUnits.length])
 
   // Sort units by post count
   const sortedUnits = Object.entries(unitCount)
@@ -214,6 +248,100 @@ export default function MediaPage() {
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
+      {/* Alert Modal for Inactive Units */}
+      {showInactiveUnitsAlert && inactiveUnits.length > 0 && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-2xl w-full p-6 transform transition-all max-h-[80vh] overflow-y-auto">
+            <div className="text-center">
+              <div className="bg-orange-100 rounded-full p-3 w-16 h-16 mx-auto mb-4 flex items-center justify-center">
+                <span className="text-2xl">📢</span>
+              </div>
+              <h3 className="text-lg font-bold text-gray-800 mb-2">
+                Perhatian: Unit Kerja Belum Aktif
+              </h3>
+              <p className="text-gray-600 text-sm mb-4">
+                Beberapa unit kerja belum mengisi publikasi media. Silakan koordinasi untuk meningkatkan partisipasi.
+              </p>
+              
+              <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
+                <h4 className="font-semibold text-orange-800 mb-3 flex items-center justify-center">
+                  <span className="mr-2">📋</span>
+                  Unit Kerja yang Belum Mengisi ({inactiveUnits.length} unit)
+                </h4>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
+                  {inactiveUnits.map((unit, index) => (
+                    <div 
+                      key={unit}
+                      className="bg-white rounded-lg p-3 border border-orange-200 text-left"
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="text-sm font-medium text-gray-800">
+                          {unit.replace(/_/g, ' ')}
+                        </span>
+                        <span className="text-xs text-orange-600 bg-orange-100 px-2 py-1 rounded-full">
+                          0 publikasi
+                        </span>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-6">
+                <h4 className="font-semibold text-blue-800 mb-2 flex items-center justify-center">
+                  <span className="mr-2">📊</span>
+                  Statistik Partisipasi
+                </h4>
+                <div className="grid grid-cols-3 gap-4 text-center">
+                  <div>
+                    <div className="text-2xl font-bold text-green-600">{activeUnits.length}</div>
+                    <div className="text-xs text-green-700">Unit Aktif</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-orange-600">{inactiveUnits.length}</div>
+                    <div className="text-xs text-orange-700">Belum Aktif</div>
+                  </div>
+                  <div>
+                    <div className="text-2xl font-bold text-blue-600">
+                      {Math.round((activeUnits.length / allUnits.length) * 100)}%
+                    </div>
+                    <div className="text-xs text-blue-700">Tingkat Partisipasi</div>
+                  </div>
+                </div>
+                
+                {/* Progress Bar */}
+                <div className="mt-4">
+                  <div className="w-full bg-gray-200 rounded-full h-2">
+                    <div 
+                      className="bg-gradient-to-r from-green-500 to-blue-500 h-2 rounded-full transition-all duration-1000"
+                      style={{ 
+                        width: `${(activeUnits.length / allUnits.length) * 100}%` 
+                      }}
+                    ></div>
+                  </div>
+                  <div className="text-xs text-gray-600 mt-1 text-center">
+                    {activeUnits.length} dari {allUnits.length} unit telah berpartisipasi
+                  </div>
+                </div>
+              </div>
+
+              <p className="text-gray-600 text-sm mb-6">
+                💡 <strong>Saran:</strong> Lakukan sosialisasi kepada unit-unit yang belum aktif untuk meningkatkan publikasi dan branding institusi.
+              </p>
+              
+              <div className="flex justify-center">
+                <button
+                  onClick={() => setShowInactiveUnitsAlert(false)}
+                  className="bg-blue-600 text-white px-6 py-2 rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <div className="mb-8 flex justify-between items-center">
         <div>
@@ -223,14 +351,28 @@ export default function MediaPage() {
             Data diperbarui: {dataPublikasi.length > 0 ? new Date().toLocaleString('id-ID') : 'Belum ada data'}
           </p>
         </div>
-        <Button 
-          onClick={handleRefresh}
-          variant="outline"
-          className="flex items-center gap-2"
-        >
-          <RefreshCw className="w-4 h-4" />
-          Refresh Data
-        </Button>
+        <div className="flex items-center gap-3">
+          {/* Alert Button for Inactive Units */}
+          {inactiveUnits.length > 0 && (
+            <button
+              onClick={() => setShowInactiveUnitsAlert(true)}
+              className="bg-orange-100 text-orange-800 px-4 py-2 rounded-lg hover:bg-orange-200 transition-colors flex items-center gap-2 border border-orange-200"
+            >
+              <span>📢</span>
+              <span className="text-sm font-medium">
+                {inactiveUnits.length} Unit Belum Aktif
+              </span>
+            </button>
+          )}
+          <Button 
+            onClick={handleRefresh}
+            variant="outline"
+            className="flex items-center gap-2"
+          >
+            <RefreshCw className="w-4 h-4" />
+            Refresh Data
+          </Button>
+        </div>
       </div>
 
       {/* Enhanced Summary Cards */}

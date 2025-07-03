@@ -99,7 +99,6 @@ export default function SerapanAnggaranPage() {
     paguAnggaran: '',
     realisasiPengeluaran: '',
   });
-  const [unitKerja, setUnitKerja] = useState('');
 
   const bulanOptions = [
     "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -113,10 +112,6 @@ export default function SerapanAnggaranPage() {
     // Ambil userId dari localStorage setelah component mounted
     const id = localStorage.getItem('id');
     setUserId(id);
-
-    // Ambil unit kerja dari localStorage jika ada
-    const unit = localStorage.getItem('unit_kerja') || '';
-    setUnitKerja(unit);
   }, []);
 
   // SWR hook - fetch semua unit kerja
@@ -128,6 +123,16 @@ export default function SerapanAnggaranPage() {
     detail_per_bulan: SerapanDetailItem[];
   }[]>(
     mounted ? '/api/serapan' : null,
+    fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateOnReconnect: true,
+    }
+  );
+
+  // SWR hook - fetch unit options
+  const { data: unitOptions, error: unitError, isLoading: unitLoading } = useSWR<string[]>(
+    mounted ? '/api/users/alias' : null,
     fetcher,
     {
       revalidateOnFocus: false,
@@ -204,7 +209,7 @@ export default function SerapanAnggaranPage() {
           // Reset form dan tutup modal
           setFormData({
             bulan: 'Januari',
-            unitKerja: unitKerja,
+            unitKerja: '',
             paguAnggaran: '',
             realisasiPengeluaran: '',
           });
@@ -472,7 +477,7 @@ export default function SerapanAnggaranPage() {
             setEditingId(null);
             setFormData({
               bulan: 'Januari',
-              unitKerja: unitKerja,
+              unitKerja: '',
               paguAnggaran: '',
               realisasiPengeluaran: '',
             });
@@ -507,16 +512,38 @@ export default function SerapanAnggaranPage() {
 
               <div className="space-y-1">
                 <Label htmlFor="unitKerja">Unit Kerja</Label>
-                <Input
-                  id="unitKerja"
-                  name="unitKerja"
-                  value={formData.unitKerja}
-                  onChange={e => setFormData(prev => ({ ...prev, unitKerja: e.target.value }))}
-                  required
-                  placeholder="Contoh: Direktorat Advokasi"
-                  disabled={!!unitKerja}
-                  className="bg-gray-100"
-                />
+                <Select 
+                  value={formData.unitKerja} 
+                  onValueChange={(value) => setFormData(prev => ({ ...prev, unitKerja: value }))}
+                >
+                  <SelectTrigger id="unitKerja">
+                    <SelectValue placeholder="Pilih unit kerja" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-[200px] overflow-y-auto">
+                    {unitLoading ? (
+                      <SelectItem value="" disabled>
+                        <div className="flex items-center">
+                          <Loader2 className="w-4 h-4 animate-spin mr-2" />
+                          Memuat unit kerja...
+                        </div>
+                      </SelectItem>
+                    ) : unitError ? (
+                      <SelectItem value="" disabled>
+                        Error memuat unit kerja
+                      </SelectItem>
+                    ) : unitOptions && unitOptions.length > 0 ? (
+                      unitOptions.map((unit) => (
+                        <SelectItem key={unit} value={unit}>
+                          {unit.replace(/_/g, ' ')}
+                        </SelectItem>
+                      ))
+                    ) : (
+                      <SelectItem value="" disabled>
+                        Tidak ada unit kerja tersedia
+                      </SelectItem>
+                    )}
+                  </SelectContent>
+                </Select>
               </div>
 
               <div className="space-y-1">

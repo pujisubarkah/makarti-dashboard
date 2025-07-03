@@ -9,135 +9,12 @@ datasource db {
   schemas  = ["makarti"]
 }
 
-model Inovasi {
-  id            Int      @id @default(autoincrement())
-  judul         String
-  tahap         String
-  tanggal       DateTime
-  indikator     String
-  unit_kerja_id Int?
-  users         users?   @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@schema("makarti")
-}
-
-model Koordinasi {
-  id            Int      @id @default(autoincrement())
-  tanggal       DateTime
-  instansi      String
-  jenisInstansi String
-  topik         String
-  catatan       String?
-  unit_kerja_id Int
-  createdAt     DateTime @default(now())
-  Status        String?
-  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@schema("makarti")
-}
-
-model Networking {
-  id            Int      @id @default(autoincrement())
-  instansi      String
-  jenis         String
-  catatan       String
-  unit_kerja_id Int
-  createdAt     DateTime @default(now())
-  status        String?
-  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@schema("makarti")
-}
-
-model Pelatihan {
-  id            Int      @id @default(autoincrement())
-  pegawai_id    Int
-  unit_kerja_id Int
-  judul         String
-  jam           Int
-  tanggal       DateTime
-  pegawai       pegawai  @relation(fields: [pegawai_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@schema("makarti")
-}
-
-model Penyelenggaraan {
-  id                          Int                         @id @default(autoincrement())
-  namaKegiatan                String
-  tanggal                     DateTime
-  jenis_bangkom_id            Int
-  jumlahPeserta               Int
-  unit_kerja_id               Int?
-  jenis_bangkom_non_pelatihan jenis_bangkom_non_pelatihan @relation(fields: [jenis_bangkom_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users                       users?                      @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@schema("makarti")
-}
-
-model ProdukInovasi {
-  id             Int            @id @default(autoincrement())
-  nama           String
-  jenis          String
-  status_id      Int
-  tanggalRilis   DateTime
-  keterangan     String?
-  unit_kerja_id  Int?
-  status_inovasi status_inovasi @relation(fields: [status_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  users          users?         @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@schema("makarti")
-}
-
-model Publikasi {
-  id            Int      @id @default(autoincrement())
-  judul         String
-  tanggal       DateTime
-  jenis         String
-  unit_kerja_id Int
-  link          String
-  likes         Int?
-  views         Int?
-  createdAt     DateTime @default(now())
-  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@schema("makarti")
-}
-
-model SkpTransformasional {
-  id            Int      @id @default(autoincrement())
-  pegawai       String
-  unit_kerja_id Int
-  inovasi       String
-  target        String
-  status        String
-  dampak        String?
-  createdAt     DateTime @default(now())
-  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@schema("makarti")
-}
-
-model Sosialisasi {
-  id            Int      @id @default(autoincrement())
-  nama          String
-  tanggal       DateTime
-  jenis         String
-  platform      String
-  unit_kerja_id Int
-  peserta       Int
-  createdAt     DateTime @default(now())
-  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@schema("makarti")
-}
-
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model jenis_bangkom_non_pelatihan {
   id              Int               @id @default(autoincrement())
   created_at      DateTime          @default(now()) @db.Timestamptz(6)
   jenis_bangkom   String?
-  Penyelenggaraan Penyelenggaraan[]
+  penyelenggaraan penyelenggaraan[]
 
   @@schema("makarti")
 }
@@ -223,8 +100,8 @@ model pegawai {
   jabatan       String?
   golongan      String?     @db.VarChar
   eselon        String?     @db.VarChar(10)
-  Pelatihan     Pelatihan[]
   users         users?      @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  pelatihan     pelatihan[]
 
   @@schema("makarti")
 }
@@ -257,7 +134,7 @@ model status_inovasi {
   id            Int             @id @default(autoincrement())
   created_at    DateTime        @default(now()) @db.Timestamptz(6)
   status        String?         @db.VarChar
-  ProdukInovasi ProdukInovasi[]
+  produkInovasi produkInovasi[]
 
   @@schema("makarti")
 }
@@ -266,24 +143,147 @@ model status_inovasi {
 model users {
   created_at          DateTime              @default(now()) @db.Timestamptz(6)
   unit_kerja          String?
-  username            String                @db.VarChar @unique
+  username            String                @db.VarChar
   password            String?               @db.VarChar
   id                  Int                   @id @unique @default(autoincrement())
   role_id             Int?
   alias               String?               @db.VarChar(255)
-  Inovasi             Inovasi[]
-  Koordinasi          Koordinasi[]
-  Networking          Networking[]
-  Pelatihan           Pelatihan[]
-  Penyelenggaraan     Penyelenggaraan[]
-  ProdukInovasi       ProdukInovasi[]
-  Publikasi           Publikasi[]
-  SkpTransformasional SkpTransformasional[]
-  Sosialisasi         Sosialisasi[]
+  inovasi             inovasi[]
   kajian              kajian[]
+  koordinasi          koordinasi[]
+  networking          networking[]
   pegawai             pegawai[]
+  pelatihan           pelatihan[]
+  penyelenggaraan     penyelenggaraan[]
+  produkInovasi       produkInovasi[]
+  publikasi           publikasi[]
   serapan_anggaran    serapan_anggaran[]
+  skptransformational skptransformational[]
+  sosialisasi         sosialisasi[]
   role_user           role_user?            @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("makarti")
+}
+
+model inovasi {
+  id            Int      @id(map: "Inovasi_pkey") @default(autoincrement())
+  judul         String
+  tahap         String
+  tanggal       DateTime
+  indikator     String
+  unit_kerja_id Int?
+  users         users?   @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Inovasi_unit_kerja_id_fkey")
+
+  @@schema("makarti")
+}
+
+model koordinasi {
+  id            Int      @id(map: "Koordinasi_pkey") @default(autoincrement())
+  tanggal       DateTime
+  instansi      String
+  jenisInstansi String
+  topik         String
+  catatan       String?
+  unit_kerja_id Int
+  createdAt     DateTime @default(now())
+  Status        String?
+  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Koordinasi_unit_kerja_id_fkey")
+
+  @@schema("makarti")
+}
+
+model networking {
+  id            Int      @id(map: "Networking_pkey") @default(autoincrement())
+  instansi      String
+  jenis         String
+  catatan       String
+  unit_kerja_id Int
+  createdAt     DateTime @default(now())
+  status        String?
+  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Networking_unit_kerja_id_fkey")
+
+  @@schema("makarti")
+}
+
+model pelatihan {
+  id            Int      @id(map: "Pelatihan_pkey") @default(autoincrement())
+  pegawai_id    Int
+  unit_kerja_id Int
+  judul         String
+  jam           Int
+  tanggal       DateTime
+  pegawai       pegawai  @relation(fields: [pegawai_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Pelatihan_pegawai_id_fkey")
+  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Pelatihan_unit_kerja_id_fkey")
+
+  @@schema("makarti")
+}
+
+model penyelenggaraan {
+  id                          Int                         @id(map: "Penyelenggaraan_pkey") @default(autoincrement())
+  namaKegiatan                String
+  tanggal                     DateTime
+  jenis_bangkom_id            Int
+  jumlahPeserta               Int
+  unit_kerja_id               Int?
+  jenis_bangkom_non_pelatihan jenis_bangkom_non_pelatihan @relation(fields: [jenis_bangkom_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Penyelenggaraan_jenis_bangkom_id_fkey")
+  users                       users?                      @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Penyelenggaraan_unit_kerja_id_fkey")
+
+  @@schema("makarti")
+}
+
+model produkInovasi {
+  id             Int            @id(map: "ProdukInovasi_pkey") @default(autoincrement())
+  nama           String
+  jenis          String
+  status_id      Int
+  tanggalRilis   DateTime
+  keterangan     String?
+  unit_kerja_id  Int?
+  status_inovasi status_inovasi @relation(fields: [status_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "ProdukInovasi_status_id_fkey")
+  users          users?         @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "ProdukInovasi_unit_kerja_id_fkey")
+
+  @@schema("makarti")
+}
+
+model publikasi {
+  id            Int      @id(map: "Publikasi_pkey") @default(autoincrement())
+  judul         String
+  tanggal       DateTime
+  jenis         String
+  unit_kerja_id Int
+  link          String
+  likes         Int?
+  views         Int?
+  createdAt     DateTime @default(now())
+  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Publikasi_unit_kerja_id_fkey")
+
+  @@schema("makarti")
+}
+
+model skptransformational {
+  id            Int      @id(map: "SkpTransformasional_pkey") @default(autoincrement())
+  pegawai       String
+  unit_kerja_id Int
+  inovasi       String
+  target        String
+  status        String
+  dampak        String?
+  createdAt     DateTime @default(now())
+  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "SkpTransformasional_unit_kerja_id_fkey")
+
+  @@schema("makarti")
+}
+
+model sosialisasi {
+  id            Int      @id(map: "Sosialisasi_pkey") @default(autoincrement())
+  nama          String
+  tanggal       DateTime
+  jenis         String
+  platform      String
+  unit_kerja_id Int
+  peserta       Int
+  createdAt     DateTime @default(now())
+  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Sosialisasi_unit_kerja_id_fkey")
 
   @@schema("makarti")
 }

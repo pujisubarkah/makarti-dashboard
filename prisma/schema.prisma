@@ -9,6 +9,18 @@ datasource db {
   schemas  = ["makarti"]
 }
 
+model inovasi {
+  id            Int      @id(map: "Inovasi_pkey") @default(autoincrement())
+  judul         String
+  tahap         String
+  tanggal       DateTime
+  indikator     String
+  unit_kerja_id Int?
+  users         users?   @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Inovasi_unit_kerja_id_fkey")
+
+  @@schema("makarti")
+}
+
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model jenis_bangkom_non_pelatihan {
   id              Int               @id @default(autoincrement())
@@ -28,6 +40,34 @@ model kajian {
   status        String?
   unit_kerja_id Int?
   users         users?   @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("makarti")
+}
+
+model koordinasi {
+  id            Int      @id(map: "Koordinasi_pkey") @default(autoincrement())
+  tanggal       DateTime
+  instansi      String
+  jenisInstansi String
+  topik         String
+  catatan       String?
+  unit_kerja_id Int
+  createdAt     DateTime @default(now())
+  Status        String?
+  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Koordinasi_unit_kerja_id_fkey")
+
+  @@schema("makarti")
+}
+
+model networking {
+  id            Int      @id(map: "Networking_pkey") @default(autoincrement())
+  instansi      String
+  jenis         String
+  catatan       String
+  unit_kerja_id Int
+  createdAt     DateTime @default(now())
+  status        String?
+  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Networking_unit_kerja_id_fkey")
 
   @@schema("makarti")
 }
@@ -106,105 +146,6 @@ model pegawai {
   @@schema("makarti")
 }
 
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model role_user {
-  id         Int      @id @default(autoincrement())
-  created_at DateTime @default(now()) @db.Timestamptz(6)
-  role_user  String?
-  users      users[]
-
-  @@schema("makarti")
-}
-
-model serapan_anggaran {
-  id                    Int       @id @default(autoincrement())
-  bulan                 String    @db.VarChar(20)
-  pagu_anggaran         Decimal   @db.Decimal(18, 2)
-  realisasi_pengeluaran Decimal   @db.Decimal(18, 2)
-  unit_kerja_id         Int
-  created_at            DateTime? @default(now()) @db.Timestamp(6)
-  updated_at            DateTime? @default(now()) @db.Timestamp(6)
-  users                 users     @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@schema("makarti")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model status_inovasi {
-  id            Int             @id @default(autoincrement())
-  created_at    DateTime        @default(now()) @db.Timestamptz(6)
-  status        String?         @db.VarChar
-  produkInovasi produkInovasi[]
-
-  @@schema("makarti")
-}
-
-/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
-model users {
-  created_at          DateTime              @default(now()) @db.Timestamptz(6)
-  unit_kerja          String?
-  username            String                @db.VarChar
-  password            String?               @db.VarChar
-  id                  Int                   @id @unique @default(autoincrement())
-  role_id             Int?
-  alias               String?               @db.VarChar(255)
-  inovasi             inovasi[]
-  kajian              kajian[]
-  koordinasi          koordinasi[]
-  networking          networking[]
-  pegawai             pegawai[]
-  pelatihan           pelatihan[]
-  penyelenggaraan     penyelenggaraan[]
-  produkInovasi       produkInovasi[]
-  publikasi           publikasi[]
-  serapan_anggaran    serapan_anggaran[]
-  skptransformational skptransformational[]
-  sosialisasi         sosialisasi[]
-  role_user           role_user?            @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-
-  @@schema("makarti")
-}
-
-model inovasi {
-  id            Int      @id(map: "Inovasi_pkey") @default(autoincrement())
-  judul         String
-  tahap         String
-  tanggal       DateTime
-  indikator     String
-  unit_kerja_id Int?
-  users         users?   @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Inovasi_unit_kerja_id_fkey")
-
-  @@schema("makarti")
-}
-
-model koordinasi {
-  id            Int      @id(map: "Koordinasi_pkey") @default(autoincrement())
-  tanggal       DateTime
-  instansi      String
-  jenisInstansi String
-  topik         String
-  catatan       String?
-  unit_kerja_id Int
-  createdAt     DateTime @default(now())
-  Status        String?
-  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Koordinasi_unit_kerja_id_fkey")
-
-  @@schema("makarti")
-}
-
-model networking {
-  id            Int      @id(map: "Networking_pkey") @default(autoincrement())
-  instansi      String
-  jenis         String
-  catatan       String
-  unit_kerja_id Int
-  createdAt     DateTime @default(now())
-  status        String?
-  users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Networking_unit_kerja_id_fkey")
-
-  @@schema("makarti")
-}
-
 model pelatihan {
   id            Int      @id(map: "Pelatihan_pkey") @default(autoincrement())
   pegawai_id    Int
@@ -260,6 +201,29 @@ model publikasi {
   @@schema("makarti")
 }
 
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model role_user {
+  id         Int      @id @default(autoincrement())
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  role_user  String?
+  users      users[]
+
+  @@schema("makarti")
+}
+
+model serapan_anggaran {
+  id                    Int       @id @default(autoincrement())
+  bulan                 String    @db.VarChar(20)
+  pagu_anggaran         Decimal   @db.Decimal(18, 2)
+  realisasi_pengeluaran Decimal   @db.Decimal(18, 2)
+  unit_kerja_id         Int
+  created_at            DateTime? @default(now()) @db.Timestamp(6)
+  updated_at            DateTime? @default(now()) @db.Timestamp(6)
+  users                 users     @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("makarti")
+}
+
 model skptransformational {
   id            Int      @id(map: "SkpTransformasional_pkey") @default(autoincrement())
   pegawai       String
@@ -284,6 +248,42 @@ model sosialisasi {
   peserta       Int
   createdAt     DateTime @default(now())
   users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Sosialisasi_unit_kerja_id_fkey")
+
+  @@schema("makarti")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model status_inovasi {
+  id            Int             @id @default(autoincrement())
+  created_at    DateTime        @default(now()) @db.Timestamptz(6)
+  status        String?         @db.VarChar
+  produkInovasi produkInovasi[]
+
+  @@schema("makarti")
+}
+
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model users {
+  created_at          DateTime              @default(now()) @db.Timestamptz(6)
+  unit_kerja          String?
+  username            String                @db.VarChar @unique
+  password            String?               @db.VarChar
+  id                  Int                   @id @unique @default(autoincrement())
+  role_id             Int?
+  alias               String?               @db.VarChar(255)
+  inovasi             inovasi[]
+  kajian              kajian[]
+  koordinasi          koordinasi[]
+  networking          networking[]
+  pegawai             pegawai[]
+  pelatihan           pelatihan[]
+  penyelenggaraan     penyelenggaraan[]
+  produkInovasi       produkInovasi[]
+  publikasi           publikasi[]
+  serapan_anggaran    serapan_anggaran[]
+  skptransformational skptransformational[]
+  sosialisasi         sosialisasi[]
+  role_user           role_user?            @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("makarti")
 }

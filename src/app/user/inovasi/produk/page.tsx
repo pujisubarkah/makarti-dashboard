@@ -65,6 +65,18 @@ interface StatusInovasi {
   status: string
 }
 
+interface ApiProdukInovasiResponse {
+  id: number
+  nama: string
+  jenis: string
+  status_id: number
+  tanggalRilis: string
+  keterangan: string
+  status_inovasi?: {
+    status: string
+  }
+}
+
 const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6']
 
 export default function ProdukInovasiPage() {
@@ -94,7 +106,7 @@ export default function ProdukInovasiPage() {
         if (!res.ok) throw new Error('Gagal mengambil data produk inovasi dari server')
         const apiData = await res.json()
         
-        const transformedData: ProdukInovasiItem[] = apiData.map((item: any) => ({
+        const transformedData: ProdukInovasiItem[] = apiData.map((item: ApiProdukInovasiResponse) => ({
           id: item.id,
           nama: item.nama,
           jenis: item.jenis,

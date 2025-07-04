@@ -67,29 +67,99 @@ export default function MediaPage() {
 
   // State for popup
   const [showInactiveUnitsAlert, setShowInactiveUnitsAlert] = React.useState(false)
-  
-  // State for pagination
+    // State for pagination
   const [currentPage, setCurrentPage] = React.useState(1)
   const [itemsPerPage, setItemsPerPage] = React.useState(10)
-
+  
+  // State for filtering and sorting
+  const [filterUnit, setFilterUnit] = React.useState('')
+  const [filterJenis, setFilterJenis] = React.useState('')
+  const [sortColumn, setSortColumn] = React.useState<'judul' | 'jenis' | 'unit_kerja' | 'likes' | 'views' | null>(null)
+  const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc')
   // Transform and calculate data
   const dataPublikasi = publikasiData || []
 
+  // Filter and sort data
+  const filteredData = dataPublikasi.filter(item => {
+    const unitMatch = filterUnit === '' || item.users.unit_kerja === filterUnit
+    const jenisMatch = filterJenis === '' || item.jenis === filterJenis
+    return unitMatch && jenisMatch
+  })
+
+  // Sort data
+  const sortedData = [...filteredData].sort((a, b) => {
+    if (!sortColumn) return 0
+    
+    let aValue: string | number
+    let bValue: string | number
+    
+    switch (sortColumn) {
+      case 'judul':
+        aValue = a.judul.toLowerCase()
+        bValue = b.judul.toLowerCase()
+        break
+      case 'jenis':
+        aValue = a.jenis.toLowerCase()
+        bValue = b.jenis.toLowerCase()
+        break
+      case 'unit_kerja':
+        aValue = a.users.unit_kerja.toLowerCase()
+        bValue = b.users.unit_kerja.toLowerCase()
+        break
+      case 'likes':
+        aValue = a.likes || 0
+        bValue = b.likes || 0
+        break
+      case 'views':
+        aValue = a.views || 0
+        bValue = b.views || 0
+        break
+      default:
+        return 0
+    }
+    
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
+    return 0
+  })
+
   // Pagination calculations
-  const totalPages = Math.ceil(dataPublikasi.length / itemsPerPage)
+  const totalPages = Math.ceil(sortedData.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const currentData = dataPublikasi.slice(startIndex, endIndex)
+  const currentData = sortedData.slice(startIndex, endIndex)
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
   }
-
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
     setItemsPerPage(newItemsPerPage)
     setCurrentPage(1) // Reset to first page when changing items per page
   }
 
+  // Handle sorting
+  const handleSort = (column: 'judul' | 'jenis' | 'unit_kerja' | 'likes' | 'views') => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortColumn(column)
+      setSortDirection('asc')
+    }
+    setCurrentPage(1) // Reset to first page when sorting
+  }
+
+  // Reset filters
+  const resetFilters = () => {
+    setFilterUnit('')
+    setFilterJenis('')
+    setSortColumn(null)
+    setSortDirection('asc')
+    setCurrentPage(1)
+  }
+  // Get unique values for filters
+  const uniqueUnits = [...new Set(dataPublikasi.map(item => item.users.unit_kerja))].sort()
+  const uniqueJenis = [...new Set(dataPublikasi.map(item => item.jenis))].sort()
+  
   // Define all possible units
   const allUnits = [
     'BIRO_RENAKU',
@@ -143,20 +213,29 @@ export default function MediaPage() {
     name,
     value,
   }))
-
   // Monthly data for bar chart
   const monthlyData = dataPublikasi.reduce((acc, item) => {
-    const month = new Date(item.tanggal).toLocaleDateString('id-ID', { 
+    const date = new Date(item.tanggal)
+    const month = date.toLocaleDateString('id-ID', { 
       month: 'short',
       year: 'numeric'
     })
-    acc[month] = (acc[month] || 0) + 1
+    const sortKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    
+    if (!acc[sortKey]) {
+      acc[sortKey] = {
+        month,
+        publikasi: 0,
+        sortDate: date
+      }
+    }
+    acc[sortKey].publikasi += 1
     return acc
-  }, {} as Record<string, number>)
+  }, {} as Record<string, { month: string; publikasi: number; sortDate: Date }>)
 
-  const barData = Object.entries(monthlyData)
-    .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
-    .map(([month, publikasi]) => ({
+  const barData = Object.values(monthlyData)
+    .sort((a, b) => a.sortDate.getTime() - b.sortDate.getTime())
+    .map(({ month, publikasi }) => ({
       month,
       publikasi,
     }))
@@ -452,9 +531,7 @@ export default function MediaPage() {
             <p>Belum ada data ranking unit kerja</p>
           </div>
         )}
-      </div>
-
-      {/* Enhanced Table */}
+      </div>      {/* Enhanced Table */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
           <div className="flex justify-between items-center">
@@ -481,16 +558,130 @@ export default function MediaPage() {
           </div>
         </div>
         
+        {/* Filter Section */}
+        <div className="px-6 py-4 bg-gray-50 border-b">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">Filter Unit Kerja:</span>
+              <select
+                value={filterUnit}
+                onChange={(e) => {
+                  setFilterUnit(e.target.value)
+                  setCurrentPage(1)
+                }}
+                className="px-3 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Semua Unit</option>
+                {uniqueUnits.map(unit => (
+                  <option key={unit} value={unit}>
+                    {unit.replace(/_/g, ' ')}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <div className="flex items-center gap-2">
+              <span className="text-sm font-medium text-gray-700">Filter Jenis Media:</span>
+              <select
+                value={filterJenis}
+                onChange={(e) => {
+                  setFilterJenis(e.target.value)
+                  setCurrentPage(1)
+                }}
+                className="px-3 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+              >
+                <option value="">Semua Jenis</option>
+                {uniqueJenis.map(jenis => (
+                  <option key={jenis} value={jenis}>
+                    {jenis}
+                  </option>
+                ))}
+              </select>
+            </div>
+            
+            <button
+              onClick={resetFilters}
+              className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700 transition-colors"
+            >
+              Reset Filter
+            </button>
+            
+            <div className="ml-auto text-sm text-gray-600">
+              Menampilkan {sortedData.length} dari {dataPublikasi.length} data
+            </div>
+          </div>
+        </div>
+        
         <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead className="bg-gray-50 text-sm text-gray-700">
               <tr>
                 <th className="px-6 py-3 text-left font-medium">No</th>
-                <th className="px-6 py-3 text-left font-medium">Judul</th>
-                <th className="px-6 py-3 text-left font-medium">Jenis Media</th>
-                <th className="px-6 py-3 text-left font-medium">Unit Kerja</th>
-                <th className="px-6 py-3 text-right font-medium">Likes</th>
-                <th className="px-6 py-3 text-right font-medium">Views</th>
+                <th className="px-6 py-3 text-left font-medium">
+                  <button
+                    onClick={() => handleSort('judul')}
+                    className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+                  >
+                    Judul
+                    {sortColumn === 'judul' && (
+                      <span className="text-blue-600">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </button>
+                </th>
+                <th className="px-6 py-3 text-left font-medium">
+                  <button
+                    onClick={() => handleSort('jenis')}
+                    className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+                  >
+                    Jenis Media
+                    {sortColumn === 'jenis' && (
+                      <span className="text-blue-600">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </button>
+                </th>
+                <th className="px-6 py-3 text-left font-medium">
+                  <button
+                    onClick={() => handleSort('unit_kerja')}
+                    className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+                  >
+                    Unit Kerja
+                    {sortColumn === 'unit_kerja' && (
+                      <span className="text-blue-600">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </button>
+                </th>
+                <th className="px-6 py-3 text-right font-medium">
+                  <button
+                    onClick={() => handleSort('likes')}
+                    className="flex items-center gap-1 hover:text-blue-600 transition-colors ml-auto"
+                  >
+                    Likes
+                    {sortColumn === 'likes' && (
+                      <span className="text-blue-600">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </button>
+                </th>
+                <th className="px-6 py-3 text-right font-medium">
+                  <button
+                    onClick={() => handleSort('views')}
+                    className="flex items-center gap-1 hover:text-blue-600 transition-colors ml-auto"
+                  >
+                    Views
+                    {sortColumn === 'views' && (
+                      <span className="text-blue-600">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </button>
+                </th>
                 <th className="px-6 py-3 text-center font-medium">Link</th>
               </tr>
             </thead>

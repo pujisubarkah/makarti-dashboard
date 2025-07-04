@@ -86,7 +86,7 @@ export default function KajianPage() {
     status: '',
   })
 
-  const jenisOptions = ["Laporan", "Buku", "Policy brief", "Analisis Kebijakan", "Telaah Kebijakan", "Survei","Produk Hukum"]
+  const jenisOptions = ["Laporan", "Buku", "Policy brief", "Analisis Kebijakan", "Telaah Kebijakan", "Survei","Produk Hukum","Pedoman"]
   const statusOptions = ["Draft", "Review", "Selesai", "Revisi", "Ditunda"]
 
   // Calculate statistics - updated for new data structure

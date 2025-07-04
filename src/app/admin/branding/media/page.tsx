@@ -67,9 +67,28 @@ export default function MediaPage() {
 
   // State for popup
   const [showInactiveUnitsAlert, setShowInactiveUnitsAlert] = React.useState(false)
+  
+  // State for pagination
+  const [currentPage, setCurrentPage] = React.useState(1)
+  const [itemsPerPage, setItemsPerPage] = React.useState(10)
 
   // Transform and calculate data
   const dataPublikasi = publikasiData || []
+
+  // Pagination calculations
+  const totalPages = Math.ceil(dataPublikasi.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentData = dataPublikasi.slice(startIndex, endIndex)
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  const handleItemsPerPageChange = (newItemsPerPage: number) => {
+    setItemsPerPage(newItemsPerPage)
+    setCurrentPage(1) // Reset to first page when changing items per page
+  }
 
   // Define all possible units
   const allUnits = [
@@ -438,7 +457,28 @@ export default function MediaPage() {
       {/* Enhanced Table */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
-          <h2 className="text-xl font-bold">Detail Publikasi Media</h2>
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-bold">Detail Publikasi Media</h2>
+              <p className="text-blue-100 text-sm">Daftar lengkap publikasi media dari semua unit kerja</p>
+            </div>
+            <div className="flex items-center space-x-4">
+              <div className="flex items-center space-x-2">
+                <span className="text-blue-100 text-sm">Tampilkan:</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={(e) => handleItemsPerPageChange(Number(e.target.value))}
+                  className="bg-white/20 text-white rounded px-2 py-1 text-sm border border-white/30 focus:outline-none focus:ring-2 focus:ring-white/50"
+                >
+                  <option value={5} className="text-gray-800">5</option>
+                  <option value={10} className="text-gray-800">10</option>
+                  <option value={25} className="text-gray-800">25</option>
+                  <option value={50} className="text-gray-800">50</option>
+                </select>
+                <span className="text-blue-100 text-sm">data per halaman</span>
+              </div>
+            </div>
+          </div>
         </div>
         
         <div className="overflow-x-auto">
@@ -455,42 +495,61 @@ export default function MediaPage() {
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-gray-200">
-              {dataPublikasi.length > 0 ? (
-                dataPublikasi.map((item, index) => (
-                  <tr key={item.id} className="hover:bg-blue-50">
-                    <td className="px-6 py-4 text-gray-600">{index + 1}</td>
-                    <td className="px-6 py-4 font-medium text-gray-800">
-                      {item.judul.length > 50 ? `${item.judul.substring(0, 50)}...` : item.judul}
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        item.jenis === 'Instagram' ? 'bg-pink-100 text-pink-800' :
-                        'bg-blue-100 text-blue-800'
-                      }`}>
-                        {item.jenis}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      {item.users.unit_kerja}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      {item.likes ? item.likes.toLocaleString() : '-'}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      {item.views ? item.views.toLocaleString() : '-'}
-                    </td>
-                    <td className="px-6 py-4 text-center">
-                      <a 
-                        href={item.link} 
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center px-3 py-1 bg-blue-500 text-white text-xs rounded-full hover:bg-blue-600"
-                      >
-                        🔗 Lihat
-                      </a>
-                    </td>
-                  </tr>
-                ))
+              {currentData.length > 0 ? (
+                currentData.map((item, index) => {
+                  const globalIndex = startIndex + index + 1; // Global row number
+                  return (
+                    <tr key={item.id} className="hover:bg-blue-50">
+                      <td className="px-6 py-4 text-gray-600">{globalIndex}</td>
+                      <td className="px-6 py-4 font-medium text-gray-800">
+                        {item.judul.length > 50 ? `${item.judul.substring(0, 50)}...` : item.judul}
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          item.jenis === 'Instagram' ? 'bg-pink-100 text-pink-800' :
+                          item.jenis === 'TikTok' ? 'bg-purple-100 text-purple-800' :
+                          item.jenis === 'YouTube' ? 'bg-red-100 text-red-800' :
+                          item.jenis === 'Facebook' ? 'bg-blue-100 text-blue-800' :
+                          item.jenis === 'Twitter' ? 'bg-cyan-100 text-cyan-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {item.jenis === 'Instagram' ? '📸' :
+                           item.jenis === 'TikTok' ? '🎵' :
+                           item.jenis === 'YouTube' ? '📺' :
+                           item.jenis === 'Facebook' ? '👥' :
+                           item.jenis === 'Twitter' ? '🐦' : '📱'} {item.jenis}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-gray-700">
+                        {item.users.unit_kerja.replace(/_/g, ' ')}
+                      </td>
+                      <td className="px-6 py-4 text-right font-medium">
+                        {item.likes ? (
+                          <span className="text-red-600">❤️ {item.likes.toLocaleString()}</span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-right font-medium">
+                        {item.views ? (
+                          <span className="text-blue-600">👁️ {item.views.toLocaleString()}</span>
+                        ) : (
+                          <span className="text-gray-400">-</span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 text-center">
+                        <a 
+                          href={item.link} 
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="inline-flex items-center px-3 py-1 bg-blue-500 text-white text-xs rounded-full hover:bg-blue-600 transition-colors"
+                        >
+                          🔗 Lihat
+                        </a>
+                      </td>
+                    </tr>
+                  )
+                })
               ) : (
                 <tr>
                   <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
@@ -501,6 +560,96 @@ export default function MediaPage() {
             </tbody>
           </table>
         </div>
+        
+        {/* Pagination Controls */}
+        {dataPublikasi.length > 0 && (
+          <div className="px-6 py-4 bg-gray-50 border-t">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <p className="text-sm text-gray-700">
+                  Menampilkan <span className="font-medium">{startIndex + 1}</span> sampai{' '}
+                  <span className="font-medium">{Math.min(endIndex, dataPublikasi.length)}</span> dari{' '}
+                  <span className="font-medium">{dataPublikasi.length}</span> hasil
+                </p>
+              </div>
+              
+              <div className="flex items-center space-x-2">
+                {/* Previous Button */}
+                <button
+                  onClick={() => handlePageChange(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className="px-3 py-1 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  ← Sebelumnya
+                </button>
+                
+                {/* Page Numbers */}
+                <div className="flex space-x-1">
+                  {/* First page */}
+                  {currentPage > 3 && (
+                    <>
+                      <button
+                        key="first-page"
+                        onClick={() => handlePageChange(1)}
+                        className="px-3 py-1 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        1
+                      </button>
+                      {currentPage > 4 && <span key="start-ellipsis" className="px-2 py-1 text-gray-500">...</span>}
+                    </>
+                  )}
+                  
+                  {/* Pages around current page */}
+                  {(() => {
+                    const pages = [];
+                    const startPage = Math.max(1, currentPage - 2);
+                    const endPage = Math.min(totalPages, currentPage + 2);
+                    
+                    for (let pageNum = startPage; pageNum <= endPage; pageNum++) {
+                      pages.push(
+                        <button
+                          key={`page-${pageNum}`}
+                          onClick={() => handlePageChange(pageNum)}
+                          className={`px-3 py-1 rounded-lg border text-sm font-medium transition-colors ${
+                            currentPage === pageNum
+                              ? 'bg-blue-500 text-white border-blue-500'
+                              : 'border-gray-300 bg-white text-gray-700 hover:bg-gray-50'
+                          }`}
+                        >
+                          {pageNum}
+                        </button>
+                      );
+                    }
+                    return pages;
+                  })()}
+                  
+                  {/* Last page */}
+                  {currentPage < totalPages - 2 && (
+                    <>
+                      {currentPage < totalPages - 3 && <span key="end-ellipsis" className="px-2 py-1 text-gray-500">...</span>}
+                      <button
+                        key="last-page"
+                        onClick={() => handlePageChange(totalPages)}
+                        className="px-3 py-1 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 transition-colors"
+                      >
+                        {totalPages}
+                      </button>
+                    </>
+                  )}
+                </div>
+                
+                {/* Next Button */}
+                <button
+                  onClick={() => handlePageChange(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className="px-3 py-1 rounded-lg border border-gray-300 bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+                >
+                  Selanjutnya →
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
     </div>
   )

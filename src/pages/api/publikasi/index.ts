@@ -8,8 +8,8 @@ export default async function handler(
   res: NextApiResponse
 ) {
   const page = parseInt(req.query.page as string) || 1
-  const limit = parseInt(req.query.limit as string) || 10
-  const offset = (page - 1) * limit
+  const limit = req.query.limit ? parseInt(req.query.limit as string) : undefined // No default limit
+  const offset = limit ? (page - 1) * limit : 0
 
   try {
     // Ambil data publikasi + relasi user
@@ -17,14 +17,12 @@ export default async function handler(
       orderBy: {
         tanggal: 'desc',
       },
-      skip: offset,
-      take: limit,
+      ...(limit && { skip: offset, take: limit }), // Only apply pagination if limit is provided
       include: {
         users: {
           select: {
             id: true,
             unit_kerja: true,
-          
           },
         },
       },
@@ -37,9 +35,9 @@ export default async function handler(
       data: publikasi,
       meta: {
         page,
-        limit,
+        limit: limit || total, // If no limit, show total as limit
         total,
-        totalPages: Math.ceil(total / limit),
+        totalPages: limit ? Math.ceil(total / limit) : 1, // If no limit, only 1 page
       },
     })
   } catch (error) {

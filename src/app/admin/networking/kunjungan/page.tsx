@@ -30,6 +30,11 @@ export default function NetworkingPage() {
   const [showUnitModal, setShowUnitModal] = useState(false);
   const [selectedUnit, setSelectedUnit] = useState<string | null>(null);
   const [showChampionAlert, setShowChampionAlert] = useState(false);
+    // Filter and sort states
+  const [filterUnitKerja, setFilterUnitKerja] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [sortColumn, setSortColumn] = useState<string | null>(null);
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
   useEffect(() => {
     const fetchData = async () => {
@@ -131,12 +136,10 @@ export default function NetworkingPage() {
       fullName: `Lainnya (${otherCategories.length} kategori)`
     }] : [])
   ];
-
   // Hitung unit terpopuler - with null checks
   const unitCount = (dataKegiatan || []).reduce((acc, item) => {
     if (!item.unit_kerja) return acc; // Skip if no unit_kerja
-    const shortUnit = item.unit_kerja?.split(' ')[0] + '...' || 'Unknown...'; // Shorten unit name with null check
-    acc[shortUnit] = (acc[shortUnit] || 0) + 1;
+    acc[item.unit_kerja] = (acc[item.unit_kerja] || 0) + 1;
     return acc;
   }, {} as Record<string, number>);
 
@@ -145,13 +148,79 @@ export default function NetworkingPage() {
     .slice(0, 3);
 
   const championUnit = sortedUnits && sortedUnits.length > 0 ? sortedUnits[0] : null; // Most active unit with null check
+  // Get unique values for filters
+  const uniqueUnitKerja = [...new Set((dataKegiatan || []).map(item => item.unit_kerja).filter(Boolean))].sort();
+  const uniqueStatus = [...new Set((dataKegiatan || []).map(item => item.status).filter(Boolean))].sort();
 
-  // Pagination calculations - with null checks
-  const safeDataLength = (dataKegiatan || []).length;
-  const totalPages = Math.ceil(safeDataLength / itemsPerPage);
+  // Filter and sort data
+  const filteredData = (dataKegiatan || []).filter(item => {
+    const matchesUnit = !filterUnitKerja || item.unit_kerja === filterUnitKerja;
+    const matchesStatus = !filterStatus || item.status === filterStatus;
+    return matchesUnit && matchesStatus;
+  });
+
+  // Sort data
+  const sortedData = [...filteredData].sort((a, b) => {
+    if (!sortColumn) return 0;
+    
+    let aValue: string | number = '';
+    let bValue: string | number = '';
+    
+    switch (sortColumn) {
+      case 'instansi':
+        aValue = a.instansi || '';
+        bValue = b.instansi || '';
+        break;
+      case 'jenis':
+        aValue = a.jenis || '';
+        bValue = b.jenis || '';
+        break;
+      case 'status':
+        aValue = a.status || '';
+        bValue = b.status || '';
+        break;
+      case 'unit_kerja':
+        aValue = a.unit_kerja || '';
+        bValue = b.unit_kerja || '';
+        break;
+      case 'catatan':
+        aValue = a.catatan || '';
+        bValue = b.catatan || '';
+        break;
+      default:
+        return 0;
+    }
+    
+    if (typeof aValue === 'string' && typeof bValue === 'string') {
+      const comparison = aValue.localeCompare(bValue);
+      return sortDirection === 'asc' ? comparison : -comparison;
+    }
+    
+    return 0;
+  });
+
+  // Pagination calculations - with filtered data
+  const filteredDataLength = sortedData.length;
+  const totalPages = Math.ceil(filteredDataLength / itemsPerPage);
   const startIndex = (currentPage - 1) * itemsPerPage;
   const endIndex = startIndex + itemsPerPage;
-  const currentData = (dataKegiatan || []).slice(startIndex, endIndex);
+  const currentData = sortedData.slice(startIndex, endIndex);
+
+  // Sort function
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc');
+    } else {
+      setSortColumn(column);
+      setSortDirection('asc');
+    }
+    setCurrentPage(1); // Reset to first page when sorting
+  };
+
+  // Filter change handlers
+  const handleFilterChange = () => {
+    setCurrentPage(1); // Reset to first page when filtering
+  };
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page);
@@ -161,7 +230,6 @@ export default function NetworkingPage() {
     setItemsPerPage(newItemsPerPage);
     setCurrentPage(1); // Reset to first page when changing items per page
   };
-
   const handleUnitClick = (unit: string) => {
     setSelectedUnit(unit);
     setShowUnitModal(true);
@@ -169,8 +237,7 @@ export default function NetworkingPage() {
 
   const getUnitDetails = (unit: string) => {
     const unitData = (dataKegiatan || []).filter(item => {
-      const shortUnit = item.unit_kerja?.split(' ')[0] + '...' || 'Unknown...';
-      return shortUnit === unit;
+      return item.unit_kerja === unit;
     });
 
     const statusBreakdown = unitData.reduce((acc, item) => {
@@ -193,8 +260,7 @@ export default function NetworkingPage() {
       totalKegiatan: unitData.length,
       statusBreakdown,
       jenisBreakdown,
-      instansiPartners,
-      activities: unitData,
+      instansiPartners,      activities: unitData,
       fullUnitName: unitData[0]?.unit_kerja || unit
     };
   };
@@ -360,8 +426,7 @@ export default function NetworkingPage() {
         <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
           <span className="mr-2">🏆</span>
           Unit Paling Aktif dalam Networking
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        </h2>        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {sortedUnits.map(([unit, count], index) => {
             const colors = [
               { 
@@ -393,7 +458,7 @@ export default function NetworkingPage() {
               }
             ][index]
 
-            const percentage = safeDataLength > 0 ? ((count / safeDataLength) * 100).toFixed(1) : '0.0';
+            const percentage = (dataKegiatan || []).length > 0 ? ((count / (dataKegiatan || []).length) * 100).toFixed(1) : '0.0';
 
             return (
               <div
@@ -414,8 +479,8 @@ export default function NetworkingPage() {
                   
                   <div className="flex items-center justify-between">
                     <div>
-                      <p className={`text-sm font-medium ${colors.dark} mb-1`}>
-                        {unit}
+                      <p className={`text-sm font-medium ${colors.dark} mb-1`} title={unit}>
+                        {unit.length > 20 ? unit.substring(0, 20) + '...' : unit}
                       </p>
                       <p className={`text-3xl font-bold ${colors.text}`}>
                         {count}
@@ -462,11 +527,10 @@ export default function NetworkingPage() {
           <span className="mr-2">📊</span>
           Statistik Kegiatan Networking
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-          <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">          <div className="text-center p-4 bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg">
             <div className="text-3xl mb-2">🏢</div>
             <div className="text-2xl font-bold text-blue-600">
-              {safeDataKegiatan.filter(d => d.instansi.toLowerCase().includes('kementerian') || d.instansi.toLowerCase().includes('pemda')).length}
+              {(dataKegiatan || []).filter(d => d.instansi.toLowerCase().includes('kementerian') || d.instansi.toLowerCase().includes('pemda')).length}
             </div>
             <div className="text-sm text-blue-800">Instansi Pemerintah</div>
             <div className="text-xs text-blue-600 mt-1">Kementerian & Pemda</div>
@@ -474,7 +538,7 @@ export default function NetworkingPage() {
           <div className="text-center p-4 bg-gradient-to-br from-green-50 to-green-100 rounded-lg">
             <div className="text-3xl mb-2">⚡</div>
             <div className="text-2xl font-bold text-green-600">
-              {safeDataKegiatan.filter(d => d.status === 'In Progress').length}
+              {(dataKegiatan || []).filter(d => d.status === 'In Progress').length}
             </div>
             <div className="text-sm text-green-800">Sedang Berjalan</div>
             <div className="text-xs text-green-600 mt-1">Status In Progress</div>
@@ -482,7 +546,7 @@ export default function NetworkingPage() {
           <div className="text-center p-4 bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg">
             <div className="text-3xl mb-2">🤝</div>
             <div className="text-2xl font-bold text-purple-600">
-              {safeDataKegiatan.filter(d => d.jenis.toLowerCase().includes('kerjasama')).length}
+              {(dataKegiatan || []).filter(d => d.jenis.toLowerCase().includes('kerjasama')).length}
             </div>
             <div className="text-sm text-purple-800">Kerjasama</div>
             <div className="text-xs text-purple-600 mt-1">Kolaborasi Formal</div>
@@ -490,15 +554,13 @@ export default function NetworkingPage() {
           <div className="text-center p-4 bg-gradient-to-br from-orange-50 to-orange-100 rounded-lg">
             <div className="text-3xl mb-2">🚀</div>
             <div className="text-2xl font-bold text-orange-600">
-              {safeDataKegiatan.filter(d => d.status === 'Inisiasi').length}
+              {(dataKegiatan || []).filter(d => d.status === 'Inisiasi').length}
             </div>
             <div className="text-sm text-orange-800">Inisiasi</div>
             <div className="text-xs text-orange-600 mt-1">Tahap Perencanaan</div>
           </div>
         </div>
-      </div>
-
-      {/* Enhanced Table */}
+      </div>      {/* Enhanced Table */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
         <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
           <div className="flex justify-between items-center">
@@ -524,23 +586,158 @@ export default function NetworkingPage() {
             </div>
           </div>
         </div>
+
+        {/* Filters */}
+        <div className="px-6 py-4 bg-gray-50 border-b">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                🏢 Filter Unit Kerja
+              </label>
+              <select
+                value={filterUnitKerja}
+                onChange={(e) => {
+                  setFilterUnitKerja(e.target.value);
+                  handleFilterChange();
+                }}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Semua Unit Kerja</option>
+                {uniqueUnitKerja.map((unit) => (
+                  <option key={unit} value={unit}>
+                    {unit}
+                  </option>
+                ))}
+              </select>
+            </div>            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                � Filter Status
+              </label>
+              <select
+                value={filterStatus}
+                onChange={(e) => {
+                  setFilterStatus(e.target.value);
+                  handleFilterChange();
+                }}
+                className="w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Semua Status</option>
+                {uniqueStatus.map((status) => (
+                  <option key={status} value={status}>
+                    {status}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-end">              <button
+                onClick={() => {
+                  setFilterUnitKerja('');
+                  setFilterStatus('');
+                  setSortColumn(null);
+                  setSortDirection('asc');
+                  handleFilterChange();
+                }}
+                className="w-full bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors text-sm font-medium"
+              >
+                🔄 Reset Filter & Sort
+              </button>
+            </div>
+          </div>          {/* Filter Summary */}
+          {(filterUnitKerja || filterStatus) && (
+            <div className="mt-3 flex flex-wrap items-center gap-2">
+              <span className="text-sm text-gray-600">Filter aktif:</span>
+              {filterUnitKerja && (
+                <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded-full text-xs font-medium">
+                  Unit: {filterUnitKerja}
+                </span>
+              )}
+              {filterStatus && (
+                <span className="bg-green-100 text-green-800 px-2 py-1 rounded-full text-xs font-medium">
+                  Status: {filterStatus}
+                </span>
+              )}              <span className="text-sm text-gray-500">
+                ({filteredDataLength} dari {(dataKegiatan || []).length} data)
+              </span>
+            </div>
+          )}
+        </div>
         
         <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead className="bg-gray-50 text-sm text-gray-700">
               <tr>
                 <th className="px-6 py-3 text-left font-medium">No</th>
-                <th className="px-6 py-3 text-left font-medium">Instansi</th>
-                <th className="px-6 py-3 text-left font-medium">Jenis Kegiatan</th>
-                <th className="px-6 py-3 text-left font-medium">Status</th>
-                <th className="px-6 py-3 text-left font-medium">Unit Kerja</th>
-                <th className="px-6 py-3 text-left font-medium">Catatan</th>
+                <th 
+                  className="px-6 py-3 text-left font-medium cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => handleSort('instansi')}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Instansi</span>
+                    {sortColumn === 'instansi' && (
+                      <span className="text-blue-500">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
+                </th>
+                <th 
+                  className="px-6 py-3 text-left font-medium cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => handleSort('jenis')}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Jenis Kegiatan</span>
+                    {sortColumn === 'jenis' && (
+                      <span className="text-blue-500">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
+                </th>
+                <th 
+                  className="px-6 py-3 text-left font-medium cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => handleSort('status')}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Status</span>
+                    {sortColumn === 'status' && (
+                      <span className="text-blue-500">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
+                </th>
+                <th 
+                  className="px-6 py-3 text-left font-medium cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => handleSort('unit_kerja')}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Unit Kerja</span>
+                    {sortColumn === 'unit_kerja' && (
+                      <span className="text-blue-500">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
+                </th>
+                <th 
+                  className="px-6 py-3 text-left font-medium cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => handleSort('catatan')}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Catatan</span>
+                    {sortColumn === 'catatan' && (
+                      <span className="text-blue-500">
+                        {sortDirection === 'asc' ? '↑' : '↓'}
+                      </span>
+                    )}
+                  </div>
+                </th>
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-gray-200">
               {currentData.map((item, index) => {
-                const shortUnit = item.unit_kerja?.split(' ')[0] + '...' || 'Unknown...';
-                const unitRank = sortedUnits.findIndex(([unit]) => unit === shortUnit);
+                const unitRank = sortedUnits.findIndex(([unit]) => unit === item.unit_kerja);
                 const isTopUnit = unitRank !== -1 && unitRank < 3;
                 const isChampion = unitRank === 0;
                 const globalIndex = startIndex + index + 1; // Global row number
@@ -575,16 +772,23 @@ export default function NetworkingPage() {
                       </span>
                     </td>
                     <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        isTopUnit 
-                          ? unitRank === 0 
-                            ? 'bg-yellow-100 text-yellow-800 ring-2 ring-yellow-300' 
-                            : unitRank === 1 
-                            ? 'bg-gray-100 text-gray-800' 
-                            : 'bg-orange-100 text-orange-800'
-                          : 'bg-gray-100 text-gray-800'
-                      }`} title={item.unit_kerja}>
-                        {isTopUnit && ['🥇', '🥈', '🥉'][unitRank]} {shortUnit}
+                      <span 
+                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          isTopUnit 
+                            ? unitRank === 0 
+                              ? 'bg-yellow-100 text-yellow-800 ring-2 ring-yellow-300' 
+                              : unitRank === 1 
+                              ? 'bg-gray-100 text-gray-800' 
+                              : 'bg-orange-100 text-orange-800'
+                            : 'bg-gray-100 text-gray-800'
+                        }`} 
+                        title={item.unit_kerja}
+                      >
+                        {isTopUnit && ['🥇', '🥈', '🥉'][unitRank]} 
+                        {item.unit_kerja && item.unit_kerja.length > 30 
+                          ? item.unit_kerja.substring(0, 30) + '...' 
+                          : item.unit_kerja || 'Unknown Unit'
+                        }
                         {isChampion && <span className="ml-1 text-yellow-600">👑</span>}
                       </span>
                     </td>
@@ -599,15 +803,16 @@ export default function NetworkingPage() {
             </tbody>
           </table>
         </div>
-        
-        {/* Pagination Controls */}
+          {/* Pagination Controls */}
         <div className="px-6 py-4 bg-gray-50 border-t">
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-2">
               <p className="text-sm text-gray-700">
                 Menampilkan <span className="font-medium">{startIndex + 1}</span> sampai{' '}
-                <span className="font-medium">{Math.min(endIndex, safeDataLength)}</span> dari{' '}
-                <span className="font-medium">{safeDataLength}</span> hasil
+                <span className="font-medium">{Math.min(endIndex, filteredDataLength)}</span> dari{' '}
+                <span className="font-medium">{filteredDataLength}</span> hasil              {(filterUnitKerja || filterStatus) && (
+                <span className="text-gray-500"> (difilter dari {(dataKegiatan || []).length} total data)</span>
+              )}
               </p>
             </div>
             
@@ -738,9 +943,8 @@ export default function NetworkingPage() {
                   </div>
                 </div>
                 <div className="text-right">
-                  <div className="font-bold text-gray-800">{item.value}</div>
-                  <div className="text-xs text-gray-500">
-                    {safeDataLength > 0 ? ((item.value / safeDataLength) * 100).toFixed(1) : '0.0'}%
+                  <div className="font-bold text-gray-800">{item.value}</div>                  <div className="text-xs text-gray-500">
+                    {(dataKegiatan || []).length > 0 ? ((item.value / (dataKegiatan || []).length) * 100).toFixed(1) : '0.0'}%
                   </div>
                 </div>
               </div>
@@ -752,10 +956,9 @@ export default function NetworkingPage() {
                 <div className="flex justify-between">
                   <span>Total Kategori:</span>
                   <span className="font-medium">{Object.keys(kegiatanCount).length}</span>
-                </div>
-                <div className="flex justify-between">
+                </div>                <div className="flex justify-between">
                   <span>Total Kegiatan:</span>
-                  <span className="font-medium">{safeDataLength}</span>
+                  <span className="font-medium">{(dataKegiatan || []).length}</span>
                 </div>
               </div>
             </div>

@@ -33,17 +33,15 @@ async function createKajianForUnitKerja(req: NextApiRequest, res: NextApiRespons
   if (!unit_kerja_id || isNaN(Number(unit_kerja_id))) {
     return res.status(400).json({ error: 'Invalid or missing unit_kerja_id' });
   }
-
-  if (!judul || !jenis || !status) {
-    return res.status(400).json({ error: 'Missing required fields: judul, jenis, status' });
+  if (!judul || !jenis) {
+    return res.status(400).json({ error: 'Missing required fields: judul, jenis' });
   }
 
   try {
-    const newKajian = await prisma.kajian.create({
-      data: {
+    const newKajian = await prisma.kajian.create({      data: {
         judul,
         jenis,
-        status,
+        status: status || null,
         unit_kerja_id: Number(unit_kerja_id),
       },
     });

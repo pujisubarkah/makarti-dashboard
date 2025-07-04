@@ -58,9 +58,12 @@ export default function KajianPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true)
-        // Get unit_kerja_id from localStorage (assuming it's stored there)
+        setLoading(true)        // Get unit_kerja_id from localStorage (assuming it's stored there)
         const unitKerjaId = localStorage.getItem('id')
+        
+        if (!unitKerjaId) {
+          throw new Error('Unit kerja ID tidak ditemukan. Silakan login ulang.')
+        }
         
         const response = await fetch(`/api/kajian/${unitKerjaId}`)
         if (!response.ok) {
@@ -188,8 +191,7 @@ export default function KajianPage() {
     setFormData(prev => ({ ...prev, [name]: value }))
   }
 
-  const handleEdit = (item: KajianItem) => {
-    setFormData({
+  const handleEdit = (item: KajianItem) => {    setFormData({
       judul: item.judul,
       jenis: item.jenis,
       status: item.status || '',
@@ -201,14 +203,19 @@ export default function KajianPage() {
   const handleDelete = async (id: number) => {
     if (confirm('Apakah Anda yakin ingin menghapus data ini?')) {
       try {
-        const unitKerjaId = localStorage.getItem('unit_kerja_id') || '19'
+        const unitKerjaId = localStorage.getItem('id')
         
-        const response = await fetch(`/api/kajian/${unitKerjaId}/${id}`, {
+        if (!unitKerjaId) {
+          alert('Unit kerja ID tidak ditemukan. Silakan login ulang.')
+          return
+        }
+          const response = await fetch(`/api/kajian/${unitKerjaId}/${id}`, {
           method: 'DELETE',
         })
 
         if (!response.ok) {
-          throw new Error('Failed to delete kajian')
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to delete kajian')
         }
 
         // Remove from local state
@@ -224,8 +231,7 @@ export default function KajianPage() {
         alert('Data berhasil dihapus!')
       } catch (error) {
         console.error('Error deleting data:', error)
-        alert('Terjadi kesalahan saat menghapus data.')
-      }
+        alert('Terjadi kesalahan saat menghapus data.')      }
     }
   }
 
@@ -233,7 +239,12 @@ export default function KajianPage() {
     e.preventDefault()
 
     try {
-      const unitKerjaId = localStorage.getItem('unit_kerja_id') || '19'
+      const unitKerjaId = localStorage.getItem('id')
+      
+      if (!unitKerjaId) {
+        alert('Unit kerja ID tidak ditemukan. Silakan login ulang.')
+        return
+      }
       
       if (editingId) {
         // Update existing item - PUT to API
@@ -241,8 +252,7 @@ export default function KajianPage() {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+          },          body: JSON.stringify({
             judul: formData.judul,
             jenis: formData.jenis,
             status: formData.status,
@@ -250,10 +260,17 @@ export default function KajianPage() {
         })
 
         if (!response.ok) {
-          throw new Error('Failed to update kajian')
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to update kajian')
         }
 
         const result = await response.json()
+        console.log('Update response:', result) // Debug log
+        
+        if (!result.data) {
+          throw new Error('Invalid response from server')
+        }
+        
         // Update local state with the updated item
         setData(prev => prev.map(item => 
           item.id === editingId ? result.data : item
@@ -265,8 +282,7 @@ export default function KajianPage() {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
+          },          body: JSON.stringify({
             judul: formData.judul,
             jenis: formData.jenis,
             status: formData.status,
@@ -274,10 +290,17 @@ export default function KajianPage() {
         })
 
         if (!response.ok) {
-          throw new Error('Failed to create kajian')
+          const errorData = await response.json()
+          throw new Error(errorData.error || 'Failed to create kajian')
         }
 
         const result = await response.json()
+        console.log('Create response:', result) // Debug log
+        
+        if (!result.data) {
+          throw new Error('Invalid response from server')
+        }
+        
         setData(prev => [...prev, result.data])
         alert('Data berhasil disimpan!')
       }

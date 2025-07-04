@@ -11,20 +11,18 @@ async function updateKajian(req: NextApiRequest, res: NextApiResponse) {
   if (!unit_kerja_id || isNaN(Number(unit_kerja_id)) || !id || isNaN(Number(id))) {
     return res.status(400).json({ error: 'Invalid or missing parameters' });
   }
-
-  if (!judul || !jenis || !status) {
-    return res.status(400).json({ error: 'Missing required fields: judul, jenis, status' });
+  if (!judul || !jenis) {
+    return res.status(400).json({ error: 'Missing required fields: judul, jenis' });
   }
 
   try {
     const updatedKajian = await prisma.kajian.update({
       where: {
         id: Number(id),
-      },
-      data: {
+      },      data: {
         judul,
         jenis,
-        status,
+        status: status || null,
         unit_kerja_id: Number(unit_kerja_id), // tetap ikut update jika perlu
       },
     });

@@ -115,9 +115,9 @@ export default function MediaPage() {
   }, [dataPublikasi.length, inactiveUnits.length])
 
   // Sort units by post count
-  const sortedUnits = Object.entries(unitCount)
-    .sort(([, a], [, b]) => b - a)
-    .slice(0, 3)
+  // const sortedUnits = Object.entries(unitCount)
+  //   .sort(([, a], [, b]) => b - a)
+  //   .slice(0, 3)
 
   // Pie chart data
   const pieData = Object.entries(mediaCount).map(([name, value]) => ({
@@ -146,9 +146,9 @@ export default function MediaPage() {
   const instagramPosts = dataPublikasi.filter(d => d.jenis === 'Instagram')
   const totalInstagramLikes = instagramPosts.reduce((a, b) => a + (b.likes || 0), 0)
   const totalInstagramViews = instagramPosts.reduce((a, b) => a + (b.views || 0), 0)
-  const avgInstagramEngagement = instagramPosts.length > 0 && totalInstagramViews > 0
-    ? ((totalInstagramLikes / totalInstagramViews) * 100).toFixed(1)
-    : '0'
+  // const avgInstagramEngagement = instagramPosts.length > 0 && totalInstagramViews > 0
+  //   ? ((totalInstagramLikes / totalInstagramViews) * 100).toFixed(1)
+  //   : '0'
 
   // Calculate all social media metrics
   const socialMediaPosts = dataPublikasi.filter(d => 

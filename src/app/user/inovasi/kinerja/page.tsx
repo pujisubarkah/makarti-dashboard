@@ -279,7 +279,7 @@ export default function InovasiPage() {
             ...payloadData
           }),
         })
-        message = 'Data berhasil diperbarui!'
+        // message = 'Data berhasil diperbarui!'
       } else {
         // Add new item - POST request
         response = await fetch(`/api/inovasi/${unitKerjaId}`, {

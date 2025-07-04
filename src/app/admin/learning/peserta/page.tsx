@@ -32,7 +32,6 @@ type Penyelenggaraan = {
 
 export default function PesertaPage() {  const [data, setData] = useState<Penyelenggaraan[]>([])
   const [loading, setLoading] = useState(true)
-  const [selectedPenyelenggara, setSelectedPenyelenggara] = useState<string>('Semua')
   
   // New filter states
   const [selectedUnitKerja, setSelectedUnitKerja] = useState<string>('Semua')
@@ -65,16 +64,10 @@ export default function PesertaPage() {  const [data, setData] = useState<Penyel
     }
 
     fetchData()
-  }, [])
-  // Reset pagination when filter changes
+  }, [])  // Reset pagination when filter changes
   useEffect(() => {
     setCurrentPage(1)
-  }, [selectedPenyelenggara, selectedUnitKerja, selectedJenisPelatihan, sortField, sortDirection])
-
-  // Dapatkan daftar penyelenggara unik
-  const penyelenggaraList = Array.from(
-    new Set(data.map((item) => item.users?.unit_kerja || 'Lainnya'))
-  )
+  }, [selectedUnitKerja, selectedJenisPelatihan, sortField, sortDirection])
 
   // Dapatkan daftar unit kerja unik
   const unitKerjaList = Array.from(
@@ -85,13 +78,8 @@ export default function PesertaPage() {  const [data, setData] = useState<Penyel
   const jenisPelatihanList = Array.from(
     new Set(data.map((item) => item.jenis_bangkom_non_pelatihan?.jenis_bangkom || 'Lainnya'))
   )
-
   // Filter berdasarkan semua kriteria
   let filteredData = data
-  
-  if (selectedPenyelenggara !== 'Semua') {
-    filteredData = filteredData.filter((item) => item.users?.unit_kerja === selectedPenyelenggara)
-  }
   
   if (selectedUnitKerja !== 'Semua') {
     filteredData = filteredData.filter((item) => (item.users?.unit_kerja || 'Lainnya') === selectedUnitKerja)
@@ -100,12 +88,11 @@ export default function PesertaPage() {  const [data, setData] = useState<Penyel
   if (selectedJenisPelatihan !== 'Semua') {
     filteredData = filteredData.filter((item) => (item.jenis_bangkom_non_pelatihan?.jenis_bangkom || 'Lainnya') === selectedJenisPelatihan)
   }
-
   // Apply sorting
   if (sortField) {
     filteredData = [...filteredData].sort((a, b) => {
-      let aValue: any
-      let bValue: any
+      let aValue: string | number | Date
+      let bValue: string | number | Date
 
       switch (sortField) {
         case 'namaKegiatan':

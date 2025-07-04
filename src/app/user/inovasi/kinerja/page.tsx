@@ -265,7 +265,7 @@ export default function InovasiPage() {
       }
       
       let response
-      let message
+      // let message
       
       if (editingId) {
         // Update existing item - PUT request

@@ -269,7 +269,7 @@ export default function MediaPage() {
                   Unit Kerja yang Belum Mengisi ({inactiveUnits.length} unit)
                 </h4>
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
-                  {inactiveUnits.map((unit, index) => (
+                  {inactiveUnits.map((unit) => (
                     <div 
                       key={unit}
                       className="bg-white rounded-lg p-3 border border-orange-200 text-left"

@@ -289,7 +289,7 @@ export default function InovasiPage() {
           },
           body: JSON.stringify(payloadData),
         })
-        message = 'Data berhasil disimpan!'
+        // message = 'Data berhasil disimpan!'
       }
 
       if (!response.ok) {

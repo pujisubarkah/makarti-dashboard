@@ -67,32 +67,36 @@ export default function InovasiPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
 
-  // Fetch data inovasi dari API
-  useEffect(() => {
-    const fetchData = async () => {
-      setLoading(true)
-      setError(null)
-      try {
-        const id = typeof window !== 'undefined' ? localStorage.getItem('id') : null
-        if (!id) throw new Error('ID unit kerja tidak ditemukan di localStorage')
-        const res = await fetch(`/api/inovasi/${id}`)
-        if (!res.ok) throw new Error('Gagal mengambil data inovasi dari server')
-        const apiData: InovasiItem[] = await res.json()
-        // Mapping ke struktur frontend
-        setData(apiData.map((item) => ({
-          id: item.id,
-          judul: item.judul,
-          tahap: item.tahap,
-          tanggal: item.tanggal.split('T')[0],
-          indikator: item.indikator,
-          unit: item.unit_kerja_id ? `Unit ${item.unit_kerja_id}` : '-',
-        })))
-      } catch (err) {
-        setError(err instanceof Error ? err.message : 'Gagal memuat data')
-      } finally {
-        setLoading(false)
-      }
+  // Fungsi untuk mengambil data dari API
+  const fetchData = async () => {
+    setLoading(true)
+    setError(null)
+    try {
+      const id = typeof window !== 'undefined' ? localStorage.getItem('id') : null
+      if (!id) throw new Error('ID unit kerja tidak ditemukan di localStorage')
+      
+      const res = await fetch(`/api/inovasi/${id}`)
+      if (!res.ok) throw new Error('Gagal mengambil data inovasi dari server')
+      
+      const apiData: InovasiItem[] = await res.json()
+      // Mapping ke struktur frontend
+      setData(apiData.map((item) => ({
+        id: item.id,
+        judul: item.judul,
+        tahap: item.tahap,
+        tanggal: item.tanggal.split('T')[0],
+        indikator: item.indikator,
+        unit: item.unit_kerja_id ? `Unit ${item.unit_kerja_id}` : '-',
+      })))
+    } catch (err) {
+      setError(err instanceof Error ? err.message : 'Gagal memuat data')
+    } finally {
+      setLoading(false)
     }
+  }
+
+  // Fetch data inovasi dari API saat komponen dimuat
+  useEffect(() => {
     fetchData()
   }, [])
 
@@ -151,8 +155,8 @@ export default function InovasiPage() {
     {
       title: "Implementasi",
       value: implementasi,
-      icon: <CheckCircle className="w-6 h-6" />,
-      color: 'green',
+      icon: <Rocket className="w-6 h-6" />,
+      color: 'blue',
       bgGradient: 'from-green-500 to-green-600',
       bgLight: 'bg-green-100',
       textColor: 'text-green-600',
@@ -208,18 +212,34 @@ export default function InovasiPage() {
     setEditingId(item.id)
     setShowModal(true)
   }
-
   const handleDelete = (id: number) => {
     toast(
       "Apakah Anda yakin ingin menghapus data ini?",
       {
         action: {
           label: "Hapus",
-          onClick: () => {
-            const updatedData = data.filter(item => item.id !== id)
-            setData(updatedData)
-            localStorage.setItem("inovasiData", JSON.stringify(updatedData))
-            toast.success("Data berhasil dihapus!")
+          onClick: async () => {
+            try {
+              // Mendapatkan unit_kerja_id dari localStorage
+              const unitKerjaId = typeof window !== 'undefined' ? localStorage.getItem('id') : null
+              if (!unitKerjaId) throw new Error('ID unit kerja tidak ditemukan')
+              
+              // Mengirim request DELETE ke API
+              const res = await fetch(`/api/inovasi/${unitKerjaId}`, {
+                method: 'DELETE',
+                headers: {
+                  'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({ id }),
+              })
+              
+              if (!res.ok) throw new Error('Gagal menghapus data dari server')
+                // Refresh data setelah berhasil menghapus dari API
+              await fetchData()
+              toast.success("Data berhasil dihapus!")
+            } catch (err) {
+              toast.error(err instanceof Error ? err.message : 'Gagal menghapus data')
+            }
           }
         },
         cancel: {
@@ -230,34 +250,52 @@ export default function InovasiPage() {
       }
     )
   }
-
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault()
 
     try {
-      let updatedData
+      // Mendapatkan unit_kerja_id dari localStorage
+      const unitKerjaId = typeof window !== 'undefined' ? localStorage.getItem('id') : null
+      if (!unitKerjaId) throw new Error('ID unit kerja tidak ditemukan')
+
+      // Menyiapkan data untuk dikirim ke API
+      const payloadData = {
+        ...formData,
+        unit_kerja_id: unitKerjaId
+      }
+      
+      let response
+      let message
       
       if (editingId) {
-        // Update existing item
-        updatedData = data.map(item => 
-          item.id === editingId 
-            ? { ...item, ...formData }
-            : item
-        )
+        // Update existing item - PUT request
+        response = await fetch(`/api/inovasi/${unitKerjaId}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: editingId,
+            ...payloadData
+          }),
+        })
+        message = 'Data berhasil diperbarui!'
       } else {
-        // Add new item
-        const newItem = {
-          id: Date.now(),
-          ...formData,
-          unit: `Unit ${localStorage.getItem('id') || '-'}`
-        }
-        updatedData = [...data, newItem]
+        // Add new item - POST request
+        response = await fetch(`/api/inovasi/${unitKerjaId}`, {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(payloadData),
+        })
+        message = 'Data berhasil disimpan!'
       }
 
-      setData(updatedData)
-      localStorage.setItem("inovasiData", JSON.stringify(updatedData))
-
-      // Reset form and close modal
+      if (!response.ok) {
+        throw new Error(`Gagal ${editingId ? 'memperbarui' : 'menyimpan'} data ke server`)
+      }      // Refresh data dari server
+      await fetchData()      // Reset form and close modal
       setFormData({
         judul: '',
         tahap: 'Ide',

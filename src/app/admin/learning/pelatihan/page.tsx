@@ -47,6 +47,12 @@ export default function PelatihanPage() {
   const [error, setError] = useState<string | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(10)
+  const [selectedUnit, setSelectedUnit] = useState<string>('')
+  const [searchName, setSearchName] = useState<string>('')
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof ProcessedData | null
+    direction: 'asc' | 'desc'
+  }>({ key: null, direction: 'asc' })
 
   useEffect(() => {
     fetchPelatihanData()
@@ -80,6 +86,69 @@ export default function PelatihanPage() {
     } finally {
       setLoading(false)
     }
+  }
+
+  // Sorting function
+  const handleSort = (key: keyof ProcessedData) => {
+    let direction: 'asc' | 'desc' = 'asc'
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc'
+    }
+    setSortConfig({ key, direction })
+    setCurrentPage(1) // Reset to first page when sorting
+  }
+  // Get sorted and filtered data
+  const getSortedAndFilteredData = () => {
+    let filteredData = [...dataPelatihan]
+    
+    // Apply unit filter
+    if (selectedUnit) {
+      filteredData = filteredData.filter(item => item.unit === selectedUnit)
+    }
+
+    // Apply name search filter
+    if (searchName.trim()) {
+      filteredData = filteredData.filter(item => 
+        item.nama.toLowerCase().includes(searchName.toLowerCase().trim())
+      )
+    }
+
+    // Apply sorting
+    if (sortConfig.key) {
+      filteredData.sort((a, b) => {
+        const aValue = a[sortConfig.key!]
+        const bValue = b[sortConfig.key!]
+        
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1
+        }
+        return 0
+      })
+    }
+
+    return filteredData
+  }
+
+  // Get unique units for filter dropdown
+  const uniqueUnits = Array.from(new Set(dataPelatihan.map(item => item.unit))).sort()
+
+  // Helper function to highlight search term
+  const highlightSearchTerm = (text: string, searchTerm: string) => {
+    if (!searchTerm.trim()) return text
+    
+    const regex = new RegExp(`(${searchTerm.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')})`, 'gi')
+    const parts = text.split(regex)
+    
+    return parts.map((part, index) => 
+      regex.test(part) ? (
+        <span key={index} className="bg-yellow-200 font-semibold text-yellow-800">
+          {part}
+        </span>
+      ) : part
+    )
   }
 
   if (loading) {
@@ -131,14 +200,16 @@ export default function PelatihanPage() {
     jumlahPegawai: stats.pegawai.size,
     rataJam: stats.totalJam / stats.pegawai.size
   })).sort((a, b) => b.rataJam - a.rataJam)
-
   const topPerformingUnits = unitStats.slice(0, 3)
 
+  // Get filtered and sorted data
+  const filteredAndSortedData = getSortedAndFilteredData()
+
   // Pagination calculations
-  const totalPages = Math.ceil(dataPelatihan.length / itemsPerPage)
+  const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const currentData = dataPelatihan.slice(startIndex, endIndex)
+  const currentData = filteredAndSortedData.slice(startIndex, endIndex)
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
@@ -384,28 +455,178 @@ export default function PelatihanPage() {
       {/* Enhanced Table */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
         <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
-          <div className="flex justify-between items-center">
-            <div>
-              <h2 className="text-xl font-bold">Detail Pelatihan Pegawai</h2>
-              <p className="text-blue-100 text-sm">Daftar lengkap pelatihan yang telah diikuti pegawai</p>
+          <div className="flex justify-between items-center">            <div>
+              <h2 className="text-xl font-bold">Detail Pelatihan Pegawai</h2>              <p className="text-blue-100 text-sm">
+                Daftar lengkap pelatihan yang telah diikuti pegawai
+                {selectedUnit && (
+                  <span className="ml-2 px-2 py-1 bg-blue-400 rounded text-xs">
+                    📍 Filter: {selectedUnit}
+                  </span>
+                )}
+                {searchName && (
+                  <span className="ml-2 px-2 py-1 bg-blue-400 rounded text-xs">
+                    🔍 Search: {searchName}
+                  </span>
+                )}
+                {sortConfig.key && (
+                  <span className="ml-2 px-2 py-1 bg-blue-400 rounded text-xs">
+                    🔤 Sort: {sortConfig.key} {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                  </span>
+                )}
+              </p>
+            </div><div className="text-blue-100 text-sm">
+              Menampilkan {startIndex + 1}-{Math.min(endIndex, filteredAndSortedData.length)} dari {filteredAndSortedData.length} data
             </div>
-            <div className="text-blue-100 text-sm">
-              Menampilkan {startIndex + 1}-{Math.min(endIndex, dataPelatihan.length)} dari {dataPelatihan.length} data
+          </div>
+        </div>        {/* Filter Controls */}
+        <div className="px-6 py-4 bg-gray-50 border-b border-gray-200">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center space-x-2">
+              <label htmlFor="unit-filter" className="text-sm font-medium text-gray-700">
+                Filter Unit:
+              </label>
+              <select
+                id="unit-filter"
+                value={selectedUnit}
+                onChange={(e) => {
+                  setSelectedUnit(e.target.value)
+                  setCurrentPage(1) // Reset to first page when filtering
+                }}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Semua Unit</option>
+                {uniqueUnits.map((unit) => (
+                  <option key={unit} value={unit}>
+                    {unit}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <label htmlFor="name-search" className="text-sm font-medium text-gray-700">
+                Cari Nama:
+              </label>
+              <input
+                id="name-search"
+                type="text"
+                placeholder="Ketik nama pegawai..."
+                value={searchName}
+                onChange={(e) => {
+                  setSearchName(e.target.value)
+                  setCurrentPage(1) // Reset to first page when searching
+                }}
+                className="px-3 py-2 border border-gray-300 rounded-md text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 min-w-[200px]"
+              />
+              {searchName && (
+                <button
+                  onClick={() => {
+                    setSearchName('')
+                    setCurrentPage(1)
+                  }}
+                  className="px-2 py-1 text-xs bg-red-100 text-red-700 rounded-full hover:bg-red-200 transition-colors"
+                  title="Clear search"
+                >
+                  ✕
+                </button>
+              )}
+            </div>              {selectedUnit && (
+              <button
+                onClick={() => setSelectedUnit('')}
+                className="px-3 py-1 text-xs bg-red-100 text-red-700 rounded-full hover:bg-red-200 transition-colors"
+              >
+                ✕ Clear Unit Filter
+              </button>
+            )}
+
+            {(selectedUnit || searchName || sortConfig.key) && (
+              <button
+                onClick={() => {
+                  setSelectedUnit('')
+                  setSearchName('')
+                  setSortConfig({ key: null, direction: 'asc' })
+                  setCurrentPage(1)
+                }}
+                className="px-3 py-1 text-xs bg-gray-100 text-gray-700 rounded-full hover:bg-gray-200 transition-colors"
+              >
+                🔄 Reset All
+              </button>
+            )}            <div className="flex items-center space-x-2 text-sm text-gray-600">
+              <span>💡 Tip: Gunakan filter unit & search nama, lalu klik header kolom untuk sorting A-Z</span>
             </div>
           </div>
         </div>
         
-        <div className="overflow-x-auto">
-          {dataPelatihan.length > 0 ? (
+        <div className="overflow-x-auto">          {filteredAndSortedData.length > 0 ? (
             <table className="min-w-full">
               <thead className="bg-gray-50 text-sm text-gray-700">
                 <tr>
                   <th className="px-6 py-3 text-left font-medium">No</th>
-                  <th className="px-6 py-3 text-left font-medium">Nama Pegawai</th>
-                  <th className="px-6 py-3 text-left font-medium">Unit</th>
-                  <th className="px-6 py-3 text-left font-medium">Judul Pelatihan</th>
-                  <th className="px-6 py-3 text-left font-medium">Jam</th>
-                  <th className="px-6 py-3 text-left font-medium">Tanggal</th>
+                  <th 
+                    className="px-6 py-3 text-left font-medium cursor-pointer hover:bg-gray-100 transition-colors relative"
+                    onClick={() => handleSort('nama')}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Nama Pegawai</span>
+                      {sortConfig.key === 'nama' && (
+                        <span className="text-blue-600">
+                          {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-3 text-left font-medium cursor-pointer hover:bg-gray-100 transition-colors relative"
+                    onClick={() => handleSort('unit')}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Unit</span>
+                      {sortConfig.key === 'unit' && (
+                        <span className="text-blue-600">
+                          {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-3 text-left font-medium cursor-pointer hover:bg-gray-100 transition-colors relative"
+                    onClick={() => handleSort('judul')}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Judul Pelatihan</span>
+                      {sortConfig.key === 'judul' && (
+                        <span className="text-blue-600">
+                          {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-3 text-left font-medium cursor-pointer hover:bg-gray-100 transition-colors relative"
+                    onClick={() => handleSort('jam')}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Jam</span>
+                      {sortConfig.key === 'jam' && (
+                        <span className="text-blue-600">
+                          {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                        </span>
+                      )}
+                    </div>
+                  </th>
+                  <th 
+                    className="px-6 py-3 text-left font-medium cursor-pointer hover:bg-gray-100 transition-colors relative"
+                    onClick={() => handleSort('tanggal')}
+                  >
+                    <div className="flex items-center space-x-1">
+                      <span>Tanggal</span>
+                      {sortConfig.key === 'tanggal' && (
+                        <span className="text-blue-600">
+                          {sortConfig.direction === 'asc' ? '↑' : '↓'}
+                        </span>
+                      )}
+                    </div>
+                  </th>
                 </tr>
               </thead>
               <tbody className="text-sm divide-y divide-gray-200">
@@ -417,7 +638,7 @@ export default function PelatihanPage() {
                   return (
                     <tr key={item.id} className="hover:bg-blue-50 transition-colors">
                       <td className="px-6 py-4 text-gray-600">{globalIndex + 1}</td>
-                      <td className="px-6 py-4 font-medium text-gray-800">{item.nama}</td>
+                      <td className="px-6 py-4 font-medium text-gray-800">{highlightSearchTerm(item.nama, searchName)}</td>
                       <td className="px-6 py-4">
                         <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                           isTopUnit 
@@ -446,17 +667,32 @@ export default function PelatihanPage() {
                   )
                 })}
               </tbody>
-            </table>
-          ) : (
+            </table>          ) : (
             <div className="text-center py-8">
-              <div className="text-gray-400 text-lg mb-2">📚</div>
-              <p className="text-gray-500">Belum ada data pelatihan</p>
+              <div className="text-gray-400 text-lg mb-2">
+                {selectedUnit || searchName ? '�' : '�📚'}
+              </div>
+              <p className="text-gray-500">
+                {selectedUnit || searchName 
+                  ? 'Tidak ada data yang sesuai dengan filter/pencarian'
+                  : 'Belum ada data pelatihan'}
+              </p>
+              {(selectedUnit || searchName) && (
+                <button
+                  onClick={() => {
+                    setSelectedUnit('')
+                    setSearchName('')
+                    setCurrentPage(1)
+                  }}
+                  className="mt-2 px-3 py-1 text-sm bg-blue-100 text-blue-700 rounded hover:bg-blue-200 transition-colors"
+                >
+                  🔄 Reset Filter
+                </button>
+              )}
             </div>
           )}
-        </div>
-
-        {/* Pagination */}
-        {dataPelatihan.length > 0 && totalPages > 1 && (
+        </div>        {/* Pagination */}
+        {filteredAndSortedData.length > 0 && totalPages > 1 && (
           <div className="px-6 py-4 bg-gray-50 border-t border-gray-200">
             <div className="flex items-center justify-between">
               <div className="text-sm text-gray-700">

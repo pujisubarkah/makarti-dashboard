@@ -339,19 +339,21 @@ export default function PenyelenggaraanBangkomPage() {
       error: (err) => `Error: ${err.message || 'Terjadi kesalahan saat menyimpan data'}`,
     })
   }
-
   const handleEdit = (item: PenyelenggaraanItem) => {
     setEditingItem(item)
+    
+    // Format tanggal untuk input HTML date (YYYY-MM-DD)
+    const formattedDate = new Date(item.tanggal).toISOString().split('T')[0]
+    
     setFormData({
       namaKegiatan: item.namaKegiatan,
-      tanggal: item.tanggal,
+      tanggal: formattedDate,
       jenis_bangkom_id: item.jenis_bangkom_non_pelatihan ? 
         options.find(opt => opt.jenis_bangkom === item.jenis_bangkom_non_pelatihan?.jenis_bangkom)?.id.toString() || '' : '',
       jumlahPeserta: item.jumlahPeserta.toString()
     })
     setShowEditModal(true)
   }
-
   const handleDelete = async (item: PenyelenggaraanItem) => {
     if (!confirm(`Apakah Anda yakin ingin menghapus kegiatan "${item.namaKegiatan}"?`)) {
       return
@@ -359,30 +361,38 @@ export default function PenyelenggaraanBangkomPage() {
 
     setIsDeleting(true)
 
-    try {
-      const unitKerjaId = localStorage.getItem("id")
-      if (!unitKerjaId) {
-        throw new Error("Unit kerja ID tidak ditemukan")
-      }
+    const loadingPromise = new Promise((resolve, reject) => {
+      setTimeout(async () => {
+        try {
+          const unitKerjaId = localStorage.getItem("id")
+          if (!unitKerjaId) {
+            throw new Error("Unit kerja ID tidak ditemukan")
+          }
 
-      const response = await fetch(`/api/penyelenggaraan/${unitKerjaId}/${item.id}`, {
-        method: 'DELETE',
-      })
+          const response = await fetch(`/api/penyelenggaraan/${unitKerjaId}/${item.id}`, {
+            method: 'DELETE',
+          })
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
-      }
+          if (!response.ok) {
+            const errorData = await response.json()
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+          }
 
-      setData(prev => prev.filter(dataItem => dataItem.id !== item.id))
-      toast.success('Kegiatan berhasil dihapus!')
-      
-    } catch (err) {
-      console.error('Error deleting data:', err)
-      toast.error(`Gagal menghapus: ${err instanceof Error ? err.message : 'Terjadi kesalahan'}`)
-    } finally {
-      setIsDeleting(false)
-    }
+          setData(prev => prev.filter(dataItem => dataItem.id !== item.id))
+          resolve({ success: true })
+        } catch (err) {
+          console.error('Error deleting data:', err)
+          reject(err)
+        } finally {
+          setIsDeleting(false)
+        }
+      }, 300)
+    })
+
+    toast.promise(loadingPromise, {
+      loading: 'Menghapus kegiatan...',
+      success: 'Kegiatan berhasil dihapus!',      error: (err) => `Gagal menghapus: ${err.message || 'Terjadi kesalahan'}`,
+    })
   }
 
   const handleEditSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -391,53 +401,69 @@ export default function PenyelenggaraanBangkomPage() {
     
     setIsEditing(true)
 
-    try {
-      const unitKerjaId = localStorage.getItem("id")
-      if (!unitKerjaId) {
-        throw new Error("Unit kerja ID tidak ditemukan")
-      }
+    const loadingPromise = new Promise((resolve, reject) => {
+      setTimeout(async () => {
+        try {
+          const unitKerjaId = localStorage.getItem("id")
+          if (!unitKerjaId) {
+            throw new Error("Unit kerja ID tidak ditemukan")
+          }
 
-      const response = await fetch(`/api/penyelenggaraan/${unitKerjaId}/${editingItem.id}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          namaKegiatan: formData.namaKegiatan,
-          tanggal: formData.tanggal,
-          jenis_bangkom_id: parseInt(formData.jenis_bangkom_id),
-          jumlahPeserta: parseInt(formData.jumlahPeserta),
-        }),
-      })
+          const requestData = {
+            namaKegiatan: formData.namaKegiatan,
+            tanggal: formData.tanggal,
+            jenis_bangkom_id: parseInt(formData.jenis_bangkom_id),
+            jumlahPeserta: parseInt(formData.jumlahPeserta),
+          }
 
-      if (!response.ok) {
-        const errorData = await response.json()
-        throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
-      }
+          console.log('Sending PUT request with data:', requestData)
+          console.log('URL:', `/api/penyelenggaraan/${unitKerjaId}/${editingItem.id}`)
 
-      const updatedItem = await response.json()
-      
-      setData(prev => prev.map(item => 
-        item.id === editingItem.id ? updatedItem : item
-      ))
+          const response = await fetch(`/api/penyelenggaraan/${unitKerjaId}/${editingItem.id}`, {
+            method: 'PUT',
+            headers: {
+              'Content-Type': 'application/json',
+            },
+            body: JSON.stringify(requestData),
+          })
 
-      setFormData({
-        namaKegiatan: '',
-        tanggal: '',
-        jenis_bangkom_id: '',
-        jumlahPeserta: ''
-      })
-      setEditingItem(null)
-      setShowEditModal(false)
+          if (!response.ok) {
+            const errorData = await response.json()
+            console.error('API Error Response:', errorData)
+            throw new Error(errorData.message || `HTTP error! status: ${response.status}`)
+          }
 
-      toast.success('Data berhasil diperbarui!')
-      
-    } catch (err) {
-      console.error('Error updating data:', err)
-      toast.error(`Gagal memperbarui: ${err instanceof Error ? err.message : 'Terjadi kesalahan'}`)
-    } finally {
-      setIsEditing(false)
-    }
+          const updatedItem = await response.json()
+          console.log('Received updated item:', updatedItem)
+          
+          setData(prev => prev.map(item => 
+            item.id === editingItem.id ? updatedItem : item
+          ))
+
+          setFormData({
+            namaKegiatan: '',
+            tanggal: '',
+            jenis_bangkom_id: '',
+            jumlahPeserta: ''
+          })
+          setEditingItem(null)
+          setShowEditModal(false)
+
+          resolve(updatedItem)
+        } catch (err) {
+          console.error('Error updating data:', err)
+          reject(err)
+        } finally {
+          setIsEditing(false)
+        }
+      }, 500)
+    })
+
+    toast.promise(loadingPromise, {
+      loading: 'Memperbarui data kegiatan...',
+      success: 'Data berhasil diperbarui!',
+      error: (err) => `Error: ${err.message || 'Terjadi kesalahan saat memperbarui data'}`,
+    })
   }
 
   // Early returns after all hooks

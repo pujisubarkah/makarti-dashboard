@@ -16,25 +16,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: 'unit_kerja_id atau id harus berupa angka' });
   }
 
-  try {
-    if (req.method === 'GET') {
+  try {    if (req.method === 'GET') {
       const entry = await prisma.penyelenggaraan.findUnique({
         where: {
           id: entryId,
           unit_kerja_id: unitId,
         },
-        select: {
-          id: true,
-          namaKegiatan: true,
-          tanggal: true,
-          jumlahPeserta: true,
+        include: {
           jenis_bangkom_non_pelatihan: {
             select: {
+              id: true,
               jenis_bangkom: true,
             },
           },
           users: {
             select: {
+              id: true,
               unit_kerja: true,
             },
           },
@@ -46,9 +43,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       return res.status(200).json(entry);
-    }
-
-    if (req.method === 'PUT') {
+    }if (req.method === 'PUT') {
       const {
         namaKegiatan,
         tanggal,
@@ -57,6 +52,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         unit_kerja_id: bodyUnitKerjaId,
       } = req.body;
 
+      // Validasi data
+      if (!namaKegiatan || !tanggal || !jenis_bangkom_id || !jumlahPeserta) {
+        return res.status(400).json({ 
+          message: "Semua field diperlukan: namaKegiatan, tanggal, jenis_bangkom_id, jumlahPeserta" 
+        });
+      }
+
+      // Validasi tipe data
+      const parsedJenisBangkomId = parseInt(jenis_bangkom_id);
+      const parsedJumlahPeserta = parseInt(jumlahPeserta);
+
+      if (isNaN(parsedJenisBangkomId) || isNaN(parsedJumlahPeserta)) {
+        return res.status(400).json({ 
+          message: "jenis_bangkom_id dan jumlahPeserta harus berupa angka" 
+        });
+      }
+
+      if (parsedJumlahPeserta < 1) {
+        return res.status(400).json({ 
+          message: "jumlahPeserta harus lebih dari 0" 
+        });
+      }
+
+      // Validasi tanggal
+      const parsedTanggal = new Date(tanggal);
+      if (isNaN(parsedTanggal.getTime())) {
+        return res.status(400).json({ 
+          message: "Format tanggal tidak valid" 
+        });
+      }
+
       const updatedEntry = await prisma.penyelenggaraan.update({
         where: {
           id: entryId,
@@ -64,10 +90,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
         data: {
           namaKegiatan,
-          tanggal: new Date(tanggal),
-          jenis_bangkom_id,
-          jumlahPeserta,
+          tanggal: parsedTanggal,
+          jenis_bangkom_id: parsedJenisBangkomId,
+          jumlahPeserta: parsedJumlahPeserta,
           unit_kerja_id: bodyUnitKerjaId ?? unitId,
+        },
+        include: {
+          jenis_bangkom_non_pelatihan: {
+            select: {
+              id: true,
+              jenis_bangkom: true,
+            },
+          },
+          users: {
+            select: {
+              id: true,
+              unit_kerja: true,
+            },
+          },
         },
       });
 

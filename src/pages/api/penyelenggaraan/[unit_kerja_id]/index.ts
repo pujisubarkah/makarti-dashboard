@@ -15,24 +15,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   try {
-    if (req.method === 'GET') {
-      // Ambil semua penyelenggaraan berdasarkan unit_kerja_id
+    if (req.method === 'GET') {      // Ambil semua penyelenggaraan berdasarkan unit_kerja_id
       const data = await prisma.penyelenggaraan.findMany({
         where: {
           unit_kerja_id: unitKerjaId, // Gunakan unitKerjaId bukan id
         },
-        select: {
-          id: true,
-          namaKegiatan: true,
-          tanggal: true,
-          jumlahPeserta: true,
+        include: {
           jenis_bangkom_non_pelatihan: {
             select: {
+              id: true,
               jenis_bangkom: true,
             },
           },
           users: {
             select: {
+              id: true,
               unit_kerja: true,
             },
           },

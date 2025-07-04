@@ -38,6 +38,11 @@ export default function PesertaPage() {
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(20)
+  
+  // Modal states
+  const [showTopUnitAlert, setShowTopUnitAlert] = useState(false)
+  const [showUnitModal, setShowUnitModal] = useState(false)
+  const [selectedUnit, setSelectedUnit] = useState<string | null>(null)
 
   useEffect(() => {
     const fetchData = async () => {
@@ -145,6 +150,59 @@ export default function PesertaPage() {
     .sort((a, b) => b.totalPeserta - a.totalPeserta)
     .slice(0, 3)
 
+  // Show top unit alert when data loads
+  useEffect(() => {
+    if (data.length > 0 && unitStats.length > 0) {
+      const timer = setTimeout(() => {
+        setShowTopUnitAlert(true)
+      }, 2000)
+      return () => clearTimeout(timer)
+    }
+  }, [data.length, unitStats.length])
+
+  // Handler functions for modals
+  const handleUnitClick = (unitName: string) => {
+    setSelectedUnit(unitName)
+    setShowUnitModal(true)
+  }
+
+  const getUnitDetails = (unitName: string) => {
+    const unitData = filteredData.filter(item => (item.users?.unit_kerja || 'Lainnya') === unitName)
+    
+    const statusBreakdown = unitData.reduce((acc, item) => {
+      const jenis = item.jenis_bangkom_non_pelatihan?.jenis_bangkom || 'Lainnya'
+      acc[jenis] = (acc[jenis] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    const monthlyBreakdown = unitData.reduce((acc, item) => {
+      const month = new Date(item.tanggal).toLocaleDateString('id-ID', { 
+        month: 'short',
+        year: 'numeric'
+      })
+      acc[month] = (acc[month] || 0) + item.jumlahPeserta
+      return acc
+    }, {} as Record<string, number>)
+
+    const recentActivities = unitData
+      .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime())
+      .slice(0, 5)
+
+    return {
+      totalKegiatan: unitData.length,
+      totalPeserta: unitData.reduce((sum, item) => sum + item.jumlahPeserta, 0),
+      rataRataPeserta: unitData.length > 0 ? (unitData.reduce((sum, item) => sum + item.jumlahPeserta, 0) / unitData.length).toFixed(1) : '0',
+      statusBreakdown,
+      monthlyBreakdown,
+      recentActivities,
+      maxPeserta: Math.max(...unitData.map(item => item.jumlahPeserta)),
+      minPeserta: Math.min(...unitData.map(item => item.jumlahPeserta))
+    }
+  }
+
+  // Get the champion unit (top performer)
+  const championUnit = unitStats.length > 0 ? unitStats[0] : null
+
   const summaryCards = [
     {
       label: 'Total Kegiatan',
@@ -208,10 +266,268 @@ export default function PesertaPage() {
 
   return (
     <div className="p-6">
+      {/* Top Unit Alert Popup */}
+      {showTopUnitAlert && championUnit && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-gradient-to-br from-yellow-400 via-yellow-500 to-orange-500 rounded-xl shadow-2xl max-w-md w-full p-8 text-center relative overflow-hidden">
+            {/* Background decorations */}
+            <div className="absolute top-0 left-0 w-20 h-20 bg-white bg-opacity-20 rounded-full -translate-x-10 -translate-y-10"></div>
+            <div className="absolute bottom-0 right-0 w-16 h-16 bg-white bg-opacity-20 rounded-full translate-x-8 translate-y-8"></div>
+            <div className="absolute top-1/2 right-0 w-12 h-12 bg-white bg-opacity-10 rounded-full translate-x-6"></div>
+            
+            <div className="relative z-10">
+              <div className="text-6xl mb-4 animate-bounce">🏆</div>
+              <h2 className="text-2xl font-bold text-white mb-2">UNIT TERBAIK!</h2>
+              <div className="bg-white bg-opacity-90 rounded-lg p-4 mb-4">
+                <h3 className="text-lg font-bold text-yellow-800 mb-2">{championUnit.unit}</h3>
+                <p className="text-yellow-700">
+                  Memimpin dengan <span className="font-bold text-2xl text-yellow-800">{championUnit.totalPeserta}</span> peserta
+                </p>
+                <p className="text-yellow-600 text-sm">
+                  dari <span className="font-semibold">{championUnit.totalKegiatan}</span> kegiatan pelatihan
+                </p>
+                <div className="flex justify-center space-x-2 mt-3">
+                  <span className="text-2xl">🥇</span>
+                  <span className="text-2xl">🎉</span>
+                  <span className="text-2xl">⭐</span>
+                </div>
+              </div>
+              <p className="text-white text-sm mb-6">
+                Unit dengan pencapaian peserta pelatihan terbanyak!
+              </p>
+              
+              <div className="space-y-3">
+                <button
+                  onClick={() => {
+                    setShowTopUnitAlert(false);
+                    handleUnitClick(championUnit.unit);
+                  }}
+                  className="w-full bg-white text-yellow-600 font-bold py-3 px-6 rounded-lg hover:bg-yellow-50 transition-colors shadow-lg"
+                >
+                  🔍 Lihat Detail Prestasi
+                </button>
+                <button
+                  onClick={() => setShowTopUnitAlert(false)}
+                  className="w-full bg-yellow-600 text-white font-medium py-2 px-6 rounded-lg hover:bg-yellow-700 transition-colors"
+                >
+                  Tutup
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Unit Detail Modal */}
+      {showUnitModal && selectedUnit && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-xl shadow-2xl max-w-4xl w-full max-h-[90vh] overflow-hidden">
+            {/* Modal Header */}
+            {(() => {
+              const isChampion = championUnit && championUnit.unit === selectedUnit;
+              const unitDetails = getUnitDetails(selectedUnit);
+              return (
+                <>
+                  <div className={`text-white p-6 ${
+                    isChampion 
+                      ? 'bg-gradient-to-r from-yellow-400 via-yellow-500 to-orange-500' 
+                      : 'bg-gradient-to-r from-blue-500 to-indigo-600'
+                  }`}>
+                    <div className="flex justify-between items-center">
+                      <div>
+                        {isChampion && (
+                          <div className="flex items-center mb-2">
+                            <span className="bg-white text-yellow-600 text-xs font-bold px-3 py-1 rounded-full mr-2">
+                              🏆 UNIT TERBAIK
+                            </span>
+                            <span className="text-2xl">👑</span>
+                          </div>
+                        )}
+                        <h2 className="text-2xl font-bold">Detail Unit Kerja</h2>
+                        <p className={`text-sm mt-1 ${isChampion ? 'text-yellow-100' : 'text-blue-100'}`}>
+                          {selectedUnit}
+                        </p>
+                      </div>
+                      <button
+                        onClick={() => setShowUnitModal(false)}
+                        className="text-white hover:text-red-200 transition-colors text-2xl"
+                      >
+                        ✕
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Modal Content */}
+                  <div className="p-6 overflow-y-auto max-h-[calc(90vh-120px)]">
+                    <div className="space-y-6">
+                      {/* Champion Celebration Section */}
+                      {isChampion && (
+                        <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-6 rounded-lg border-2 border-yellow-200">
+                          <div className="text-center">
+                            <div className="text-4xl mb-3">🎉🏆🎉</div>
+                            <h3 className="text-2xl font-bold text-yellow-800 mb-2">SELAMAT!</h3>
+                            <p className="text-yellow-700 font-medium">
+                              Unit ini adalah UNIT TERBAIK dengan pencapaian luar biasa!
+                            </p>
+                            <div className="flex justify-center space-x-3 mt-4">
+                              <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-bold">🥇 Rank #1</span>
+                              <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">⭐ Champion</span>
+                              <span className="bg-yellow-600 text-white px-3 py-1 rounded-full text-sm font-bold">🚀 Top Performer</span>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Summary Stats */}
+                      <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                        <div className={`p-4 rounded-lg text-center ${isChampion ? 'bg-yellow-50 border-2 border-yellow-200' : 'bg-blue-50'}`}>
+                          <div className={`text-2xl font-bold ${isChampion ? 'text-yellow-600' : 'text-blue-600'}`}>
+                            {unitDetails.totalPeserta}
+                          </div>
+                          <div className={`text-sm ${isChampion ? 'text-yellow-800' : 'text-blue-800'}`}>
+                            Total Peserta
+                          </div>
+                          {isChampion && <div className="text-xs text-yellow-600 mt-1">👑 Terbanyak!</div>}
+                        </div>
+                        <div className="bg-green-50 p-4 rounded-lg text-center">
+                          <div className="text-2xl font-bold text-green-600">
+                            {unitDetails.totalKegiatan}
+                          </div>
+                          <div className="text-sm text-green-800">Total Kegiatan</div>
+                        </div>
+                        <div className="bg-purple-50 p-4 rounded-lg text-center">
+                          <div className="text-2xl font-bold text-purple-600">
+                            {unitDetails.rataRataPeserta}
+                          </div>
+                          <div className="text-sm text-purple-800">Rata-rata Peserta</div>
+                        </div>
+                        <div className="bg-orange-50 p-4 rounded-lg text-center">
+                          <div className="text-2xl font-bold text-orange-600">{unitDetails.maxPeserta}</div>
+                          <div className="text-sm text-orange-800">Peserta Tertinggi</div>
+                        </div>
+                      </div>
+
+                      {/* Activity Type Breakdown */}
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <h3 className="font-bold text-gray-800 mb-3 flex items-center">
+                          <span className="mr-2">📊</span>
+                          Breakdown Jenis Kegiatan
+                          {isChampion && <span className="ml-2 text-yellow-600">🏆</span>}
+                        </h3>
+                        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+                          {Object.entries(unitDetails.statusBreakdown).map(([jenis, count]) => (
+                            <div key={jenis} className="flex items-center justify-between bg-white p-3 rounded">
+                              <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                                📚 {jenis}
+                              </span>
+                              <span className="font-bold">{count}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Monthly Performance */}
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <h3 className="font-bold text-gray-800 mb-3 flex items-center">
+                          <span className="mr-2">📈</span>
+                          Performa Bulanan (Peserta)
+                        </h3>
+                        <div className="grid grid-cols-1 gap-2 max-h-40 overflow-y-auto">
+                          {Object.entries(unitDetails.monthlyBreakdown)
+                            .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
+                            .map(([month, peserta]) => (
+                            <div key={month} className="flex items-center justify-between bg-white p-3 rounded">
+                              <span className="text-gray-700">{month}</span>
+                              <span className="font-bold text-gray-800">{peserta} peserta</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Recent Activities */}
+                      <div className="bg-gray-50 p-4 rounded-lg">
+                        <h3 className="font-bold text-gray-800 mb-3 flex items-center">
+                          <span className="mr-2">📋</span>
+                          Aktivitas Terbaru (5 Terakhir)
+                        </h3>
+                        <div className="space-y-2 max-h-60 overflow-y-auto">
+                          {unitDetails.recentActivities.map((activity) => (
+                            <div key={activity.id} className={`bg-white p-3 rounded border-l-4 ${
+                              isChampion ? 'border-yellow-500' : 'border-blue-500'
+                            }`}>
+                              <div className="flex justify-between items-start">
+                                <div className="flex-1">
+                                  <div className="font-medium text-gray-800">{activity.namaKegiatan}</div>
+                                  <div className="text-sm text-gray-600">
+                                    {activity.jenis_bangkom_non_pelatihan?.jenis_bangkom || 'Lainnya'}
+                                  </div>
+                                  <div className="text-xs text-gray-500 mt-1">
+                                    {new Date(activity.tanggal).toLocaleDateString('id-ID', {
+                                      day: '2-digit',
+                                      month: 'short',
+                                      year: 'numeric',
+                                    })}
+                                  </div>
+                                </div>
+                                <span className="ml-2 px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                                  👥 {activity.jumlahPeserta}
+                                </span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Modal Footer */}
+                  <div className="bg-gray-50 px-6 py-4 flex justify-end">
+                    <button
+                      onClick={() => setShowUnitModal(false)}
+                      className="px-4 py-2 bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-colors"
+                    >
+                      Tutup
+                    </button>
+                  </div>
+                </>
+              );
+            })()}
+          </div>
+        </div>
+      )}
+
       <div className="mb-8">
         <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard Peserta Pelatihan</h1>
         <p className="text-blue-600">Pantau dan kelola peserta pelatihan di seluruh unit kerja</p>
       </div>
+
+      {/* Champion Banner */}
+      {championUnit && (
+        <div className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-orange-500 rounded-xl shadow-lg p-6 mb-8 text-white relative overflow-hidden">
+          <div className="absolute top-0 right-0 w-32 h-32 bg-white bg-opacity-10 rounded-full translate-x-16 -translate-y-16"></div>
+          <div className="absolute bottom-0 left-0 w-24 h-24 bg-white bg-opacity-10 rounded-full -translate-x-12 translate-y-12"></div>
+          
+          <div className="relative z-10 flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="text-4xl">🏆</div>
+              <div>
+                <h2 className="text-2xl font-bold">UNIT TERBAIK PELATIHAN</h2>
+                <p className="text-yellow-100">
+                  <span className="font-bold">{championUnit.unit}</span> memimpin dengan {championUnit.totalPeserta} peserta!
+                </p>
+                <p className="text-yellow-200 text-sm">
+                  Dari {championUnit.totalKegiatan} kegiatan pelatihan
+                </p>
+              </div>
+            </div>
+            <div className="flex space-x-2 text-3xl">
+              <span className="animate-bounce">🥇</span>
+              <span className="animate-pulse">⭐</span>
+              <span className="animate-bounce" style={{ animationDelay: '0.5s' }}>🎉</span>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Enhanced Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
@@ -298,9 +614,18 @@ export default function PesertaPage() {
               return (
                 <div
                   key={unit.unit}
-                  className={`bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border-l-4 ${colors.border} hover:scale-105 group overflow-hidden`}
+                  onClick={() => handleUnitClick(unit.unit)}
+                  className={`bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border-l-4 ${colors.border} hover:scale-105 group overflow-hidden cursor-pointer`}
                 >
                   <div className="p-6">
+                    {index === 0 && (
+                      <div className="text-center mb-3">
+                        <span className="bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full animate-pulse">
+                          🏆 CHAMPION
+                        </span>
+                      </div>
+                    )}
+                    
                     <div className="flex items-center justify-between">
                       <div>
                         <p className={`text-sm font-medium ${colors.dark} mb-1`}>{unit.unit}</p>
@@ -325,6 +650,13 @@ export default function PesertaPage() {
                         <span>{unit.totalKegiatan} kegiatan</span>
                         <span className={`font-medium ${colors.text}`}>{percentage}% total peserta</span>
                       </div>
+                    </div>
+                    
+                    {/* Click indicator */}
+                    <div className="mt-3 text-center">
+                      <span className="text-xs text-gray-500 bg-gray-100 px-2 py-1 rounded-full group-hover:bg-gray-200 transition-colors">
+                        👆 Klik untuk detail
+                      </span>
                     </div>
                   </div>
                 </div>

@@ -115,9 +115,9 @@ export default function MediaPage() {
   }, [dataPublikasi.length, inactiveUnits.length])
 
   // Sort units by post count
-  // const sortedUnits = Object.entries(unitCount)
-  //   .sort(([, a], [, b]) => b - a)
-  //   .slice(0, 3)
+   const sortedUnits = Object.entries(unitCount)
+     .sort(([, a], [, b]) => b - a)
+     .slice(0, 3)
 
   // Pie chart data
   const pieData = Object.entries(mediaCount).map(([name, value]) => ({
@@ -144,11 +144,11 @@ export default function MediaPage() {
 
   // Calculate Instagram metrics
   const instagramPosts = dataPublikasi.filter(d => d.jenis === 'Instagram')
-  const totalInstagramLikes = instagramPosts.reduce((a, b) => a + (b.likes || 0), 0)
-  const totalInstagramViews = instagramPosts.reduce((a, b) => a + (b.views || 0), 0)
-  // const avgInstagramEngagement = instagramPosts.length > 0 && totalInstagramViews > 0
-  //   ? ((totalInstagramLikes / totalInstagramViews) * 100).toFixed(1)
-  //   : '0'
+   const totalInstagramLikes = instagramPosts.reduce((a, b) => a + (b.likes || 0), 0)
+   const totalInstagramViews = instagramPosts.reduce((a, b) => a + (b.views || 0), 0)
+   const avgInstagramEngagement = instagramPosts.length > 0 && totalInstagramViews > 0
+     ? ((totalInstagramLikes / totalInstagramViews) * 100).toFixed(1)
+     : '0'
 
   // Calculate all social media metrics
   const socialMediaPosts = dataPublikasi.filter(d => 
@@ -156,7 +156,6 @@ export default function MediaPage() {
   )
   const totalSocialLikes = socialMediaPosts.reduce((a, b) => a + (b.likes || 0), 0)
   const totalSocialViews = socialMediaPosts.reduce((a, b) => a + (b.views || 0), 0)
-
   // Summary cards
   const summaryCards = [
     { 
@@ -182,6 +181,18 @@ export default function MediaPage() {
       value: totalSocialViews.toLocaleString(),
       icon: '👁️',
       color: 'purple',
+    },
+    {
+      label: 'Instagram Engagement',
+      value: `${avgInstagramEngagement}%`,
+      icon: '📊',
+      color: 'pink',
+    },
+    {
+      label: 'Top Performer',
+      value: sortedUnits.length > 0 ? sortedUnits[0][0].replace(/_/g, ' ') : 'N/A',
+      icon: '🏆',
+      color: 'yellow',
     },
   ]
 
@@ -304,10 +315,8 @@ export default function MediaPage() {
             Refresh Data
           </Button>
         </div>
-      </div>
-
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-8">
+      </div>      {/* Summary Cards */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
         {summaryCards.map((card) => (
           <div
             key={card.label}
@@ -328,9 +337,7 @@ export default function MediaPage() {
             </div>
           </div>
         ))}
-      </div>
-
-      {/* Charts Section */}
+      </div>      {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Pie Chart */}
         <div className="bg-white rounded-xl shadow-lg p-6">
@@ -387,6 +394,45 @@ export default function MediaPage() {
             </div>
           )}
         </div>
+      </div>
+
+      {/* Top Performing Units Section */}
+      <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+          <span className="mr-2">🏆</span>
+          Top 3 Unit Kerja Terbaik
+        </h2>
+        {sortedUnits.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {sortedUnits.map(([unit, count], index) => {
+              const medals = ['🥇', '🥈', '🥉']
+              const colors = ['yellow', 'gray', 'orange']
+              return (
+                <div
+                  key={unit}
+                  className={`bg-gradient-to-br from-${colors[index]}-100 to-${colors[index]}-200 rounded-lg p-4 border border-${colors[index]}-300`}
+                >
+                  <div className="text-center">
+                    <div className="text-3xl mb-2">{medals[index]}</div>
+                    <h3 className="font-bold text-gray-800 mb-1">
+                      Peringkat {index + 1}
+                    </h3>
+                    <p className="text-sm text-gray-700 mb-2">
+                      {unit.replace(/_/g, ' ')}
+                    </p>
+                    <div className={`inline-flex items-center px-3 py-1 rounded-full bg-${colors[index]}-300 text-${colors[index]}-800 text-sm font-semibold`}>
+                      {count} publikasi
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="text-center text-gray-500 py-8">
+            <p>Belum ada data ranking unit kerja</p>
+          </div>
+        )}
       </div>
 
       {/* Enhanced Table */}

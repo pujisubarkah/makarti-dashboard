@@ -33,10 +33,6 @@ interface SerapanData {
   detail_per_bulan: DetailPerBulan[]
 }
 
-//function getPersentase(realisasi: number, anggaran: number) {
-//  return Math.round((realisasi / anggaran) * 100)
-//}
-
 function getStatusColor(persen: number) {
   if (persen >= 80) return 'bg-green-500'
   if (persen >= 60) return 'bg-yellow-400'

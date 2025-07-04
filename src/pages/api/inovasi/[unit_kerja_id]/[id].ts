@@ -14,34 +14,43 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const unitId = parseInt(unit_kerja_id);
   const inovasiId = parseInt(id);
 
-  if (req.method === "PUT") {
-    const { judul, tahap, tanggal, indikator } = req.body;
+  if (isNaN(unitId) || isNaN(inovasiId)) {
+    return res.status(400).json({ message: "Parameter harus berupa angka" });
+  }
 
-    if (!judul || !tahap || !tanggal || !indikator) {
-      return res.status(400).json({ message: "Semua field wajib diisi" });
+  try {
+    if (req.method === "PUT") {
+      const { judul, tahap, tanggal, indikator } = req.body;
+
+      if (!judul || !tahap || !tanggal || !indikator) {
+        return res.status(400).json({ message: "Semua field wajib diisi" });
+      }
+
+      const updated = await prisma.inovasi.update({
+        where: { id: inovasiId },
+        data: {
+          judul,
+          tahap,
+          tanggal: new Date(tanggal),
+          indikator,
+          unit_kerja_id: unitId,
+        }
+      });
+
+      return res.status(200).json(updated);
     }
 
-    const updated = await prisma.inovasi.update({
-      where: { id: inovasiId },
-      data: {
-        judul,
-        tahap,
-        tanggal: new Date(tanggal),
-        indikator,
-        unit_kerja_id: unitId,
-      }
-    });
+    if (req.method === "DELETE") {
+      await prisma.inovasi.delete({
+        where: { id: inovasiId }
+      });
 
-    return res.status(200).json(updated);
+      return res.status(204).end();
+    }
+
+    return res.setHeader("Allow", ["PUT", "DELETE"]).status(405).end(`Method ${req.method} tidak diizinkan`);
+  } catch (error) {
+    console.error("API Error:", error);
+    return res.status(500).json({ message: "Terjadi kesalahan pada server" });
   }
-
-  if (req.method === "DELETE") {
-    await prisma.inovasi.delete({
-      where: { id: inovasiId }
-    });
-
-    return res.status(204).end();
-  }
-
-  return res.setHeader("Allow", ["PUT", "DELETE"]).status(405).end(`Method ${req.method} tidak diizinkan`);
 }

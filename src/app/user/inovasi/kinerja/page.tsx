@@ -211,7 +211,7 @@ export default function InovasiPage() {
     })
     setEditingId(item.id)
     setShowModal(true)
-  }
+  }  
   const handleDelete = (id: number) => {
     toast(
       "Apakah Anda yakin ingin menghapus data ini?",
@@ -224,13 +224,12 @@ export default function InovasiPage() {
               const unitKerjaId = typeof window !== 'undefined' ? localStorage.getItem('id') : null
               if (!unitKerjaId) throw new Error('ID unit kerja tidak ditemukan')
               
-              // Mengirim request DELETE ke API
-              const res = await fetch(`/api/inovasi/${unitKerjaId}`, {
+              // Mengirim request DELETE ke API dengan ID sebagai parameter URL
+              const res = await fetch(`/api/inovasi/${unitKerjaId}/${id}`, {
                 method: 'DELETE',
                 headers: {
                   'Content-Type': 'application/json',
                 },
-                body: JSON.stringify({ id }),
               })
               
               if (!res.ok) throw new Error('Gagal menghapus data dari server')
@@ -266,18 +265,14 @@ export default function InovasiPage() {
       
       let response
       // let message
-      
-      if (editingId) {
+        if (editingId) {
         // Update existing item - PUT request
-        response = await fetch(`/api/inovasi/${unitKerjaId}`, {
+        response = await fetch(`/api/inovasi/${unitKerjaId}/${editingId}`, {
           method: 'PUT',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify({
-            id: editingId,
-            ...payloadData
-          }),
+          body: JSON.stringify(payloadData),
         })
         // message = 'Data berhasil diperbarui!'
       } else {

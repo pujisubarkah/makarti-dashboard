@@ -30,10 +30,17 @@ type Penyelenggaraan = {
   }
 }
 
-export default function PesertaPage() {
-  const [data, setData] = useState<Penyelenggaraan[]>([])
+export default function PesertaPage() {  const [data, setData] = useState<Penyelenggaraan[]>([])
   const [loading, setLoading] = useState(true)
   const [selectedPenyelenggara, setSelectedPenyelenggara] = useState<string>('Semua')
+  
+  // New filter states
+  const [selectedUnitKerja, setSelectedUnitKerja] = useState<string>('Semua')
+  const [selectedJenisPelatihan, setSelectedJenisPelatihan] = useState<string>('Semua')
+  
+  // Sorting states
+  const [sortField, setSortField] = useState<string>('')
+  const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
   
   // Pagination states
   const [currentPage, setCurrentPage] = useState(1)
@@ -59,22 +66,97 @@ export default function PesertaPage() {
 
     fetchData()
   }, [])
-
   // Reset pagination when filter changes
   useEffect(() => {
     setCurrentPage(1)
-  }, [selectedPenyelenggara])
+  }, [selectedPenyelenggara, selectedUnitKerja, selectedJenisPelatihan, sortField, sortDirection])
 
   // Dapatkan daftar penyelenggara unik
   const penyelenggaraList = Array.from(
     new Set(data.map((item) => item.users?.unit_kerja || 'Lainnya'))
   )
 
-  // Filter berdasarkan penyelenggara
-  const filteredData =
-    selectedPenyelenggara === 'Semua'
-      ? data
-      : data.filter((item) => item.users?.unit_kerja === selectedPenyelenggara)
+  // Dapatkan daftar unit kerja unik
+  const unitKerjaList = Array.from(
+    new Set(data.map((item) => item.users?.unit_kerja || 'Lainnya'))
+  )
+
+  // Dapatkan daftar jenis pelatihan unik
+  const jenisPelatihanList = Array.from(
+    new Set(data.map((item) => item.jenis_bangkom_non_pelatihan?.jenis_bangkom || 'Lainnya'))
+  )
+
+  // Filter berdasarkan semua kriteria
+  let filteredData = data
+  
+  if (selectedPenyelenggara !== 'Semua') {
+    filteredData = filteredData.filter((item) => item.users?.unit_kerja === selectedPenyelenggara)
+  }
+  
+  if (selectedUnitKerja !== 'Semua') {
+    filteredData = filteredData.filter((item) => (item.users?.unit_kerja || 'Lainnya') === selectedUnitKerja)
+  }
+  
+  if (selectedJenisPelatihan !== 'Semua') {
+    filteredData = filteredData.filter((item) => (item.jenis_bangkom_non_pelatihan?.jenis_bangkom || 'Lainnya') === selectedJenisPelatihan)
+  }
+
+  // Apply sorting
+  if (sortField) {
+    filteredData = [...filteredData].sort((a, b) => {
+      let aValue: any
+      let bValue: any
+
+      switch (sortField) {
+        case 'namaKegiatan':
+          aValue = a.namaKegiatan
+          bValue = b.namaKegiatan
+          break
+        case 'tanggal':
+          aValue = new Date(a.tanggal)
+          bValue = new Date(b.tanggal)
+          break
+        case 'jenis':
+          aValue = a.jenis_bangkom_non_pelatihan?.jenis_bangkom || 'Lainnya'
+          bValue = b.jenis_bangkom_non_pelatihan?.jenis_bangkom || 'Lainnya'
+          break
+        case 'penyelenggara':
+          aValue = a.users?.unit_kerja || 'Lainnya'
+          bValue = b.users?.unit_kerja || 'Lainnya'
+          break
+        case 'jumlahPeserta':
+          aValue = a.jumlahPeserta
+          bValue = b.jumlahPeserta
+          break
+        default:
+          return 0
+      }
+
+      if (aValue < bValue) {
+        return sortDirection === 'asc' ? -1 : 1
+      }
+      if (aValue > bValue) {
+        return sortDirection === 'asc' ? 1 : -1
+      }
+      return 0
+    })
+  }
+
+  // Sort handler
+  const handleSort = (field: string) => {
+    if (sortField === field) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortField(field)
+      setSortDirection('asc')
+    }
+  }
+
+  // Get sort icon
+  const getSortIcon = (field: string) => {
+    if (sortField !== field) return '↕️'
+    return sortDirection === 'asc' ? '↑' : '↓'
+  }
 
   // Pagination logic
   const totalPages = Math.ceil(filteredData.length / itemsPerPage)
@@ -249,7 +331,6 @@ export default function PesertaPage() {
       borderColor: 'border-orange-500',
     },
   ]
-
   const barData = filteredData
     .sort((a, b) => b.jumlahPeserta - a.jumlahPeserta)
     .slice(0, 10)
@@ -497,8 +578,8 @@ export default function PesertaPage() {
       )}
 
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard Peserta Pelatihan</h1>
-        <p className="text-blue-600">Pantau dan kelola peserta pelatihan di seluruh unit kerja</p>
+        <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard Penyelenggaraaan Bangkom</h1>
+        <p className="text-blue-600">Pantau dan kelola penyelenggaraan bangkom non-pelatihan di seluruh unit kerja</p>
       </div>
 
       {/* Champion Banner */}
@@ -511,7 +592,7 @@ export default function PesertaPage() {
             <div className="flex items-center space-x-4">
               <div className="text-4xl">🏆</div>
               <div>
-                <h2 className="text-2xl font-bold">UNIT TERBAIK PELATIHAN</h2>
+                <h2 className="text-2xl font-bold">UNIT TERBAIK PENYELENGGARAAN BANGKOM</h2>
                 <p className="text-yellow-100">
                   <span className="font-bold">{championUnit.unit}</span> memimpin dengan {championUnit.totalPeserta} peserta!
                 </p>
@@ -704,38 +785,123 @@ export default function PesertaPage() {
             <div className="text-xs text-orange-600 mt-1">100+ peserta</div>
           </div>
         </div>
-      </div>
-
-      {/* Enhanced Filter */}
+      </div>      {/* Enhanced Filter */}
       <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
         <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
           <span className="mr-2">🔍</span>
           Filter Data Peserta
         </h2>
-        <div className="flex items-center gap-4">
-          <label className="text-sm font-medium text-gray-700">Unit Kerja:</label>
-          <select
-            value={selectedPenyelenggara}
-            onChange={(e) => setSelectedPenyelenggara(e.target.value)}
-            className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:border-blue-500 focus:outline-none"
-          >
-            <option value="Semua">Semua Unit</option>
-            {penyelenggaraList.map((nama, i) => (
-              <option key={i} value={nama}>
-                {nama}
-              </option>
-            ))}
-          </select>
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          {/* Filter Unit Kerja */}
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-gray-700 mb-2">Unit Kerja:</label>
+            <select
+              value={selectedUnitKerja}
+              onChange={(e) => setSelectedUnitKerja(e.target.value)}
+              className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:border-blue-500 focus:outline-none hover:border-blue-400 transition-colors"
+            >
+              <option value="Semua">Semua Unit Kerja</option>
+              {unitKerjaList.map((nama, i) => (
+                <option key={i} value={nama}>
+                  {nama}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Filter Jenis Pelatihan */}
+          <div className="flex flex-col">
+            <label className="text-sm font-medium text-gray-700 mb-2">Jenis Pelatihan:</label>
+            <select
+              value={selectedJenisPelatihan}
+              onChange={(e) => setSelectedJenisPelatihan(e.target.value)}
+              className="border border-gray-300 rounded-lg px-4 py-2 text-sm focus:border-blue-500 focus:outline-none hover:border-blue-400 transition-colors"
+            >
+              <option value="Semua">Semua Jenis Pelatihan</option>
+              {jenisPelatihanList.map((jenis, i) => (
+                <option key={i} value={jenis}>
+                  {jenis}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          {/* Reset Filter Button */}
+          <div className="flex flex-col justify-end">
+            <button
+              onClick={() => {
+                setSelectedUnitKerja('Semua')
+                setSelectedJenisPelatihan('Semua')
+                setSortField('')
+                setSortDirection('asc')
+              }}
+              className="bg-gray-500 text-white px-4 py-2 rounded-lg hover:bg-gray-600 transition-colors text-sm font-medium"
+            >
+              🔄 Reset Filter
+            </button>
+          </div>
         </div>
+
+        {/* Active Filters Display */}
+        {(selectedUnitKerja !== 'Semua' || selectedJenisPelatihan !== 'Semua' || sortField) && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex flex-wrap gap-2">
+              <span className="text-sm text-gray-600">Filter aktif:</span>
+              {selectedUnitKerja !== 'Semua' && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                  Unit: {selectedUnitKerja}
+                  <button
+                    onClick={() => setSelectedUnitKerja('Semua')}
+                    className="ml-1 text-blue-600 hover:text-blue-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {selectedJenisPelatihan !== 'Semua' && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+                  Jenis: {selectedJenisPelatihan}
+                  <button
+                    onClick={() => setSelectedJenisPelatihan('Semua')}
+                    className="ml-1 text-green-600 hover:text-green-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+              {sortField && (
+                <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-purple-100 text-purple-800">
+                  Sort: {sortField} ({sortDirection === 'asc' ? 'A-Z' : 'Z-A'})
+                  <button
+                    onClick={() => {
+                      setSortField('')
+                      setSortDirection('asc')
+                    }}
+                    className="ml-1 text-purple-600 hover:text-purple-800"
+                  >
+                    ×
+                  </button>
+                </span>
+              )}
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Enhanced Table with Pagination */}
-      <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
-        <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
+      <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">        <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
           <div className="flex justify-between items-center">
             <div>
-              <h2 className="text-xl font-bold">Detail Peserta Pelatihan</h2>
-              <p className="text-blue-100 text-sm">Daftar lengkap kegiatan pelatihan dan jumlah peserta</p>
+              <h2 className="text-xl font-bold">Detail Penyelenggaraan Bangkom</h2>
+              <p className="text-blue-100 text-sm">Daftar lengkap kegiatan bangkom non-pelatihan dan jumlah peserta</p>
+              {/* Filter Summary */}
+              {(selectedUnitKerja !== 'Semua' || selectedJenisPelatihan !== 'Semua') && (
+                <div className="mt-2 text-blue-100 text-xs">
+                  Filter: {selectedUnitKerja !== 'Semua' && `Unit: ${selectedUnitKerja}`}
+                  {selectedUnitKerja !== 'Semua' && selectedJenisPelatihan !== 'Semua' && ' | '}
+                  {selectedJenisPelatihan !== 'Semua' && `Jenis: ${selectedJenisPelatihan}`}
+                </div>
+              )}
             </div>
             <div className="text-right">
               <div className="text-sm text-blue-100">
@@ -744,6 +910,11 @@ export default function PesertaPage() {
               <div className="text-xs text-blue-200">
                 Halaman {currentPage} dari {totalPages}
               </div>
+              {sortField && (
+                <div className="text-xs text-blue-200 mt-1">
+                  Diurutkan: {sortField} ({sortDirection === 'asc' ? 'A-Z' : 'Z-A'})
+                </div>
+              )}
             </div>
           </div>
         </div>
@@ -757,15 +928,54 @@ export default function PesertaPage() {
               </div>
             </div>
           ) : (
-            <table className="min-w-full">
-              <thead className="bg-gray-50 text-sm text-gray-700">
+            <table className="min-w-full">              <thead className="bg-gray-50 text-sm text-gray-700">
                 <tr>
                   <th className="px-6 py-3 text-left font-medium">No</th>
-                  <th className="px-6 py-3 text-left font-medium">Nama Kegiatan</th>
-                  <th className="px-6 py-3 text-left font-medium">Tanggal</th>
-                  <th className="px-6 py-3 text-left font-medium">Jenis</th>
-                  <th className="px-6 py-3 text-left font-medium">Penyelenggara</th>
-                  <th className="px-6 py-3 text-right font-medium">Jumlah Peserta</th>
+                  <th className="px-6 py-3 text-left font-medium">
+                    <button
+                      onClick={() => handleSort('namaKegiatan')}
+                      className="flex items-center hover:text-blue-600 transition-colors"
+                    >
+                      Nama Kegiatan
+                      <span className="ml-1 text-xs">{getSortIcon('namaKegiatan')}</span>
+                    </button>
+                  </th>
+                  <th className="px-6 py-3 text-left font-medium">
+                    <button
+                      onClick={() => handleSort('tanggal')}
+                      className="flex items-center hover:text-blue-600 transition-colors"
+                    >
+                      Tanggal
+                      <span className="ml-1 text-xs">{getSortIcon('tanggal')}</span>
+                    </button>
+                  </th>
+                  <th className="px-6 py-3 text-left font-medium">
+                    <button
+                      onClick={() => handleSort('jenis')}
+                      className="flex items-center hover:text-blue-600 transition-colors"
+                    >
+                      Jenis
+                      <span className="ml-1 text-xs">{getSortIcon('jenis')}</span>
+                    </button>
+                  </th>
+                  <th className="px-6 py-3 text-left font-medium">
+                    <button
+                      onClick={() => handleSort('penyelenggara')}
+                      className="flex items-center hover:text-blue-600 transition-colors"
+                    >
+                      Penyelenggara
+                      <span className="ml-1 text-xs">{getSortIcon('penyelenggara')}</span>
+                    </button>
+                  </th>
+                  <th className="px-6 py-3 text-right font-medium">
+                    <button
+                      onClick={() => handleSort('jumlahPeserta')}
+                      className="flex items-center justify-end hover:text-blue-600 transition-colors w-full"
+                    >
+                      Jumlah Peserta
+                      <span className="ml-1 text-xs">{getSortIcon('jumlahPeserta')}</span>
+                    </button>
+                  </th>
                 </tr>
               </thead>
               <tbody className="text-sm divide-y divide-gray-200">

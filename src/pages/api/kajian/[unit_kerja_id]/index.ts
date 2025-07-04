@@ -36,9 +36,9 @@ async function createKajianForUnitKerja(req: NextApiRequest, res: NextApiRespons
   if (!judul || !jenis) {
     return res.status(400).json({ error: 'Missing required fields: judul, jenis' });
   }
-
   try {
-    const newKajian = await prisma.kajian.create({      data: {
+    const newKajian = await prisma.kajian.create({
+      data: {
         judul,
         jenis,
         status: status || null,

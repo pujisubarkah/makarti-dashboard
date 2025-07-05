@@ -23,6 +23,14 @@ import {
   TableRow,
 } from "@/components/ui/table"
 import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
+import {
   Users,
   CheckCircle,
   Clock,
@@ -74,6 +82,11 @@ export default function NetworkingPage() {
   const [isEditing, setIsEditing] = useState(false)
   const [isDeleting, setIsDeleting] = useState(false)
   const [editingItem, setEditingItem] = useState<NetworkingItem | null>(null)
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10) // Items per page
+  const [goToPage, setGoToPage] = useState("")
 
   const [formData, setFormData] = useState({
     instansi: "",
@@ -164,6 +177,65 @@ export default function NetworkingPage() {
     jenis,
     kegiatan: count,
   }))
+
+  // Pagination logic
+  const totalPages = Math.ceil(data.length / itemsPerPage)
+  const startIndex = (currentPage - 1) * itemsPerPage
+  const endIndex = startIndex + itemsPerPage
+  const currentData = data.slice(startIndex, endIndex)
+
+  // Reset to first page when data changes or page size changes
+  useEffect(() => {
+    setCurrentPage(1)
+  }, [data.length, itemsPerPage])
+
+  const handlePageChange = (page: number) => {
+    setCurrentPage(page)
+  }
+
+  const handlePageSizeChange = (size: string) => {
+    setItemsPerPage(parseInt(size))
+    setCurrentPage(1)
+  }
+
+  const handleGoToPage = (e: React.KeyboardEvent<HTMLInputElement>) => {
+    if (e.key === 'Enter') {
+      const page = parseInt(goToPage)
+      if (page >= 1 && page <= totalPages) {
+        setCurrentPage(page)
+        setGoToPage("")
+      } else {
+        toast.error(`Halaman harus antara 1 dan ${totalPages}`)
+      }
+    }
+  }
+
+  const getPageNumbers = () => {
+    const pageNumbers = []
+    const maxVisiblePages = 5
+    
+    if (totalPages <= maxVisiblePages) {
+      for (let i = 1; i <= totalPages; i++) {
+        pageNumbers.push(i)
+      }
+    } else {
+      if (currentPage <= 3) {
+        for (let i = 1; i <= 5; i++) {
+          pageNumbers.push(i)
+        }
+      } else if (currentPage >= totalPages - 2) {
+        for (let i = totalPages - 4; i <= totalPages; i++) {
+          pageNumbers.push(i)
+        }
+      } else {
+        for (let i = currentPage - 2; i <= currentPage + 2; i++) {
+          pageNumbers.push(i)
+        }
+      }
+    }
+    
+    return pageNumbers
+  }
 
   const summaryCards = [
     {
@@ -704,8 +776,20 @@ export default function NetworkingPage() {
       {/* Enhanced Table with Actions */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
-          <h2 className="text-xl font-bold">Data Kegiatan Networking</h2>
-          <p className="text-blue-100 text-sm">Monitoring kegiatan networking dengan instansi lain</p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-bold">Data Kegiatan Networking</h2>
+              <p className="text-blue-100 text-sm">Monitoring kegiatan networking dengan instansi lain</p>
+            </div>
+            {data.length > 0 && (
+              <div className="text-right">
+                <p className="text-blue-100 text-sm">Total: {data.length} kegiatan</p>
+                {totalPages > 1 && (
+                  <p className="text-blue-200 text-xs">Halaman {currentPage} dari {totalPages}</p>
+                )}
+              </div>
+            )}
+          </div>
         </div>
         
         <div className="overflow-x-auto">
@@ -721,9 +805,9 @@ export default function NetworkingPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.map((item, index) => (
+              {currentData.map((item, index) => (
                 <TableRow key={item.id} className="hover:bg-blue-50 transition-colors">
-                  <TableCell className="text-gray-600">{index + 1}</TableCell>
+                  <TableCell className="text-gray-600">{startIndex + index + 1}</TableCell>
                   <TableCell className="font-medium text-gray-800">
                     <span className="inline-flex items-center">
                       <Building className="w-3 h-3 mr-1 text-gray-400" />
@@ -791,6 +875,88 @@ export default function NetworkingPage() {
             </TableBody>
           </Table>
         </div>
+
+        {/* Pagination */}
+        {data.length > 0 && (
+          <div className="px-6 py-4 bg-gray-50 border-t">
+            <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+              {/* Info and Page Size Selector */}
+              <div className="flex flex-col sm:flex-row items-center gap-4">
+                <div className="text-sm text-gray-600">
+                  Menampilkan {startIndex + 1} hingga {Math.min(endIndex, data.length)} dari {data.length} data
+                </div>
+                <div className="flex items-center gap-2">
+                  <span className="text-sm text-gray-600">Tampilkan:</span>
+                  <Select value={itemsPerPage.toString()} onValueChange={handlePageSizeChange}>
+                    <SelectTrigger className="w-20 h-8">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="5">5</SelectItem>
+                      <SelectItem value="10">10</SelectItem>
+                      <SelectItem value="20">20</SelectItem>
+                      <SelectItem value="50">50</SelectItem>
+                    </SelectContent>
+                  </Select>
+                  <span className="text-sm text-gray-600">per halaman</span>
+                </div>
+                {totalPages > 5 && (
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm text-gray-600">Ke halaman:</span>
+                    <Input
+                      type="number"
+                      min="1"
+                      max={totalPages}
+                      value={goToPage}
+                      onChange={(e) => setGoToPage(e.target.value)}
+                      onKeyDown={handleGoToPage}
+                      placeholder={currentPage.toString()}
+                      className="w-16 h-8 text-center"
+                    />
+                    <span className="text-sm text-gray-600">dari {totalPages}</span>
+                  </div>
+                )}
+              </div>
+
+              {/* Pagination Controls */}
+              {totalPages > 1 && (
+                <Pagination>
+                  <PaginationContent>
+                    <PaginationItem>
+                      <PaginationPrevious 
+                        onClick={() => handlePageChange(Math.max(1, currentPage - 1))}
+                        className={`cursor-pointer hover:bg-blue-50 ${
+                          currentPage === 1 ? 'pointer-events-none opacity-50' : ''
+                        }`}
+                      />
+                    </PaginationItem>
+                    
+                    {getPageNumbers().map((pageNum) => (
+                      <PaginationItem key={pageNum}>
+                        <PaginationLink
+                          onClick={() => handlePageChange(pageNum)}
+                          isActive={currentPage === pageNum}
+                          className="cursor-pointer hover:bg-blue-50"
+                        >
+                          {pageNum}
+                        </PaginationLink>
+                      </PaginationItem>
+                    ))}
+                    
+                    <PaginationItem>
+                      <PaginationNext 
+                        onClick={() => handlePageChange(Math.min(totalPages, currentPage + 1))}
+                        className={`cursor-pointer hover:bg-blue-50 ${
+                          currentPage === totalPages ? 'pointer-events-none opacity-50' : ''
+                        }`}
+                      />
+                    </PaginationItem>
+                  </PaginationContent>
+                </Pagination>
+              )}
+            </div>
+          </div>
+        )}
 
         {data.length === 0 && (
           <div className="text-center py-8 text-gray-500">

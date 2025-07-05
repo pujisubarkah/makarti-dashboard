@@ -9,6 +9,24 @@ datasource db {
   schemas  = ["makarti"]
 }
 
+/// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
+model bigger_score {
+  id                BigInt   @id @default(autoincrement())
+  created_at        DateTime @default(now()) @db.Timestamptz(6)
+  unit_kerja_id     Int?
+  bulan             Int?
+  tahun             Int?
+  dampak_luas       Float?   @db.Real
+  kolaborasi        Int?
+  penerima_manfaat  Int?
+  jangkauan_wilayah Int?
+  total_skor        Float?   @db.Real
+  users             users?   @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([unit_kerja_id, bulan, tahun], map: "bigger_score_unique_per_bulan")
+  @@schema("makarti")
+}
+
 model inovasi {
   id            Int      @id(map: "Inovasi_pkey") @default(autoincrement())
   judul         String
@@ -266,11 +284,12 @@ model status_inovasi {
 model users {
   created_at          DateTime              @default(now()) @db.Timestamptz(6)
   unit_kerja          String?
-  username            String                @db.VarChar @unique
+  username            String                @db.VarChar
   password            String?               @db.VarChar
   id                  Int                   @id @unique @default(autoincrement())
   role_id             Int?
   alias               String?               @db.VarChar(255)
+  bigger_score        bigger_score[]
   inovasi             inovasi[]
   kajian              kajian[]
   koordinasi          koordinasi[]

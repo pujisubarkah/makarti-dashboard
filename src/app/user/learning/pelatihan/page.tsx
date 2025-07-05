@@ -76,6 +76,14 @@ interface Employee {
   nama: string
 }
 
+interface PegawaiSummary {
+  nama: string
+  unit_kerja: string
+  total_jam: number
+  rata_rata_jam: number
+  jumlah_pelatihan: number
+}
+
 const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6', '#8b5cf6']
 
 // WordCloud Component
@@ -177,6 +185,11 @@ export default function PelatihanPage() {
     jam: 0,
     tanggal: ''
   })
+  
+  // State untuk modal champion pegawai
+  const [showChampionModal, setShowChampionModal] = useState(false)
+  const [championData, setChampionData] = useState<PegawaiSummary | null>(null)
+  const [championShown, setChampionShown] = useState(false)
 
   // Ensure component is mounted before rendering client-side features
   useEffect(() => {
@@ -191,6 +204,33 @@ export default function PelatihanPage() {
         const parsedId = parseInt(id)
         fetchPelatihanData(parsedId)
         fetchEmployeesData(parsedId)
+        
+        // Fetch summary data untuk champion modal
+        const fetchSummaryData = async () => {
+          try {
+            const response = await fetch('/api/pelatihan_pegawai/summary')
+            if (!response.ok) throw new Error('Failed to fetch summary data')
+            const summaryList: PegawaiSummary[] = await response.json()
+            
+            // Cari pegawai dengan total jam tertinggi
+            if (summaryList.length > 0) {
+              const champion = summaryList.reduce((max, current) => 
+                current.total_jam > max.total_jam ? current : max
+              )
+              setChampionData(champion)
+              
+              // Tampilkan modal champion hanya sekali setelah data load
+              if (!championShown) {
+                setShowChampionModal(true)
+                setChampionShown(true)
+              }
+            }
+          } catch (err) {
+            console.error('Error fetching summary data:', err)
+          }
+        }
+        
+        fetchSummaryData()
       } else {
         setError('Unit kerja ID tidak ditemukan')
         setLoading(false)
@@ -198,7 +238,7 @@ export default function PelatihanPage() {
     } else if (mounted) {
       setLoading(false)
     }
-  }, [mounted])
+  }, [mounted, championShown])
   const fetchPelatihanData = async (id: number) => {    try {
       setLoading(true)
       const response = await fetch(`/api/pelatihan_pegawai/${id}`)
@@ -733,6 +773,62 @@ export default function PelatihanPage() {
           )}
         </>
       )}
+      
+      {/* Modal Champion Pegawai */}
+      <Dialog open={showChampionModal} onOpenChange={setShowChampionModal}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-center text-2xl font-bold text-yellow-600 flex items-center justify-center gap-2">
+              <Award className="w-8 h-8" />
+              🏆 Learning Champion! 🏆
+            </DialogTitle>
+          </DialogHeader>
+          <div className="text-center py-6">
+            {championData && (
+              <>
+                <div className="mb-6">
+                  <div className="text-6xl mb-4">🌟</div>
+                  <h3 className="text-xl font-bold text-gray-800 mb-2">
+                    {championData.nama}
+                  </h3>
+                  <p className="text-gray-600 mb-4">{championData.unit_kerja}</p>
+                </div>
+                
+                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-4 mb-6">
+                  <h4 className="font-semibold text-gray-800 mb-3">Prestasi Learning</h4>
+                  <div className="grid grid-cols-2 gap-4 text-sm">
+                    <div className="bg-white rounded-lg p-3">
+                      <div className="text-2xl font-bold text-blue-600">{championData.total_jam}</div>
+                      <div className="text-gray-600">Total Jam</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-3">
+                      <div className="text-2xl font-bold text-green-600">{championData.jumlah_pelatihan}</div>
+                      <div className="text-gray-600">Pelatihan</div>
+                    </div>
+                    <div className="bg-white rounded-lg p-3 col-span-2">
+                      <div className="text-xl font-bold text-purple-600">{championData.rata_rata_jam.toFixed(1)}</div>
+                      <div className="text-gray-600">Rata-rata Jam per Pelatihan</div>
+                    </div>
+                  </div>
+                </div>
+                
+                <div className="text-center">
+                  <p className="text-gray-700 mb-4">
+                    🎉 <strong>{championData.nama}</strong> adalah pegawai teladan yang dapat memberikan contoh untuk terus mengembangkan diri! 
+                    Semangat belajar dan dedikasinya patut diteladani! 🚀
+                  </p>
+                  <Button 
+                    onClick={() => setShowChampionModal(false)}
+                    className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white px-8"
+                  >
+                    ✨ Terima Kasih! ✨
+                  </Button>
+                </div>
+              </>
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

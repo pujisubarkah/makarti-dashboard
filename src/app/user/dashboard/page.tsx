@@ -24,6 +24,7 @@ import {
 import ScheduleCalendar from "@/components/ScheduleCalendar";
 import ManageTeam from "@/components/ManageTeam";
 import ActivityTimeline from "@/components/ActivityTimeline";
+import ReportView from "@/components/ReportView";
 import {
   XAxis,
   YAxis,
@@ -46,6 +47,20 @@ interface UnitKerjaData {
   kepala_unit: string | null;
 }
 
+// Interface untuk data BIGGER dari API
+interface BiggerData {
+  id: string;
+  created_at: string;
+  unit_kerja_id: number;
+  bulan: number;
+  tahun: number;
+  dampak_luas: number;
+  kolaborasi: number;
+  penerima_manfaat: number;
+  jangkauan_wilayah: number | null;
+  total_skor: number;
+}
+
 const activityData = [
   { bulan: 'Jan', bigger: 75, smarter: 60, better: 80 },
   { bulan: 'Feb', bigger: 78, smarter: 65, better: 85 },
@@ -53,33 +68,16 @@ const activityData = [
   { bulan: 'Apr', bigger: 85, smarter: 75, better: 92 },
 ]
 
-const biggerBetterSmarterProgress = [
-    { 
-        name: 'BIGGER', 
-        value: 85, 
-        fill: '#3b82f6',
-        description: 'Dampak & Jangkauan'
-    },
-    { 
-        name: 'SMARTER', 
-        value: 75, 
-        fill: '#8b5cf6',
-        description: 'Teknologi & Inovasi'
-    },
-    { 
-        name: 'BETTER', 
-        value: 92, 
-        fill: '#10b981',
-        description: 'Kualitas & Efisiensi'
-    },
-];
-
 export default function UnitKerjaDashboard() {
     const [unitData, setUnitData] = useState<UnitKerjaData | null>(null);
+    const [biggerData, setBiggerData] = useState<BiggerData[]>([]);
     const [loading, setLoading] = useState(true);
+    const [biggerLoading, setBiggerLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [biggerError, setBiggerError] = useState<string | null>(null);
     const [showCalendar, setShowCalendar] = useState(false);
     const [showManageTeam, setShowManageTeam] = useState(false);
+    const [showReportView, setShowReportView] = useState(false);
 
     // Fetch data unit kerja berdasarkan ID dari localStorage
     useEffect(() => {
@@ -144,6 +142,61 @@ export default function UnitKerjaDashboard() {
             fetchUnitData();
         }
     }, []);
+
+    // Fetch data BIGGER berdasarkan unit_kerja_id
+    useEffect(() => {
+        const fetchBiggerData = async () => {
+            try {
+                setBiggerLoading(true);
+                setBiggerError(null);
+                
+                // Ambil unit_kerja_id dari localStorage
+                const userUnitId = localStorage.getItem("id");
+                
+                if (!userUnitId) {
+                    throw new Error("Unit kerja ID tidak ditemukan di localStorage.");
+                }
+
+                // Validasi ID harus berupa angka
+                const unitId = parseInt(userUnitId);
+                if (isNaN(unitId)) {
+                    throw new Error("Unit kerja ID tidak valid.");
+                }
+
+                console.log('Fetching BIGGER data for unit_kerja_id:', unitId);
+
+                // Fetch data BIGGER dari API
+                const response = await fetch(`/api/bigger/${unitId}`);
+                
+                if (!response.ok) {
+                    if (response.status === 404) {
+                        console.log('No BIGGER data found for this unit');
+                        setBiggerData([]);
+                        return;
+                    } else {
+                        throw new Error(`HTTP error! status: ${response.status}`);
+                    }
+                }
+                
+                const biggerResponse: BiggerData[] = await response.json();
+                console.log('BIGGER data received:', biggerResponse);
+                
+                setBiggerData(biggerResponse);
+                
+            } catch (err) {
+                console.error('Error fetching BIGGER data:', err);
+                setBiggerError(err instanceof Error ? err.message : 'Terjadi kesalahan saat memuat data BIGGER');
+                setBiggerData([]); // Set empty array on error
+            } finally {
+                setBiggerLoading(false);
+            }
+        };
+
+        // Fetch BIGGER data hanya setelah unitData berhasil dimuat
+        if (typeof window !== 'undefined' && unitData && !loading) {
+            fetchBiggerData();
+        }
+    }, [unitData, loading]);
 
     // Loading state
     if (loading) {
@@ -225,16 +278,93 @@ export default function UnitKerjaDashboard() {
         },
     ];
 
-    // Bigger Smarter Better Cards (urutan diubah)
+    // Helper function untuk menghitung metrics dari BIGGER data
+    const calculateBiggerMetrics = () => {
+        if (!biggerData || biggerData.length === 0) {
+            return {
+                dampakLuas: 0,
+                kolaborasi: 0,
+                penerima_manfaat: 0,
+                jangkauan_wilayah: 0,
+                total_skor: 0,
+                trend: 0
+            };
+        }
+
+        // Ambil data terbaru (sudah diurutkan berdasarkan tahun desc dari API)
+        const latestData = biggerData[0];
+        
+        // Hitung trend jika ada data sebelumnya
+        let trend = 0;
+        if (biggerData.length > 1) {
+            const previousData = biggerData[1];
+            trend = ((latestData.total_skor - previousData.total_skor) / previousData.total_skor) * 100;
+        }
+
+        return {
+            dampakLuas: latestData.dampak_luas || 0,
+            kolaborasi: latestData.kolaborasi || 0,
+            penerima_manfaat: latestData.penerima_manfaat || 0,
+            jangkauan_wilayah: latestData.jangkauan_wilayah || 0,
+            total_skor: latestData.total_skor || 0,
+            trend: Math.round(trend)
+        };
+    };
+
+    const biggerMetrics = calculateBiggerMetrics();
+
+    // Progress data dengan BIGGER score dari API
+    const biggerBetterSmarterProgress = [
+        { 
+            name: 'BIGGER', 
+            value: biggerLoading ? 0 : biggerMetrics.total_skor || 0, 
+            fill: '#3b82f6',
+            description: 'Dampak & Jangkauan'
+        },
+        { 
+            name: 'SMARTER', 
+            value: 75, 
+            fill: '#8b5cf6',
+            description: 'Teknologi & Inovasi'
+        },
+        { 
+            name: 'BETTER', 
+            value: 92, 
+            fill: '#10b981',
+            description: 'Kualitas & Efisiensi'
+        },
+    ];
+
+    // Bigger Smarter Better Cards (urutan diubah) - BIGGER card menggunakan data real
     const biggerBetterSmarterCards = [
         {
             title: "BIGGER",
             subtitle: "Dampak & Jangkauan",
             metrics: [
-                { label: "Dampak Luas", value: "85%" },
-                { label: "Kolaborasi Eksternal", value: "12" },
-                { label: "Penerima Manfaat", value: "2,500 orang" },
-                { label: "Jangkauan Wilayah", value: "15 unit" }
+                { 
+                    label: "Dampak Luas", 
+                    value: biggerLoading ? "Loading..." : 
+                           biggerError ? "Error" : 
+                           biggerData.length > 0 ? `${biggerMetrics.dampakLuas}%` : "Tidak ada data"
+                },
+                { 
+                    label: "Kolaborasi Eksternal", 
+                    value: biggerLoading ? "Loading..." : 
+                           biggerError ? "Error" : 
+                           biggerData.length > 0 ? `${biggerMetrics.kolaborasi}` : "Tidak ada data"
+                },
+                { 
+                    label: "Penerima Manfaat", 
+                    value: biggerLoading ? "Loading..." : 
+                           biggerError ? "Error" : 
+                           biggerData.length > 0 ? `${biggerMetrics.penerima_manfaat.toLocaleString()} orang` : "Tidak ada data"
+                },
+                { 
+                    label: "Jangkauan Wilayah", 
+                    value: biggerLoading ? "Loading..." : 
+                           biggerError ? "Error" : 
+                           biggerData.length > 0 && biggerMetrics.jangkauan_wilayah > 0 ? `${biggerMetrics.jangkauan_wilayah} unit` : "Tidak ada data"
+                }
             ],
             icon: <Rocket className="w-8 h-8" />,
             color: 'blue',
@@ -242,7 +372,10 @@ export default function UnitKerjaDashboard() {
             bgLight: 'bg-blue-50',
             textColor: 'text-blue-600',
             borderColor: 'border-blue-500',
-            overallScore: 85
+            overallScore: biggerLoading ? 0 : biggerMetrics.total_skor,
+            trend: biggerLoading ? undefined : biggerMetrics.trend,
+            isLoading: biggerLoading,
+            error: biggerError
         },
         {
             title: "SMARTER",
@@ -393,6 +526,35 @@ export default function UnitKerjaDashboard() {
         );
     }
 
+    // Show report view
+    if (showReportView) {
+        return (
+            <main className="p-8 max-w-7xl mx-auto space-y-8 bg-gray-50 min-h-screen">
+                {/* Header with back button */}
+                <div className="flex items-center space-x-4 mb-8">
+                    <button
+                        onClick={() => setShowReportView(false)}
+                        className="bg-blue-100 hover:bg-blue-200 p-3 rounded-full transition-colors"
+                    >
+                        <ArrowLeft className="w-6 h-6 text-blue-600" />
+                    </button>
+                    <div className="bg-orange-100 p-3 rounded-full">
+                        <BarChart3 className="w-8 h-8 text-orange-600" />
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-bold text-orange-800">Lihat Laporan</h1>
+                        <p className="text-orange-600">
+                            Analisis kinerja dan laporan {unitData?.nama_unit_kerja}
+                        </p>
+                    </div>
+                </div>
+
+                {/* ReportView Component */}
+                <ReportView />
+            </main>
+        );
+    }
+
     return (
         <main className="p-8 max-w-7xl mx-auto space-y-8 bg-gray-50 min-h-screen">
             {/* Header */}
@@ -463,6 +625,32 @@ export default function UnitKerjaDashboard() {
                                             {card.title}
                                         </h3>
                                         <p className="text-sm text-gray-600">{card.subtitle}</p>
+                                        {/* Show data status for BIGGER card */}
+                                        {card.title === 'BIGGER' && (
+                                            <div className="mt-1">
+                                                {card.isLoading && (
+                                                    <span className="text-xs text-blue-500 flex items-center">
+                                                        <div className="animate-spin rounded-full h-3 w-3 border-b-2 border-blue-500 mr-1"></div>
+                                                        Loading data...
+                                                    </span>
+                                                )}
+                                                {card.error && (
+                                                    <span className="text-xs text-red-500">
+                                                        ⚠️ {card.error}
+                                                    </span>
+                                                )}
+                                                {!card.isLoading && !card.error && biggerData.length > 0 && (
+                                                    <span className="text-xs text-green-600">
+                                                        ✓ Data terbaru: {new Date(biggerData[0].created_at).toLocaleDateString('id-ID')}
+                                                    </span>
+                                                )}
+                                                {!card.isLoading && !card.error && biggerData.length === 0 && (
+                                                    <span className="text-xs text-gray-500">
+                                                        ℹ️ Belum ada data
+                                                    </span>
+                                                )}
+                                            </div>
+                                        )}
                                     </div>
                                     <div className={`${card.bgLight} p-3 rounded-full group-hover:scale-110 transition-transform`}>
                                         <div className={card.textColor}>
@@ -475,14 +663,28 @@ export default function UnitKerjaDashboard() {
                                 <div className="mb-6">
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-sm font-medium text-gray-700">Overall Score</span>
-                                        <span className={`text-2xl font-bold ${card.textColor}`}>
-                                            {card.overallScore}%
-                                        </span>
+                                        <div className="flex items-center space-x-2">
+                                            <span className={`text-2xl font-bold ${card.textColor}`}>
+                                                {card.isLoading ? '...' : `${card.overallScore}%`}
+                                            </span>
+                                            {/* Show trend for BIGGER card */}
+                                            {card.title === 'BIGGER' && !card.isLoading && !card.error && card.trend !== undefined && card.trend !== 0 && (
+                                                <span className={`text-xs px-2 py-1 rounded-full ${
+                                                    card.trend > 0 
+                                                        ? 'bg-green-100 text-green-700' 
+                                                        : 'bg-red-100 text-red-700'
+                                                }`}>
+                                                    {card.trend > 0 ? '+' : ''}{card.trend}%
+                                                </span>
+                                            )}
+                                        </div>
                                     </div>
                                     <div className="w-full bg-gray-200 rounded-full h-3">
                                         <div 
-                                            className={`bg-gradient-to-r ${card.bgGradient} h-3 rounded-full transition-all duration-500`}
-                                            style={{ width: `${card.overallScore}%` }}
+                                            className={`bg-gradient-to-r ${card.bgGradient} h-3 rounded-full transition-all duration-500 ${
+                                                card.isLoading ? 'animate-pulse' : ''
+                                            }`}
+                                            style={{ width: `${card.isLoading ? 20 : card.overallScore}%` }}
                                         ></div>
                                     </div>
                                 </div>
@@ -492,7 +694,9 @@ export default function UnitKerjaDashboard() {
                                     {card.metrics.map((metric, metricIdx) => (
                                         <div key={metricIdx} className="flex items-center justify-between">
                                             <span className="text-xs text-gray-600">{metric.label}</span>
-                                            <span className={`text-sm font-semibold ${card.textColor}`}>
+                                            <span className={`text-sm font-semibold ${card.textColor} ${
+                                                card.isLoading ? 'animate-pulse' : ''
+                                            }`}>
                                                 {metric.value}
                                             </span>
                                         </div>
@@ -703,7 +907,10 @@ export default function UnitKerjaDashboard() {
                         <Users className="w-8 h-8 text-purple-500 mx-auto mb-2" />
                         <p className="text-sm font-medium text-purple-800">Kelola Tim</p>
                     </button>
-                    <button className="p-4 bg-orange-50 hover:bg-orange-100 rounded-lg border border-orange-200 transition-colors">
+                    <button 
+                        onClick={() => setShowReportView(true)}
+                        className="p-4 bg-orange-50 hover:bg-orange-100 rounded-lg border border-orange-200 transition-colors"
+                    >
                         <BarChart3 className="w-8 h-8 text-orange-500 mx-auto mb-2" />
                         <p className="text-sm font-medium text-orange-800">Lihat Laporan</p>
                     </button>

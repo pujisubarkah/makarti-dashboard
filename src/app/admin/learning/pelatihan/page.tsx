@@ -14,6 +14,7 @@ import {
   Pie,
   Cell,
 } from 'recharts'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface PelatihanData {
   id: number
@@ -54,9 +55,25 @@ export default function PelatihanPage() {
     direction: 'asc' | 'desc'
   }>({ key: null, direction: 'asc' })
 
+  // State untuk modal dan champion alert
+  const [showUnitModal, setShowUnitModal] = useState(false)
+  const [selectedUnitForModal, setSelectedUnitForModal] = useState<string | null>(null)
+  const [showChampionAlert, setShowChampionAlert] = useState(false)
+
   useEffect(() => {
     fetchPelatihanData()
   }, [])
+
+  // Show champion alert after data loads
+  useEffect(() => {
+    if (!loading && !error && dataPelatihan.length > 0) {
+      const timer = setTimeout(() => {
+        setShowChampionAlert(true)
+      }, 2000) // Show after 2 seconds
+      
+      return () => clearTimeout(timer)
+    }
+  }, [loading, error, dataPelatihan.length])
 
   const fetchPelatihanData = async () => {
     try {
@@ -215,6 +232,64 @@ export default function PelatihanPage() {
     setCurrentPage(page)
   }
 
+  // Function untuk membuka modal unit
+  const handleUnitClick = (unitName: string) => {
+    setSelectedUnitForModal(unitName)
+    setShowUnitModal(true)
+  }
+
+  // Function untuk mendapatkan detail unit
+  const getUnitDetails = (unitName: string) => {
+    const unitData = dataPelatihan.filter(item => item.unit === unitName)
+    const uniqueParticipants = [...new Set(unitData.map(item => item.nama))]
+    
+    // Breakdown by training hours
+    const hoursBreakdown = unitData.reduce((acc, item) => {
+      const range = item.jam >= 10 ? '10+ jam' : 
+                   item.jam >= 7 ? '7-9 jam' : 
+                   item.jam >= 4 ? '4-6 jam' : '1-3 jam'
+      acc[range] = (acc[range] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    // Monthly breakdown
+    const monthlyBreakdown = unitData.reduce((acc, item) => {
+      const date = new Date(item.tanggal.split('/').reverse().join('-'))
+      const monthKey = `${date.getFullYear()}-${(date.getMonth() + 1).toString().padStart(2, '0')}`
+      acc[monthKey] = (acc[monthKey] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    // Training topics breakdown
+    const topicsBreakdown = unitData.reduce((acc, item) => {
+      acc[item.judul] = (acc[item.judul] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+
+    const totalHours = unitData.reduce((sum, item) => sum + item.jam, 0)
+    const avgHours = uniqueParticipants.length > 0 ? totalHours / uniqueParticipants.length : 0
+
+    return {
+      totalPelatihan: unitData.length,
+      totalParticipants: uniqueParticipants.length,
+      totalHours,
+      avgHours,
+      hoursBreakdown: Object.entries(hoursBreakdown).map(([range, count]) => ({ name: range, value: count })),
+      monthlyBreakdown: Object.entries(monthlyBreakdown)
+        .sort()
+        .map(([month, count]) => ({ month, value: count })),
+      topTrainings: Object.entries(topicsBreakdown)
+        .sort(([, a], [, b]) => b - a)
+        .slice(0, 5)
+        .map(([topic, count]) => ({ topic, count })),
+      recentTrainings: unitData
+        .sort((a, b) => new Date(b.tanggal.split('/').reverse().join('-')).getTime() - 
+                       new Date(a.tanggal.split('/').reverse().join('-')).getTime())
+        .slice(0, 5),
+      unitRank: topPerformingUnits.findIndex(u => u.unit === unitName) + 1
+    }
+  }
+
   const summaryCards = [
     { 
       label: 'Total Pelatihan', 
@@ -329,12 +404,65 @@ export default function PelatihanPage() {
         ))}
       </div>
 
+      {/* Champion Alert - appears after data loads */}
+      {showChampionAlert && topPerformingUnits.length > 0 && (
+        <div className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 rounded-xl shadow-lg p-6 mb-8 relative overflow-hidden">
+          <button
+            onClick={() => setShowChampionAlert(false)}
+            className="absolute top-4 right-4 text-yellow-800 hover:text-yellow-900 text-xl font-bold"
+          >
+            ×
+          </button>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="bg-white bg-opacity-20 p-3 rounded-full">
+                <span className="text-3xl">🏆</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-yellow-900 mb-1">
+                  🎉 Selamat kepada Unit Learning Champion!
+                </h3>
+                <p className="text-yellow-800 mb-2">
+                  <span className="font-semibold">{topPerformingUnits[0].unit}</span> merupakan unit dengan 
+                  rata-rata jam pelatihan tertinggi <span className="font-bold">{topPerformingUnits[0].rataJam.toFixed(1)} jam per pegawai</span>!
+                </p>
+                <p className="text-yellow-700 text-sm">
+                  Unit ini menunjukkan komitmen luar biasa dalam pengembangan SDM dan pembelajaran berkelanjutan.
+                </p>
+              </div>
+            </div>
+            
+            <div className="text-right">
+              <button
+                onClick={() => {
+                  handleUnitClick(topPerformingUnits[0].unit)
+                  setShowChampionAlert(false)
+                }}
+                className="bg-white text-yellow-600 px-6 py-3 rounded-lg font-semibold hover:bg-yellow-50 transition-colors shadow-md"
+              >
+                🏅 Lihat Detail Prestasi
+              </button>
+            </div>
+          </div>
+          
+          {/* Decorative elements */}
+          <div className="absolute top-0 right-0 opacity-10">
+            <span className="text-6xl">🎊</span>
+          </div>
+          <div className="absolute bottom-0 left-0 opacity-10">
+            <span className="text-4xl">⭐</span>
+          </div>
+        </div>
+      )}
+
       {/* Top Performing Units */}
       {topPerformingUnits.length > 0 && (
         <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
           <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
             <span className="mr-2">🏆</span>
             Unit Terbaik (Rata-rata Jam Pelatihan Tertinggi)
+            <span className="ml-2 text-sm text-gray-500 font-normal">(Klik untuk detail)</span>
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {topPerformingUnits.map((unit, index) => {
@@ -368,7 +496,8 @@ export default function PelatihanPage() {
               return (
                 <div
                   key={unit.unit}
-                  className={`bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border-l-4 ${colors.border} hover:scale-105 group overflow-hidden`}
+                  onClick={() => handleUnitClick(unit.unit)}
+                  className={`bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border-l-4 ${colors.border} hover:scale-105 group overflow-hidden cursor-pointer`}
                 >
                   <div className="p-6">
                     <div className="flex items-center justify-between">
@@ -401,6 +530,13 @@ export default function PelatihanPage() {
                           Rank #{index + 1}
                         </span>
                       </div>
+                    </div>
+                    
+                    {/* Click indicator */}
+                    <div className="mt-3 text-center">
+                      <span className="text-xs text-gray-500 group-hover:text-gray-700 transition-colors">
+                        👆 Klik untuk detail
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -837,6 +973,185 @@ export default function PelatihanPage() {
           </div>
         </div>
       )}
+      
+      {/* Unit Detail Modal */}
+      <Dialog open={showUnitModal} onOpenChange={setShowUnitModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold text-blue-800">
+              <span>📊</span>
+              Detail Prestasi Learning - {selectedUnitForModal}
+              {selectedUnitForModal && topPerformingUnits.length > 0 && topPerformingUnits[0].unit === selectedUnitForModal && (
+                <span className="ml-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                  🏆 CHAMPION
+                </span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedUnitForModal && (
+            <div className="space-y-6 mt-4">
+              {(() => {
+                const unitDetails = getUnitDetails(selectedUnitForModal)
+                const isChampion = topPerformingUnits.length > 0 && topPerformingUnits[0].unit === selectedUnitForModal
+                
+                return (
+                  <>
+                    {/* Champion Celebration Section */}
+                    {isChampion && (
+                      <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-6 rounded-lg border-2 border-yellow-200">
+                        <div className="text-center">
+                          <div className="text-4xl mb-3">🎉🏆🎉</div>
+                          <h3 className="text-2xl font-bold text-yellow-800 mb-2">SELAMAT!</h3>
+                          <p className="text-yellow-700 font-medium">
+                            Unit ini adalah JUARA LEARNING dengan prestasi luar biasa!
+                          </p>
+                          <div className="flex justify-center space-x-3 mt-4">
+                            <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-bold">🥇 Rank #1</span>
+                            <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">⭐ Champion</span>
+                            <span className="bg-yellow-600 text-white px-3 py-1 rounded-full text-sm font-bold">🚀 Top Learning Unit</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className={`p-4 rounded-lg text-center ${isChampion ? 'bg-yellow-50 border-2 border-yellow-200' : 'bg-blue-50'}`}>
+                        <div className={`text-2xl font-bold ${isChampion ? 'text-yellow-600' : 'text-blue-600'}`}>
+                          {unitDetails.totalPelatihan}
+                        </div>
+                        <div className={`text-sm ${isChampion ? 'text-yellow-800' : 'text-blue-800'}`}>
+                          Total Pelatihan
+                        </div>
+                        {isChampion && <div className="text-xs text-yellow-600 mt-1">👑 Outstanding!</div>}
+                      </div>
+                      <div className="bg-green-50 p-4 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-green-600">
+                          {unitDetails.totalParticipants}
+                        </div>
+                        <div className="text-sm text-green-800">Total Peserta</div>
+                      </div>
+                      <div className="bg-purple-50 p-4 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-purple-600">
+                          {unitDetails.avgHours.toFixed(1)}
+                        </div>
+                        <div className="text-sm text-purple-800">Rata-rata Jam</div>
+                        <div className="text-xs text-purple-600 mt-1">per pegawai</div>
+                      </div>
+                      <div className="bg-orange-50 p-4 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-orange-600">#{unitDetails.unitRank}</div>
+                        <div className="text-sm text-orange-800">Ranking</div>
+                        <div className="text-xs text-orange-600 mt-1">
+                          {unitDetails.unitRank === 1 ? '🏆 Best' : 
+                           unitDetails.unitRank <= 3 ? '🥈🥉 Top 3' : '📈 Good'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Charts */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Hours Breakdown */}
+                      <div className="bg-white border rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Breakdown Durasi Pelatihan</h3>
+                        <ResponsiveContainer width="100%" height={200}>
+                          <PieChart>
+                            <Pie
+                              data={unitDetails.hoursBreakdown}
+                              cx="50%"
+                              cy="50%"
+                              labelLine={false}
+                              label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                              outerRadius={80}
+                              fill="#8884d8"
+                              dataKey="value"
+                            >
+                              {unitDetails.hoursBreakdown.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                              ))}
+                            </Pie>
+                            <Tooltip />
+                          </PieChart>
+                        </ResponsiveContainer>
+                      </div>
+
+                      {/* Monthly Trend */}
+                      <div className="bg-white border rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Trend Bulanan</h3>
+                        <ResponsiveContainer width="100%" height={200}>
+                          <BarChart data={unitDetails.monthlyBreakdown}>
+                            <CartesianGrid strokeDasharray="3 3" />
+                            <XAxis dataKey="month" />
+                            <YAxis />
+                            <Tooltip />
+                            <Bar dataKey="value" fill="#3b82f6" radius={[4, 4, 0, 0]} />
+                          </BarChart>
+                        </ResponsiveContainer>
+                      </div>
+                    </div>
+
+                    {/* Top Training Topics */}
+                    <div className="bg-white border rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4">Top 5 Pelatihan Favorit</h3>
+                      <div className="space-y-3">
+                        {unitDetails.topTrainings.map(({ topic, count }, index) => (
+                          <div key={topic} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                            <div className="flex items-center space-x-3">
+                              <span className="text-xs bg-blue-100 text-blue-600 px-2 py-1 rounded-full font-medium">
+                                #{index + 1}
+                              </span>
+                              <span className="text-sm text-gray-700 font-medium" title={topic}>
+                                {topic.length > 40 ? `${topic.substring(0, 40)}...` : topic}
+                              </span>
+                            </div>
+                            <span className="font-bold text-gray-800 text-sm">
+                              {count} kali
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Recent Training Activities */}
+                    <div className="bg-white border rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4">5 Pelatihan Terbaru</h3>
+                      <div className="space-y-3">
+                        {unitDetails.recentTrainings.map((training, index) => (
+                          <div key={training.id} className={`p-3 rounded-lg border-l-4 ${
+                            isChampion ? 'border-yellow-500 bg-yellow-50' : 'border-blue-500 bg-blue-50'
+                          }`}>
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-2 mb-2">
+                                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                                    #{index + 1}
+                                  </span>
+                                  <span className="font-medium text-gray-800">{training.nama}</span>
+                                </div>
+                                <div className="text-sm text-gray-700 font-medium mb-1">{training.judul}</div>
+                                <div className="flex items-center space-x-4 text-xs text-gray-500">
+                                  <span>📅 {training.tanggal}</span>
+                                  <span className={`px-2 py-1 rounded ${
+                                    training.jam >= 10 ? 'bg-green-100 text-green-600' :
+                                    training.jam >= 7 ? 'bg-blue-100 text-blue-600' :
+                                    'bg-gray-100 text-gray-600'
+                                  }`}>
+                                    ⏰ {training.jam} jam
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </>
+                )
+              })()}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

@@ -18,6 +18,7 @@ import useSWR from 'swr'
 import { toast } from 'sonner'
 import { Loader2, AlertCircle, RefreshCw } from 'lucide-react'
 import { Button } from '@/components/ui/button'
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
 interface PublikasiItem {
   id: number
@@ -97,6 +98,11 @@ export default function MediaPage() {
   // State for popup
   const [showInactiveUnitsAlert, setShowInactiveUnitsAlert] = React.useState(false)
   
+  // State for champion alert and modal
+  const [showChampionAlert, setShowChampionAlert] = React.useState(false)
+  const [showUnitModal, setShowUnitModal] = React.useState(false)
+  const [selectedUnitForModal, setSelectedUnitForModal] = React.useState<string | null>(null)
+  
   // State for pagination
   const [currentPage, setCurrentPage] = React.useState(1)
   const [itemsPerPage, setItemsPerPage] = React.useState(10)
@@ -145,10 +151,73 @@ export default function MediaPage() {
     }
   }, [dataPublikasi.length, inactiveUnits.length])
 
+  // Show champion alert after data loads
+  React.useEffect(() => {
+    if (dataPublikasi.length > 0 && Object.keys(unitCount).length > 0) {
+      const timer = setTimeout(() => {
+        setShowChampionAlert(true)
+      }, 3000) // Show after 3 seconds, after inactive units alert
+      return () => clearTimeout(timer)
+    }
+  }, [dataPublikasi.length, unitCount])
+
   // Sort units by post count
    const sortedUnits = Object.entries(unitCount)
      .sort(([, a], [, b]) => b - a)
      .slice(0, 3)
+
+  // Function to handle unit click
+  const handleUnitClick = (unitName: string) => {
+    setSelectedUnitForModal(unitName)
+    setShowUnitModal(true)
+  }
+
+  // Function to get unit details
+  const getUnitDetails = (unitName: string) => {
+    const unitPosts = dataPublikasi.filter(item => item.users.unit_kerja === unitName)
+    
+    // Calculate unit-specific metrics
+    const totalPosts = unitPosts.length
+    const totalLikes = unitPosts.reduce((sum, post) => sum + (post.likes || 0), 0)
+    const totalViews = unitPosts.reduce((sum, post) => sum + (post.views || 0), 0)
+    
+    // Media type breakdown
+    const mediaBreakdown = unitPosts.reduce((acc, post) => {
+      acc[post.jenis] = (acc[post.jenis] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+    
+    // Monthly breakdown
+    const monthlyActivity = unitPosts.reduce((acc, post) => {
+      const month = new Date(post.tanggal).toLocaleDateString('id-ID', { 
+        month: 'short',
+        year: 'numeric'
+      })
+      acc[month] = (acc[month] || 0) + 1
+      return acc
+    }, {} as Record<string, number>)
+    
+    // Recent posts (last 5)
+    const recentPosts = unitPosts
+      .sort((a, b) => new Date(b.tanggal).getTime() - new Date(a.tanggal).getTime())
+      .slice(0, 5)
+    
+    const avgEngagement = totalViews > 0 ? ((totalLikes / totalViews) * 100).toFixed(1) : '0'
+    const unitRank = sortedUnits.findIndex(([unit]) => unit === unitName) + 1
+    
+    return {
+      totalPosts,
+      totalLikes,
+      totalViews,
+      avgEngagement,
+      unitRank,
+      mediaBreakdown: Object.entries(mediaBreakdown).map(([type, count]) => ({ type, count })),
+      monthlyActivity: Object.entries(monthlyActivity)
+        .sort()
+        .map(([month, count]) => ({ month, count })),
+      recentPosts
+    }
+  }
 
   // Pie chart data
   const pieData = Object.entries(mediaCount).map(([name, value]) => ({
@@ -369,6 +438,28 @@ export default function MediaPage() {
         <div>
           <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard Publikasi & Media</h1>
           <p className="text-blue-600">Pantau dan kelola publikasi media</p>
+          
+          {/* Quick Stats */}
+          <div className="mt-4 flex flex-wrap items-center gap-4 text-sm text-gray-600">
+            <div className="flex items-center space-x-2">
+              <span className="text-2xl">🏆</span>
+              <span>
+                <strong className="text-yellow-700">Media Champion:</strong> {sortedUnits.length > 0 ? sortedUnits[0][0].replace(/_/g, ' ') : '-'}
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-2xl">📊</span>
+              <span>
+                <strong className="text-blue-700">Total Publikasi:</strong> {dataPublikasi.length}
+              </span>
+            </div>
+            <div className="flex items-center space-x-2">
+              <span className="text-2xl">🚀</span>
+              <span>
+                <strong className="text-green-700">Unit Aktif:</strong> {Object.keys(unitCount).length}
+              </span>
+            </div>
+          </div>
         </div>
         <div className="flex items-center gap-3">
           {inactiveUnits.length > 0 && (
@@ -418,7 +509,61 @@ export default function MediaPage() {
             </div>
           </div>
         ))}
-      </div>      {/* Charts Section */}
+      </div>
+
+      {/* Champion Alert */}
+      {showChampionAlert && sortedUnits.length > 0 && (
+        <div className="bg-gradient-to-r from-yellow-400 via-yellow-500 to-yellow-600 rounded-xl shadow-lg p-6 mb-8 relative overflow-hidden">
+          <button
+            onClick={() => setShowChampionAlert(false)}
+            className="absolute top-4 right-4 text-yellow-800 hover:text-yellow-900 text-xl font-bold"
+          >
+            ×
+          </button>
+          
+          <div className="flex items-center justify-between">
+            <div className="flex items-center space-x-4">
+              <div className="bg-white bg-opacity-20 p-3 rounded-full">
+                <span className="text-3xl">🏆</span>
+              </div>
+              <div>
+                <h3 className="text-xl font-bold text-yellow-900 mb-1">
+                  🎉 Selamat kepada Unit Champion Media!
+                </h3>
+                <p className="text-yellow-800 mb-2">
+                  <span className="font-semibold">{sortedUnits[0][0].replace(/_/g, ' ')}</span> merupakan unit dengan 
+                  publikasi media terbanyak <span className="font-bold">{sortedUnits[0][1]} publikasi</span>!
+                </p>
+                <p className="text-yellow-700 text-sm">
+                  Unit ini menunjukkan komitmen luar biasa dalam branding dan publikasi media.
+                </p>
+              </div>
+            </div>
+            
+            <div className="text-right">
+              <button
+                onClick={() => {
+                  handleUnitClick(sortedUnits[0][0])
+                  setShowChampionAlert(false)
+                }}
+                className="bg-white text-yellow-600 px-6 py-3 rounded-lg font-semibold hover:bg-yellow-50 transition-colors shadow-md"
+              >
+                🏅 Lihat Detail Prestasi
+              </button>
+            </div>
+          </div>
+          
+          {/* Decorative elements */}
+          <div className="absolute top-0 right-0 opacity-10">
+            <span className="text-6xl">🎊</span>
+          </div>
+          <div className="absolute bottom-0 left-0 opacity-10">
+            <span className="text-4xl">⭐</span>
+          </div>
+        </div>
+      )}
+
+      {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 mb-8">
         {/* Pie Chart */}
         <div className="bg-white rounded-xl shadow-lg p-6">
@@ -482,6 +627,7 @@ export default function MediaPage() {
         <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
           <span className="mr-2">🏆</span>
           Top 3 Unit Kerja Terbaik
+          <span className="ml-2 text-sm text-gray-500 font-normal">(Klik untuk detail)</span>
         </h2>
         {sortedUnits.length > 0 ? (
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
@@ -491,10 +637,11 @@ export default function MediaPage() {
               return (
                 <div
                   key={unit}
-                  className={`bg-gradient-to-br from-${colors[index]}-100 to-${colors[index]}-200 rounded-lg p-4 border border-${colors[index]}-300`}
+                  onClick={() => handleUnitClick(unit)}
+                  className={`bg-gradient-to-br from-${colors[index]}-100 to-${colors[index]}-200 rounded-lg p-4 border border-${colors[index]}-300 hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-105 group`}
                 >
                   <div className="text-center">
-                    <div className="text-3xl mb-2">{medals[index]}</div>
+                    <div className="text-3xl mb-2 group-hover:scale-110 transition-transform">{medals[index]}</div>
                     <h3 className="font-bold text-gray-800 mb-1">
                       Peringkat {index + 1}
                     </h3>
@@ -503,6 +650,13 @@ export default function MediaPage() {
                     </p>
                     <div className={`inline-flex items-center px-3 py-1 rounded-full bg-${colors[index]}-300 text-${colors[index]}-800 text-sm font-semibold`}>
                       {count} publikasi
+                    </div>
+                    
+                    {/* Click indicator */}
+                    <div className="mt-3">
+                      <span className="text-xs text-gray-500 group-hover:text-gray-700 transition-colors">
+                        👆 Klik untuk detail
+                      </span>
                     </div>
                   </div>
                 </div>
@@ -713,6 +867,234 @@ export default function MediaPage() {
           </div>
         )}
       </div>
+
+      {/* Unit Detail Modal */}
+      <Dialog open={showUnitModal} onOpenChange={setShowUnitModal}>
+        <DialogContent className="max-w-4xl max-h-[80vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2 text-xl font-bold text-blue-800">
+              <span>📊</span>
+              Detail Prestasi Media - {selectedUnitForModal?.replace(/_/g, ' ')}
+              {selectedUnitForModal && sortedUnits.length > 0 && sortedUnits[0][0] === selectedUnitForModal && (
+                <span className="ml-2 bg-yellow-500 text-white text-xs font-bold px-2 py-1 rounded-full">
+                  🏆 CHAMPION
+                </span>
+              )}
+            </DialogTitle>
+          </DialogHeader>
+          
+          {selectedUnitForModal && (
+            <div className="space-y-6 mt-4">
+              {(() => {
+                const unitDetails = getUnitDetails(selectedUnitForModal)
+                const isChampion = sortedUnits.length > 0 && sortedUnits[0][0] === selectedUnitForModal
+                
+                return (
+                  <>
+                    {/* Champion Celebration Section */}
+                    {isChampion && (
+                      <div className="bg-gradient-to-br from-yellow-50 to-orange-50 p-6 rounded-lg border-2 border-yellow-200">
+                        <div className="text-center">
+                          <div className="text-4xl mb-3">🎉🏆🎉</div>
+                          <h3 className="text-2xl font-bold text-yellow-800 mb-2">SELAMAT!</h3>
+                          <p className="text-yellow-700 font-medium">
+                            Unit ini adalah JUARA MEDIA dengan prestasi publikasi terbaik!
+                          </p>
+                          <div className="flex justify-center space-x-3 mt-4">
+                            <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-sm font-bold">🥇 Rank #1</span>
+                            <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-sm font-bold">⭐ Champion</span>
+                            <span className="bg-yellow-600 text-white px-3 py-1 rounded-full text-sm font-bold">🚀 Top Media Unit</span>
+                          </div>
+                        </div>
+                      </div>
+                    )}
+
+                    {/* Summary Cards */}
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className={`p-4 rounded-lg text-center ${isChampion ? 'bg-yellow-50 border-2 border-yellow-200' : 'bg-blue-50'}`}>
+                        <div className={`text-2xl font-bold ${isChampion ? 'text-yellow-600' : 'text-blue-600'}`}>
+                          {unitDetails.totalPosts}
+                        </div>
+                        <div className={`text-sm ${isChampion ? 'text-yellow-800' : 'text-blue-800'}`}>
+                          Total Publikasi
+                        </div>
+                        {isChampion && <div className="text-xs text-yellow-600 mt-1">👑 Outstanding!</div>}
+                      </div>
+                      <div className="bg-red-50 p-4 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-red-600">
+                          {unitDetails.totalLikes.toLocaleString()}
+                        </div>
+                        <div className="text-sm text-red-800">Total Likes</div>
+                      </div>
+                      <div className="bg-purple-50 p-4 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-purple-600">
+                          {unitDetails.totalViews.toLocaleString()}
+                        </div>
+                        <div className="text-sm text-purple-800">Total Views</div>
+                      </div>
+                      <div className="bg-green-50 p-4 rounded-lg text-center">
+                        <div className="text-2xl font-bold text-green-600">#{unitDetails.unitRank}</div>
+                        <div className="text-sm text-green-800">Ranking</div>
+                        <div className="text-xs text-green-600 mt-1">
+                          {unitDetails.unitRank === 1 ? '🏆 Best' : 
+                           unitDetails.unitRank <= 3 ? '🥈🥉 Top 3' : '📈 Good'}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Charts */}
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Media Type Breakdown */}
+                      <div className="bg-white border rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Breakdown Jenis Media</h3>
+                        <div className="space-y-3">
+                          {unitDetails.mediaBreakdown.map(({ type, count }) => (
+                            <div key={type} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                              <div className="flex items-center space-x-3">
+                                <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                  type === 'Instagram' ? 'bg-pink-100 text-pink-800' :
+                                  type === 'TikTok' ? 'bg-purple-100 text-purple-800' :
+                                  type === 'YouTube' ? 'bg-red-100 text-red-800' :
+                                  type === 'Facebook' ? 'bg-blue-100 text-blue-800' :
+                                  type === 'Twitter' ? 'bg-cyan-100 text-cyan-800' :
+                                  'bg-gray-100 text-gray-800'
+                                }`}>
+                                  {type === 'Instagram' ? '📸' :
+                                   type === 'TikTok' ? '🎵' :
+                                   type === 'YouTube' ? '📺' :
+                                   type === 'Facebook' ? '👥' :
+                                   type === 'Twitter' ? '🐦' : '📱'} {type}
+                                </span>
+                              </div>
+                              <span className="font-bold text-gray-800 text-sm">
+                                {count} publikasi
+                              </span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
+                      {/* Monthly Trend */}
+                      <div className="bg-white border rounded-lg p-4">
+                        <h3 className="text-lg font-semibold text-gray-800 mb-4">Aktivitas Bulanan</h3>
+                        <div className="space-y-2">
+                          {unitDetails.monthlyActivity.map(({ month, count }) => (
+                            <div key={month} className="flex items-center justify-between p-2 hover:bg-gray-50 rounded">
+                              <span className="text-sm text-gray-600">{month}</span>
+                              <div className="flex items-center space-x-2">
+                                <div className="w-16 bg-gray-200 rounded-full h-2">
+                                  <div 
+                                    className="bg-blue-500 h-2 rounded-full" 
+                                    style={{ width: `${(count / Math.max(...unitDetails.monthlyActivity.map(m => m.count))) * 100}%` }}
+                                  ></div>
+                                </div>
+                                <span className="text-sm font-medium text-gray-800 w-8">{count}</span>
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Recent Publications */}
+                    <div className="bg-white border rounded-lg p-4">
+                      <h3 className="text-lg font-semibold text-gray-800 mb-4">5 Publikasi Terbaru</h3>
+                      <div className="space-y-3">
+                        {unitDetails.recentPosts.map((post, index) => (
+                          <div key={post.id} className={`p-3 rounded-lg border-l-4 ${
+                            isChampion ? 'border-yellow-500 bg-yellow-50' : 'border-blue-500 bg-blue-50'
+                          }`}>
+                            <div className="flex justify-between items-start">
+                              <div className="flex-1">
+                                <div className="flex items-center space-x-2 mb-2">
+                                  <span className="text-xs bg-gray-100 text-gray-600 px-2 py-1 rounded-full">
+                                    #{index + 1}
+                                  </span>
+                                  <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                                    post.jenis === 'Instagram' ? 'bg-pink-100 text-pink-800' :
+                                    post.jenis === 'TikTok' ? 'bg-purple-100 text-purple-800' :
+                                    post.jenis === 'YouTube' ? 'bg-red-100 text-red-800' :
+                                    post.jenis === 'Facebook' ? 'bg-blue-100 text-blue-800' :
+                                    post.jenis === 'Twitter' ? 'bg-cyan-100 text-cyan-800' :
+                                    'bg-gray-100 text-gray-800'
+                                  }`}>
+                                    {post.jenis}
+                                  </span>
+                                </div>
+                                <div className="text-sm text-gray-700 font-medium mb-1">
+                                  {post.judul.length > 60 ? `${post.judul.substring(0, 60)}...` : post.judul}
+                                </div>
+                                <div className="flex items-center space-x-4 text-xs text-gray-500">
+                                  <span>📅 {new Date(post.tanggal).toLocaleDateString('id-ID')}</span>
+                                  {post.likes && <span>❤️ {post.likes.toLocaleString()}</span>}
+                                  {post.views && <span>👁️ {post.views.toLocaleString()}</span>}
+                                </div>
+                              </div>
+                              <a 
+                                href={post.link} 
+                                target="_blank"
+                                rel="noopener noreferrer"
+                                className="ml-2 inline-flex items-center px-2 py-1 bg-blue-500 text-white text-xs rounded hover:bg-blue-600 transition-colors"
+                              >
+                                🔗 Lihat
+                              </a>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Engagement Insights */}
+                    <div className="bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-6">
+                      <h3 className="text-lg font-bold text-indigo-800 mb-4 flex items-center">
+                        <span className="mr-2">💡</span>
+                        Performance Insights
+                      </h3>
+                      
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        <div className="bg-white rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-600">Engagement Rate</span>
+                            <span className="text-2xl">📈</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div 
+                              className="bg-green-500 h-2 rounded-full transition-all duration-500" 
+                              style={{ width: `${Math.min(parseFloat(unitDetails.avgEngagement), 100)}%` }}
+                            ></div>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">{unitDetails.avgEngagement}%</p>
+                        </div>
+                        
+                        <div className="bg-white rounded-lg p-4">
+                          <div className="flex items-center justify-between mb-2">
+                            <span className="text-sm font-medium text-gray-600">Konsistensi Posting</span>
+                            <span className="text-2xl">🎯</span>
+                          </div>
+                          <div className="w-full bg-gray-200 rounded-full h-2">
+                            <div className="bg-blue-500 h-2 rounded-full" style={{ width: '85%' }}></div>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">Excellent (85%)</p>
+                        </div>
+                      </div>
+                      
+                      {isChampion && (
+                        <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded-lg">
+                          <p className="text-sm text-yellow-800 flex items-center">
+                            <span className="mr-2">🎉</span>
+                            <strong>Selamat!</strong> Unit ini adalah champion media dengan publikasi terbanyak. 
+                            Konsistensi dan kualitas konten yang luar biasa!
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </>
+                )
+              })()}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

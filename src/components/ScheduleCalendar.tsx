@@ -17,7 +17,19 @@ import {
 } from "lucide-react";
 
 // Enhanced dummy data untuk kegiatan harian
-const dummyEvents = [
+interface Event {
+  id: number;
+  date: Date;
+  title: string;
+  location: string;
+  time: string;
+  type: string;
+  priority: string;
+  attendees: number;
+  description: string;
+}
+
+const dummyEvents: Event[] = [
   {
     id: 1,
     date: new Date(2025, 6, 5), // July 5, 2025 (current date)
@@ -77,7 +89,7 @@ const dummyEvents = [
 
 export default function ScheduleCalendar() {
   const [date, setDate] = useState<Date | undefined>(new Date());
-  const [selectedEvent, setSelectedEvent] = useState<any>(null);
+  const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
 
   // Filter event berdasarkan tanggal yang dipilih
   const filteredEvents = dummyEvents.filter(
@@ -85,8 +97,8 @@ export default function ScheduleCalendar() {
   );
 
   // Function to get event type styling
-  const getEventTypeStyle = (type: string, priority: string) => {
-    const styles: { [key: string]: any } = {
+  const getEventTypeStyle = (type: string, priority: string): { bg: string; border: string; icon: string; color: string } => {
+    const styles: { [key: string]: { bg: string; border: string; icon: string; color: string } } = {
       meeting: {
         bg: priority === 'high' ? 'bg-gradient-to-r from-red-50 to-red-100' : 'bg-gradient-to-r from-blue-50 to-blue-100',
         border: priority === 'high' ? 'border-l-red-500' : 'border-l-blue-500',
@@ -232,7 +244,7 @@ export default function ScheduleCalendar() {
           <CardContent className="p-6">
             {filteredEvents.length > 0 ? (
               <div className="space-y-4">
-                {filteredEvents.map((event, index) => {
+                {filteredEvents.map((event) => {
                   const eventStyle = getEventTypeStyle(event.type, event.priority);
                   return (
                     <div

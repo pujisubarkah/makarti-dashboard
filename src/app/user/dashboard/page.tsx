@@ -18,8 +18,12 @@ import {
   Brain,
   Rocket,
   Trophy,
-  Lightbulb
+  Lightbulb,
+  ArrowLeft
 } from "lucide-react";
+import ScheduleCalendar from "@/components/ScheduleCalendar";
+import ManageTeam from "@/components/ManageTeam";
+import ActivityTimeline from "@/components/ActivityTimeline";
 import {
   XAxis,
   YAxis,
@@ -74,6 +78,8 @@ export default function UnitKerjaDashboard() {
     const [unitData, setUnitData] = useState<UnitKerjaData | null>(null);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
+    const [showCalendar, setShowCalendar] = useState(false);
+    const [showManageTeam, setShowManageTeam] = useState(false);
 
     // Fetch data unit kerja berdasarkan ID dari localStorage
     useEffect(() => {
@@ -329,6 +335,64 @@ export default function UnitKerjaDashboard() {
         },
     ];
 
+    // Show calendar view
+    if (showCalendar) {
+        return (
+            <main className="p-8 max-w-7xl mx-auto space-y-8 bg-gray-50 min-h-screen">
+                {/* Header with back button */}
+                <div className="flex items-center space-x-4 mb-8">
+                    <button
+                        onClick={() => setShowCalendar(false)}
+                        className="bg-blue-100 hover:bg-blue-200 p-3 rounded-full transition-colors"
+                    >
+                        <ArrowLeft className="w-6 h-6 text-blue-600" />
+                    </button>
+                    <div className="bg-green-100 p-3 rounded-full">
+                        <Calendar className="w-8 h-8 text-green-600" />
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-bold text-green-800">Jadwal Kegiatan</h1>
+                        <p className="text-green-600">
+                            Kelola dan lihat jadwal kegiatan {unitData?.nama_unit_kerja}
+                        </p>
+                    </div>
+                </div>
+
+                {/* Calendar Component */}
+                <ScheduleCalendar />
+            </main>
+        );
+    }
+
+    // Show manage team view
+    if (showManageTeam) {
+        return (
+            <main className="p-8 max-w-7xl mx-auto space-y-8 bg-gray-50 min-h-screen">
+                {/* Header with back button */}
+                <div className="flex items-center space-x-4 mb-8">
+                    <button
+                        onClick={() => setShowManageTeam(false)}
+                        className="bg-blue-100 hover:bg-blue-200 p-3 rounded-full transition-colors"
+                    >
+                        <ArrowLeft className="w-6 h-6 text-blue-600" />
+                    </button>
+                    <div className="bg-purple-100 p-3 rounded-full">
+                        <Users className="w-8 h-8 text-purple-600" />
+                    </div>
+                    <div>
+                        <h1 className="text-3xl font-bold text-purple-800">Kelola Tim</h1>
+                        <p className="text-purple-600">
+                            Kelola anggota tim dan struktur organisasi {unitData?.nama_unit_kerja}
+                        </p>
+                    </div>
+                </div>
+
+                {/* ManageTeam Component */}
+                <ManageTeam />
+            </main>
+        );
+    }
+
     return (
         <main className="p-8 max-w-7xl mx-auto space-y-8 bg-gray-50 min-h-screen">
             {/* Header */}
@@ -491,8 +555,8 @@ export default function UnitKerjaDashboard() {
                 ))}
             </section>
 
-            {/* Charts Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Charts and Activity Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 {/* Bigger Better Smarter Trend */}
                 <section className="bg-white rounded-xl shadow-lg p-6">
                     <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
@@ -566,6 +630,13 @@ export default function UnitKerjaDashboard() {
                         </ResponsiveContainer>
                     </div>
                 </section>
+
+                {/* Activity Timeline */}
+                <div className="lg:col-span-1">
+                    <div className="rounded-xl shadow-lg overflow-hidden">
+                        <ActivityTimeline />
+                    </div>
+                </div>
             </div>
 
             {/* Recent Activities with BBS Focus */}
@@ -618,11 +689,17 @@ export default function UnitKerjaDashboard() {
                         <Award className="w-8 h-8 text-blue-500 mx-auto mb-2" />
                         <p className="text-sm font-medium text-blue-800">Tambah Inovasi</p>
                     </button>
-                    <button className="p-4 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition-colors">
+                    <button 
+                        onClick={() => setShowCalendar(true)}
+                        className="p-4 bg-green-50 hover:bg-green-100 rounded-lg border border-green-200 transition-colors"
+                    >
                         <Calendar className="w-8 h-8 text-green-500 mx-auto mb-2" />
                         <p className="text-sm font-medium text-green-800">Jadwal Kegiatan</p>
                     </button>
-                    <button className="p-4 bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-200 transition-colors">
+                    <button 
+                        onClick={() => setShowManageTeam(true)}
+                        className="p-4 bg-purple-50 hover:bg-purple-100 rounded-lg border border-purple-200 transition-colors"
+                    >
                         <Users className="w-8 h-8 text-purple-500 mx-auto mb-2" />
                         <p className="text-sm font-medium text-purple-800">Kelola Tim</p>
                     </button>

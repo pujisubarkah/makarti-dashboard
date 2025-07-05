@@ -530,7 +530,7 @@ export default function PenyelenggaraanBangkomPage() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard Penyelenggaraan Bangkom</h1>
-          <p>Kelola dan monitor penyelenggaraan kegiatan bangkom non-pelatihan:
+          <p>Kelola dan monitor penyelenggaraan kegiatan bangkom:
             <br/>
             <span>(Seminar, Webinar, Bimtek, Talkshow, Penilaian Kompetensi,</span>
             <br/>

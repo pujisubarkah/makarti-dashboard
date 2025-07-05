@@ -39,6 +39,16 @@ interface ApiResponse {
   data: PublikasiItem[]
 }
 
+interface SummaryResponse {
+  unit_kerja_sudah_isi: string[]
+  unit_kerja_belum_isi: string[]
+  summary: {
+    total_sudah_isi: number
+    total_belum_isi: number
+    total_unit_kerja: number
+  }
+}
+
 const COLORS = ['#60a5fa', '#f472b6', '#34d399', '#facc15', '#8b5cf6', '#ef4444']
 
 // Fetcher function for SWR
@@ -65,116 +75,49 @@ export default function MediaPage() {
     dedupingInterval: 10000,
   })
 
+  // SWR hook for summary data
+  const { 
+    data: summaryData, 
+    error: summaryError,
+    isLoading: summaryLoading 
+  } = useSWR('/api/publikasi/summary', async (url: string) => {
+    const response = await fetch(url)
+    if (!response.ok) {
+      throw new Error(`Failed to fetch summary: ${response.status} ${response.statusText}`)
+    }
+    const result: SummaryResponse = await response.json()
+    return result
+  }, {
+    refreshInterval: 60000,
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
+    dedupingInterval: 10000,
+  })
+
   // State for popup
   const [showInactiveUnitsAlert, setShowInactiveUnitsAlert] = React.useState(false)
-    // State for pagination
+  
+  // State for pagination
   const [currentPage, setCurrentPage] = React.useState(1)
   const [itemsPerPage, setItemsPerPage] = React.useState(10)
-  
-  // State for filtering and sorting
-  const [filterUnit, setFilterUnit] = React.useState('')
-  const [filterJenis, setFilterJenis] = React.useState('')
-  const [sortColumn, setSortColumn] = React.useState<'judul' | 'jenis' | 'unit_kerja' | 'likes' | 'views' | null>(null)
-  const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc')
+
   // Transform and calculate data
   const dataPublikasi = publikasiData || []
 
-  // Filter and sort data
-  const filteredData = dataPublikasi.filter(item => {
-    const unitMatch = filterUnit === '' || item.users.unit_kerja === filterUnit
-    const jenisMatch = filterJenis === '' || item.jenis === filterJenis
-    return unitMatch && jenisMatch
-  })
-
-  // Sort data
-  const sortedData = [...filteredData].sort((a, b) => {
-    if (!sortColumn) return 0
-    
-    let aValue: string | number
-    let bValue: string | number
-    
-    switch (sortColumn) {
-      case 'judul':
-        aValue = a.judul.toLowerCase()
-        bValue = b.judul.toLowerCase()
-        break
-      case 'jenis':
-        aValue = a.jenis.toLowerCase()
-        bValue = b.jenis.toLowerCase()
-        break
-      case 'unit_kerja':
-        aValue = a.users.unit_kerja.toLowerCase()
-        bValue = b.users.unit_kerja.toLowerCase()
-        break
-      case 'likes':
-        aValue = a.likes || 0
-        bValue = b.likes || 0
-        break
-      case 'views':
-        aValue = a.views || 0
-        bValue = b.views || 0
-        break
-      default:
-        return 0
-    }
-    
-    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
-    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
-    return 0
-  })
-
   // Pagination calculations
-  const totalPages = Math.ceil(sortedData.length / itemsPerPage)
+  const totalPages = Math.ceil(dataPublikasi.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const currentData = sortedData.slice(startIndex, endIndex)
+  const currentData = dataPublikasi.slice(startIndex, endIndex)
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
   }
+
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
     setItemsPerPage(newItemsPerPage)
     setCurrentPage(1) // Reset to first page when changing items per page
   }
-
-  // Handle sorting
-  const handleSort = (column: 'judul' | 'jenis' | 'unit_kerja' | 'likes' | 'views') => {
-    if (sortColumn === column) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortColumn(column)
-      setSortDirection('asc')
-    }
-    setCurrentPage(1) // Reset to first page when sorting
-  }
-
-  // Reset filters
-  const resetFilters = () => {
-    setFilterUnit('')
-    setFilterJenis('')
-    setSortColumn(null)
-    setSortDirection('asc')
-    setCurrentPage(1)
-  }
-  // Get unique values for filters
-  const uniqueUnits = [...new Set(dataPublikasi.map(item => item.users.unit_kerja))].sort()
-  const uniqueJenis = [...new Set(dataPublikasi.map(item => item.jenis))].sort()
-  
-  // Define all possible units
-  const allUnits = [
-    'BIRO_RENAKU',
-    'DIT_APK2', 
-    'POLTEK_JKT',
-    'POLTEK_BDG',
-    'POLTEK_SBY',
-    'POLTEK_MLG',
-    'POLTEK_SMG',
-    'POLTEK_MDN',
-    'POLTEK_PLB',
-    'POLTEK_DPR',
-    'POLTEK_BTN',
-    'POLTEK_KSR',
-  ]
 
   // Calculate media counts
   const mediaCount = dataPublikasi.reduce((acc, item) => {
@@ -189,9 +132,8 @@ export default function MediaPage() {
     return acc
   }, {} as Record<string, number>)
 
-  // Find inactive units
-  const activeUnits = Object.keys(unitCount)
-  const inactiveUnits = allUnits.filter(unit => !activeUnits.includes(unit))
+  // Find inactive units from summary data
+  const inactiveUnits = summaryData ? summaryData.unit_kerja_belum_isi : []
 
   // Show popup when data loads
   React.useEffect(() => {
@@ -213,29 +155,20 @@ export default function MediaPage() {
     name,
     value,
   }))
+
   // Monthly data for bar chart
   const monthlyData = dataPublikasi.reduce((acc, item) => {
-    const date = new Date(item.tanggal)
-    const month = date.toLocaleDateString('id-ID', { 
+    const month = new Date(item.tanggal).toLocaleDateString('id-ID', { 
       month: 'short',
       year: 'numeric'
     })
-    const sortKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
-    
-    if (!acc[sortKey]) {
-      acc[sortKey] = {
-        month,
-        publikasi: 0,
-        sortDate: date
-      }
-    }
-    acc[sortKey].publikasi += 1
+    acc[month] = (acc[month] || 0) + 1
     return acc
-  }, {} as Record<string, { month: string; publikasi: number; sortDate: Date }>)
+  }, {} as Record<string, number>)
 
-  const barData = Object.values(monthlyData)
-    .sort((a, b) => a.sortDate.getTime() - b.sortDate.getTime())
-    .map(({ month, publikasi }) => ({
+  const barData = Object.entries(monthlyData)
+    .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
+    .map(([month, publikasi]) => ({
       month,
       publikasi,
     }))
@@ -264,7 +197,7 @@ export default function MediaPage() {
     },
     { 
       label: 'Total Unit Aktif', 
-      value: Object.keys(unitCount).length,
+      value: summaryData ? summaryData.summary.total_sudah_isi : Object.keys(unitCount).length,
       icon: '🏢',
       color: 'green',
     },
@@ -297,7 +230,7 @@ export default function MediaPage() {
   // Manual refresh function
   const handleRefresh = () => {
     toast.promise(
-      mutate(),
+      Promise.all([mutate(), summaryData ? fetch('/api/publikasi/summary').then(() => {}) : Promise.resolve()]),
       {
         loading: 'Memperbarui data...',
         success: 'Data berhasil diperbarui!',
@@ -306,7 +239,7 @@ export default function MediaPage() {
     )
   }
 
-  if (isLoading) {
+  if (isLoading || summaryLoading) {
     return (
       <div className="p-6 min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
@@ -317,12 +250,14 @@ export default function MediaPage() {
     )
   }
 
-  if (error) {
+  if (error || summaryError) {
     return (
       <div className="p-6 min-h-screen bg-gray-50 flex items-center justify-center">
         <div className="text-center">
           <AlertCircle className="w-8 h-8 text-red-600 mx-auto mb-4" />
-          <p className="text-red-600 mb-4">Error: {error.message}</p>
+          <p className="text-red-600 mb-4">
+            Error: {error?.message || summaryError?.message}
+          </p>
           <Button onClick={handleRefresh} className="bg-blue-600 hover:bg-blue-700">
             <RefreshCw className="w-4 h-4 mr-2" />
             Coba Lagi
@@ -346,14 +281,57 @@ export default function MediaPage() {
                 Perhatian: Unit Kerja Belum Aktif
               </h3>
               <p className="text-gray-600 text-sm mb-4">
-                Beberapa unit kerja belum mengisi publikasi media.
+                {summaryData && (
+                  <>
+                    Dari {summaryData.summary.total_unit_kerja} total unit kerja, hanya{' '}
+                    <span className="font-semibold text-green-600">
+                      {summaryData.summary.total_sudah_isi} unit ({((summaryData.summary.total_sudah_isi / summaryData.summary.total_unit_kerja) * 100).toFixed(1)}%)
+                    </span>{' '}
+                    yang sudah aktif mengisi publikasi media.{' '}
+                    <span className="font-semibold text-orange-600">
+                      {summaryData.summary.total_belum_isi} unit ({((summaryData.summary.total_belum_isi / summaryData.summary.total_unit_kerja) * 100).toFixed(1)}%)
+                    </span>{' '}
+                    masih belum aktif.
+                  </>
+                )}
               </p>
               
               <div className="bg-orange-50 border border-orange-200 rounded-lg p-4 mb-6">
                 <h4 className="font-semibold text-orange-800 mb-3 flex items-center justify-center">
                   <span className="mr-2">📋</span>
-                  Unit Kerja yang Belum Mengisi ({inactiveUnits.length} unit)
+                  Unit Kerja yang Belum Mengisi ({inactiveUnits.length} dari {summaryData?.summary.total_unit_kerja || 0} unit)
                 </h4>
+                
+                {/* Progress Bar */}
+                {summaryData && (
+                  <div className="mb-4">
+                    <div className="flex justify-between text-xs text-gray-600 mb-1">
+                      <span>Belum Aktif: {summaryData.summary.total_belum_isi}</span>
+                      <span>Sudah Aktif: {summaryData.summary.total_sudah_isi}</span>
+                    </div>
+                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden">
+                      <div className="h-full flex">
+                        <div 
+                          className="bg-green-500 transition-all duration-300"
+                          style={{ width: `${(summaryData.summary.total_sudah_isi / summaryData.summary.total_unit_kerja) * 100}%` }}
+                        ></div>
+                        <div 
+                          className="bg-orange-500 transition-all duration-300"
+                          style={{ width: `${(summaryData.summary.total_belum_isi / summaryData.summary.total_unit_kerja) * 100}%` }}
+                        ></div>
+                      </div>
+                    </div>
+                    <div className="flex justify-between text-xs mt-1">
+                      <span className="text-green-600 font-medium">
+                        {((summaryData.summary.total_sudah_isi / summaryData.summary.total_unit_kerja) * 100).toFixed(1)}% Aktif
+                      </span>
+                      <span className="text-orange-600 font-medium">
+                        {((summaryData.summary.total_belum_isi / summaryData.summary.total_unit_kerja) * 100).toFixed(1)}% Belum Aktif
+                      </span>
+                    </div>
+                  </div>
+                )}
+                
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-2 max-h-48 overflow-y-auto">
                   {inactiveUnits.map((unit) => (
                     <div 
@@ -401,6 +379,11 @@ export default function MediaPage() {
               <span>📢</span>
               <span className="text-sm font-medium">
                 {inactiveUnits.length} Unit Belum Aktif
+                {summaryData && (
+                  <span className="ml-1 text-xs opacity-75">
+                    ({((summaryData.summary.total_belum_isi / summaryData.summary.total_unit_kerja) * 100).toFixed(1)}%)
+                  </span>
+                )}
               </span>
             </button>
           )}
@@ -531,7 +514,9 @@ export default function MediaPage() {
             <p>Belum ada data ranking unit kerja</p>
           </div>
         )}
-      </div>      {/* Enhanced Table */}
+      </div>
+
+      {/* Enhanced Table */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
           <div className="flex justify-between items-center">
@@ -558,130 +543,16 @@ export default function MediaPage() {
           </div>
         </div>
         
-        {/* Filter Section */}
-        <div className="px-6 py-4 bg-gray-50 border-b">
-          <div className="flex flex-wrap items-center gap-4">
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-700">Filter Unit Kerja:</span>
-              <select
-                value={filterUnit}
-                onChange={(e) => {
-                  setFilterUnit(e.target.value)
-                  setCurrentPage(1)
-                }}
-                className="px-3 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Semua Unit</option>
-                {uniqueUnits.map(unit => (
-                  <option key={unit} value={unit}>
-                    {unit.replace(/_/g, ' ')}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <div className="flex items-center gap-2">
-              <span className="text-sm font-medium text-gray-700">Filter Jenis Media:</span>
-              <select
-                value={filterJenis}
-                onChange={(e) => {
-                  setFilterJenis(e.target.value)
-                  setCurrentPage(1)
-                }}
-                className="px-3 py-1 border border-gray-300 rounded text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Semua Jenis</option>
-                {uniqueJenis.map(jenis => (
-                  <option key={jenis} value={jenis}>
-                    {jenis}
-                  </option>
-                ))}
-              </select>
-            </div>
-            
-            <button
-              onClick={resetFilters}
-              className="px-3 py-1 bg-gray-600 text-white text-sm rounded hover:bg-gray-700 transition-colors"
-            >
-              Reset Filter
-            </button>
-            
-            <div className="ml-auto text-sm text-gray-600">
-              Menampilkan {sortedData.length} dari {dataPublikasi.length} data
-            </div>
-          </div>
-        </div>
-        
         <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead className="bg-gray-50 text-sm text-gray-700">
               <tr>
                 <th className="px-6 py-3 text-left font-medium">No</th>
-                <th className="px-6 py-3 text-left font-medium">
-                  <button
-                    onClick={() => handleSort('judul')}
-                    className="flex items-center gap-1 hover:text-blue-600 transition-colors"
-                  >
-                    Judul
-                    {sortColumn === 'judul' && (
-                      <span className="text-blue-600">
-                        {sortDirection === 'asc' ? '↑' : '↓'}
-                      </span>
-                    )}
-                  </button>
-                </th>
-                <th className="px-6 py-3 text-left font-medium">
-                  <button
-                    onClick={() => handleSort('jenis')}
-                    className="flex items-center gap-1 hover:text-blue-600 transition-colors"
-                  >
-                    Jenis Media
-                    {sortColumn === 'jenis' && (
-                      <span className="text-blue-600">
-                        {sortDirection === 'asc' ? '↑' : '↓'}
-                      </span>
-                    )}
-                  </button>
-                </th>
-                <th className="px-6 py-3 text-left font-medium">
-                  <button
-                    onClick={() => handleSort('unit_kerja')}
-                    className="flex items-center gap-1 hover:text-blue-600 transition-colors"
-                  >
-                    Unit Kerja
-                    {sortColumn === 'unit_kerja' && (
-                      <span className="text-blue-600">
-                        {sortDirection === 'asc' ? '↑' : '↓'}
-                      </span>
-                    )}
-                  </button>
-                </th>
-                <th className="px-6 py-3 text-right font-medium">
-                  <button
-                    onClick={() => handleSort('likes')}
-                    className="flex items-center gap-1 hover:text-blue-600 transition-colors ml-auto"
-                  >
-                    Likes
-                    {sortColumn === 'likes' && (
-                      <span className="text-blue-600">
-                        {sortDirection === 'asc' ? '↑' : '↓'}
-                      </span>
-                    )}
-                  </button>
-                </th>
-                <th className="px-6 py-3 text-right font-medium">
-                  <button
-                    onClick={() => handleSort('views')}
-                    className="flex items-center gap-1 hover:text-blue-600 transition-colors ml-auto"
-                  >
-                    Views
-                    {sortColumn === 'views' && (
-                      <span className="text-blue-600">
-                        {sortDirection === 'asc' ? '↑' : '↓'}
-                      </span>
-                    )}
-                  </button>
-                </th>
+                <th className="px-6 py-3 text-left font-medium">Judul</th>
+                <th className="px-6 py-3 text-left font-medium">Jenis Media</th>
+                <th className="px-6 py-3 text-left font-medium">Unit Kerja</th>
+                <th className="px-6 py-3 text-right font-medium">Likes</th>
+                <th className="px-6 py-3 text-right font-medium">Views</th>
                 <th className="px-6 py-3 text-center font-medium">Link</th>
               </tr>
             </thead>

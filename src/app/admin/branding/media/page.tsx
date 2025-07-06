@@ -120,13 +120,12 @@ export default function MediaPage() {
     const matchesMedia = !filterJenisMedia || item.jenis === filterJenisMedia
     return matchesUnit && matchesMedia
   })
-
   // Apply sorting
   const sortedData = [...filteredData].sort((a, b) => {
     if (!sortColumn) return 0
     
-    let aValue: any = ''
-    let bValue: any = ''
+    let aValue: string | number = ''
+    let bValue: string | number = ''
     
     switch (sortColumn) {
       case 'judul':

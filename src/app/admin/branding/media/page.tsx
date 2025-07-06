@@ -16,7 +16,7 @@ import {
 } from 'recharts'
 import useSWR from 'swr'
 import { toast } from 'sonner'
-import { Loader2, AlertCircle, RefreshCw } from 'lucide-react'
+import { Loader2, AlertCircle, RefreshCw, ChevronUp, ChevronDown, Filter, X } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
 
@@ -102,28 +102,108 @@ export default function MediaPage() {
   const [showChampionAlert, setShowChampionAlert] = React.useState(false)
   const [showUnitModal, setShowUnitModal] = React.useState(false)
   const [selectedUnitForModal, setSelectedUnitForModal] = React.useState<string | null>(null)
-  
-  // State for pagination
+    // State for pagination
   const [currentPage, setCurrentPage] = React.useState(1)
   const [itemsPerPage, setItemsPerPage] = React.useState(10)
-
+  
+  // State for filters and sorting
+  const [filterUnitKerja, setFilterUnitKerja] = React.useState<string>('')
+  const [filterJenisMedia, setFilterJenisMedia] = React.useState<string>('')
+  const [sortColumn, setSortColumn] = React.useState<string>('')
+  const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc')
   // Transform and calculate data
   const dataPublikasi = publikasiData || []
 
+  // Apply filters
+  const filteredData = dataPublikasi.filter(item => {
+    const matchesUnit = !filterUnitKerja || item.users.unit_kerja === filterUnitKerja
+    const matchesMedia = !filterJenisMedia || item.jenis === filterJenisMedia
+    return matchesUnit && matchesMedia
+  })
+
+  // Apply sorting
+  const sortedData = [...filteredData].sort((a, b) => {
+    if (!sortColumn) return 0
+    
+    let aValue: any = ''
+    let bValue: any = ''
+    
+    switch (sortColumn) {
+      case 'judul':
+        aValue = a.judul.toLowerCase()
+        bValue = b.judul.toLowerCase()
+        break
+      case 'jenis':
+        aValue = a.jenis.toLowerCase()
+        bValue = b.jenis.toLowerCase()
+        break
+      case 'unit_kerja':
+        aValue = a.users.unit_kerja.toLowerCase()
+        bValue = b.users.unit_kerja.toLowerCase()
+        break
+      case 'tanggal':
+        aValue = new Date(a.tanggal).getTime()
+        bValue = new Date(b.tanggal).getTime()
+        break
+      case 'likes':
+        aValue = a.likes || 0
+        bValue = b.likes || 0
+        break
+      case 'views':
+        aValue = a.views || 0
+        bValue = b.views || 0
+        break
+      default:
+        return 0
+    }
+    
+    if (aValue < bValue) return sortDirection === 'asc' ? -1 : 1
+    if (aValue > bValue) return sortDirection === 'asc' ? 1 : -1
+    return 0
+  })
+
   // Pagination calculations
-  const totalPages = Math.ceil(dataPublikasi.length / itemsPerPage)
+  const totalPages = Math.ceil(sortedData.length / itemsPerPage)
   const startIndex = (currentPage - 1) * itemsPerPage
   const endIndex = startIndex + itemsPerPage
-  const currentData = dataPublikasi.slice(startIndex, endIndex)
+  const currentData = sortedData.slice(startIndex, endIndex)
 
   const handlePageChange = (page: number) => {
     setCurrentPage(page)
   }
-
   const handleItemsPerPageChange = (newItemsPerPage: number) => {
     setItemsPerPage(newItemsPerPage)
     setCurrentPage(1) // Reset to first page when changing items per page
   }
+
+  // Handle sorting
+  const handleSort = (column: string) => {
+    if (sortColumn === column) {
+      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
+    } else {
+      setSortColumn(column)
+      setSortDirection('asc')
+    }
+    setCurrentPage(1) // Reset to first page when sorting
+  }
+
+  // Handle filter changes
+  const handleFilterChange = () => {
+    setCurrentPage(1) // Reset to first page when filtering
+  }
+
+  // Reset filters
+  const resetFilters = () => {
+    setFilterUnitKerja('')
+    setFilterJenisMedia('')
+    setSortColumn('')
+    setSortDirection('asc')
+    setCurrentPage(1)
+  }
+
+  // Get unique values for filters
+  const uniqueUnits = [...new Set(dataPublikasi.map(item => item.users.unit_kerja))].sort()
+  const uniqueMedia = [...new Set(dataPublikasi.map(item => item.jenis))].sort()
 
   // Calculate media counts
   const mediaCount = dataPublikasi.reduce((acc, item) => {
@@ -186,16 +266,25 @@ export default function MediaPage() {
       acc[post.jenis] = (acc[post.jenis] || 0) + 1
       return acc
     }, {} as Record<string, number>)
-    
-    // Monthly breakdown
+      // Monthly breakdown
     const monthlyActivity = unitPosts.reduce((acc, post) => {
-      const month = new Date(post.tanggal).toLocaleDateString('id-ID', { 
+      const date = new Date(post.tanggal)
+      const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+      const monthLabel = date.toLocaleDateString('id-ID', { 
         month: 'short',
         year: 'numeric'
       })
-      acc[month] = (acc[month] || 0) + 1
+      
+      if (!acc[monthKey]) {
+        acc[monthKey] = {
+          label: monthLabel,
+          count: 0,
+          sortDate: date
+        }
+      }
+      acc[monthKey].count += 1
       return acc
-    }, {} as Record<string, number>)
+    }, {} as Record<string, { label: string; count: number; sortDate: Date }>)
     
     // Recent posts (last 5)
     const recentPosts = unitPosts
@@ -210,11 +299,10 @@ export default function MediaPage() {
       totalLikes,
       totalViews,
       avgEngagement,
-      unitRank,
-      mediaBreakdown: Object.entries(mediaBreakdown).map(([type, count]) => ({ type, count })),
-      monthlyActivity: Object.entries(monthlyActivity)
-        .sort()
-        .map(([month, count]) => ({ month, count })),
+      unitRank,      mediaBreakdown: Object.entries(mediaBreakdown).map(([type, count]) => ({ type, count })),
+      monthlyActivity: Object.values(monthlyActivity)
+        .sort((a, b) => a.sortDate.getTime() - b.sortDate.getTime())
+        .map(({ label, count }) => ({ month: label, count })),
       recentPosts
     }
   }
@@ -224,22 +312,31 @@ export default function MediaPage() {
     name,
     value,
   }))
-
   // Monthly data for bar chart
   const monthlyData = dataPublikasi.reduce((acc, item) => {
-    const month = new Date(item.tanggal).toLocaleDateString('id-ID', { 
+    const date = new Date(item.tanggal)
+    const monthKey = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`
+    const monthLabel = date.toLocaleDateString('id-ID', { 
       month: 'short',
       year: 'numeric'
     })
-    acc[month] = (acc[month] || 0) + 1
+    
+    if (!acc[monthKey]) {
+      acc[monthKey] = {
+        label: monthLabel,
+        count: 0,
+        sortDate: date
+      }
+    }
+    acc[monthKey].count += 1
     return acc
-  }, {} as Record<string, number>)
+  }, {} as Record<string, { label: string; count: number; sortDate: Date }>)
 
-  const barData = Object.entries(monthlyData)
-    .sort(([a], [b]) => new Date(a).getTime() - new Date(b).getTime())
-    .map(([month, publikasi]) => ({
-      month,
-      publikasi,
+  const barData = Object.values(monthlyData)
+    .sort((a, b) => a.sortDate.getTime() - b.sortDate.getTime())
+    .map(({ label, count }) => ({
+      month: label,
+      publikasi: count,
     }))
 
   // Calculate Instagram metrics
@@ -668,9 +765,7 @@ export default function MediaPage() {
             <p>Belum ada data ranking unit kerja</p>
           </div>
         )}
-      </div>
-
-      {/* Enhanced Table */}
+      </div>      {/* Enhanced Table */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
           <div className="flex justify-between items-center">
@@ -696,21 +791,164 @@ export default function MediaPage() {
             </div>
           </div>
         </div>
-        
-        <div className="overflow-x-auto">
+
+        {/* Filters Section */}
+        <div className="px-6 py-4 bg-gray-50 border-b">
+          <div className="flex flex-wrap items-center gap-4">
+            <div className="flex items-center space-x-2">
+              <Filter className="w-4 h-4 text-gray-600" />
+              <span className="text-sm font-medium text-gray-700">Filter:</span>
+            </div>
+            
+            {/* Unit Kerja Filter */}
+            <div className="flex items-center space-x-2">
+              <label className="text-sm text-gray-600">Unit Kerja:</label>
+              <select
+                value={filterUnitKerja}
+                onChange={(e) => {
+                  setFilterUnitKerja(e.target.value)
+                  handleFilterChange()
+                }}
+                className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Semua Unit</option>
+                {uniqueUnits.map(unit => (
+                  <option key={unit} value={unit}>
+                    {unit.replace(/_/g, ' ')}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Jenis Media Filter */}
+            <div className="flex items-center space-x-2">
+              <label className="text-sm text-gray-600">Jenis Media:</label>
+              <select
+                value={filterJenisMedia}
+                onChange={(e) => {
+                  setFilterJenisMedia(e.target.value)
+                  handleFilterChange()
+                }}
+                className="px-3 py-1 border border-gray-300 rounded-lg text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+              >
+                <option value="">Semua Media</option>
+                {uniqueMedia.map(media => (
+                  <option key={media} value={media}>
+                    {media}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            {/* Reset Filters Button */}
+            {(filterUnitKerja || filterJenisMedia || sortColumn) && (
+              <button
+                onClick={resetFilters}
+                className="flex items-center space-x-1 px-3 py-1 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors text-sm"
+              >
+                <X className="w-4 h-4" />
+                <span>Reset</span>
+              </button>
+            )}
+
+            {/* Results Count */}
+            <div className="text-sm text-gray-600 ml-auto">
+              {filteredData.length === dataPublikasi.length ? (
+                <span>Total: {dataPublikasi.length} publikasi</span>
+              ) : (
+                <span>
+                  Menampilkan {filteredData.length} dari {dataPublikasi.length} publikasi
+                </span>
+              )}
+            </div>
+          </div>
+        </div>
+          <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead className="bg-gray-50 text-sm text-gray-700">
               <tr>
                 <th className="px-6 py-3 text-left font-medium">No</th>
-                <th className="px-6 py-3 text-left font-medium">Judul</th>
-                <th className="px-6 py-3 text-left font-medium">Jenis Media</th>
-                <th className="px-6 py-3 text-left font-medium">Unit Kerja</th>
-                <th className="px-6 py-3 text-right font-medium">Likes</th>
-                <th className="px-6 py-3 text-right font-medium">Views</th>
+                <th className="px-6 py-3 text-left font-medium">
+                  <button
+                    onClick={() => handleSort('judul')}
+                    className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
+                  >
+                    <span>Judul</span>
+                    {sortColumn === 'judul' && (
+                      sortDirection === 'asc' ? 
+                        <ChevronUp className="w-4 h-4" /> : 
+                        <ChevronDown className="w-4 h-4" />
+                    )}
+                  </button>
+                </th>
+                <th className="px-6 py-3 text-left font-medium">
+                  <button
+                    onClick={() => handleSort('jenis')}
+                    className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
+                  >
+                    <span>Jenis Media</span>
+                    {sortColumn === 'jenis' && (
+                      sortDirection === 'asc' ? 
+                        <ChevronUp className="w-4 h-4" /> : 
+                        <ChevronDown className="w-4 h-4" />
+                    )}
+                  </button>
+                </th>
+                <th className="px-6 py-3 text-left font-medium">
+                  <button
+                    onClick={() => handleSort('unit_kerja')}
+                    className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
+                  >
+                    <span>Unit Kerja</span>
+                    {sortColumn === 'unit_kerja' && (
+                      sortDirection === 'asc' ? 
+                        <ChevronUp className="w-4 h-4" /> : 
+                        <ChevronDown className="w-4 h-4" />
+                    )}
+                  </button>
+                </th>
+                <th className="px-6 py-3 text-left font-medium">
+                  <button
+                    onClick={() => handleSort('tanggal')}
+                    className="flex items-center space-x-1 hover:text-blue-600 transition-colors"
+                  >
+                    <span>Tanggal</span>
+                    {sortColumn === 'tanggal' && (
+                      sortDirection === 'asc' ? 
+                        <ChevronUp className="w-4 h-4" /> : 
+                        <ChevronDown className="w-4 h-4" />
+                    )}
+                  </button>
+                </th>
+                <th className="px-6 py-3 text-right font-medium">
+                  <button
+                    onClick={() => handleSort('likes')}
+                    className="flex items-center space-x-1 hover:text-blue-600 transition-colors ml-auto"
+                  >
+                    <span>Likes</span>
+                    {sortColumn === 'likes' && (
+                      sortDirection === 'asc' ? 
+                        <ChevronUp className="w-4 h-4" /> : 
+                        <ChevronDown className="w-4 h-4" />
+                    )}
+                  </button>
+                </th>
+                <th className="px-6 py-3 text-right font-medium">
+                  <button
+                    onClick={() => handleSort('views')}
+                    className="flex items-center space-x-1 hover:text-blue-600 transition-colors ml-auto"
+                  >
+                    <span>Views</span>
+                    {sortColumn === 'views' && (
+                      sortDirection === 'asc' ? 
+                        <ChevronUp className="w-4 h-4" /> : 
+                        <ChevronDown className="w-4 h-4" />
+                    )}
+                  </button>
+                </th>
                 <th className="px-6 py-3 text-center font-medium">Link</th>
               </tr>
-            </thead>
-            <tbody className="text-sm divide-y divide-gray-200">
+            </thead>            <tbody className="text-sm divide-y divide-gray-200">
               {currentData.length > 0 ? (
                 currentData.map((item, index) => {
                   const globalIndex = startIndex + index + 1; // Global row number
@@ -738,6 +976,13 @@ export default function MediaPage() {
                       </td>
                       <td className="px-6 py-4 text-gray-700">
                         {item.users.unit_kerja.replace(/_/g, ' ')}
+                      </td>
+                      <td className="px-6 py-4 text-gray-600">
+                        {new Date(item.tanggal).toLocaleDateString('id-ID', {
+                          day: '2-digit',
+                          month: 'short',
+                          year: 'numeric'
+                        })}
                       </td>
                       <td className="px-6 py-4 text-right font-medium">
                         {item.likes ? (
@@ -768,24 +1013,29 @@ export default function MediaPage() {
                 })
               ) : (
                 <tr>
-                  <td colSpan={7} className="px-6 py-8 text-center text-gray-500">
-                    Tidak ada data publikasi
+                  <td colSpan={8} className="px-6 py-8 text-center text-gray-500">
+                    {filterUnitKerja || filterJenisMedia ? 
+                      'Tidak ada data yang sesuai dengan filter' : 
+                      'Tidak ada data publikasi'
+                    }
                   </td>
                 </tr>
               )}
             </tbody>
           </table>
         </div>
-        
-        {/* Pagination Controls */}
-        {dataPublikasi.length > 0 && (
+          {/* Pagination Controls */}
+        {sortedData.length > 0 && (
           <div className="px-6 py-4 bg-gray-50 border-t">
             <div className="flex items-center justify-between">
               <div className="flex items-center space-x-2">
                 <p className="text-sm text-gray-700">
                   Menampilkan <span className="font-medium">{startIndex + 1}</span> sampai{' '}
-                  <span className="font-medium">{Math.min(endIndex, dataPublikasi.length)}</span> dari{' '}
-                  <span className="font-medium">{dataPublikasi.length}</span> hasil
+                  <span className="font-medium">{Math.min(endIndex, sortedData.length)}</span> dari{' '}
+                  <span className="font-medium">{sortedData.length}</span> hasil
+                  {(filterUnitKerja || filterJenisMedia) && (
+                    <span className="text-gray-500"> (difilter dari {dataPublikasi.length} total)</span>
+                  )}
                 </p>
               </div>
               

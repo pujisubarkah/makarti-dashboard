@@ -82,6 +82,11 @@ export default function PublikasiPage() {
   const [editLoading, setEditLoading] = useState(false)
   const [deleteLoading, setDeleteLoading] = useState<number | null>(null)
   
+  // Motivational popup state
+  const [showMotivationalPopup, setShowMotivationalPopup] = useState(false)
+  const [animationStep, setAnimationStep] = useState(0)
+  const [showParticles, setShowParticles] = useState(false)
+  
   // Edit form state
   const [editData, setEditData] = useState<PublikasiItem | null>(null)
   
@@ -116,6 +121,20 @@ export default function PublikasiPage() {
         setUserUnit(storedUnit)
       }
     }
+  }, [])
+
+  // Auto-show motivational popup on page load
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setShowMotivationalPopup(true)
+      
+      // Start animation sequence
+      setTimeout(() => setAnimationStep(1), 500)
+      setTimeout(() => setAnimationStep(2), 1000)
+      setTimeout(() => setShowParticles(true), 1500)
+    }, 2000) // Show after 2 seconds
+
+    return () => clearTimeout(timer)
   }, [])
 
   // SWR hook for data fetching
@@ -1304,6 +1323,138 @@ const handleDelete = async (id: number, judul: string) => {
               </div>
             </form>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Motivational Popup - Media & Branding Excellence */}
+      <Dialog open={showMotivationalPopup} onOpenChange={setShowMotivationalPopup}>
+        <DialogContent className="max-w-4xl p-0 overflow-hidden border-0 bg-transparent">
+          <DialogTitle className="sr-only">Media & Branding Excellence Motivation</DialogTitle>
+          <div className="relative">
+            {/* Animated Background with Media Theme */}
+            <div className="relative bg-gradient-to-br from-purple-900 via-blue-800 to-indigo-900 p-12 text-white overflow-hidden">
+              {/* Particle Animation */}
+              {showParticles && (
+                <div className="absolute inset-0">
+                  {[...Array(20)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="absolute w-2 h-2 bg-white rounded-full opacity-20 animate-pulse"
+                      style={{
+                        left: `${Math.random() * 100}%`,
+                        top: `${Math.random() * 100}%`,
+                        animationDelay: `${Math.random() * 3}s`,
+                        animationDuration: `${2 + Math.random() * 2}s`
+                      }}
+                    />
+                  ))}
+                </div>
+              )}
+
+              {/* Decorative Media Icons */}
+              <div className="absolute top-6 left-6 opacity-10">
+                <div className="text-6xl">📱</div>
+              </div>
+              <div className="absolute top-6 right-6 opacity-10">
+                <div className="text-6xl">📺</div>
+              </div>
+              <div className="absolute bottom-6 left-12 opacity-10">
+                <div className="text-6xl">📢</div>
+              </div>
+              <div className="absolute bottom-6 right-12 opacity-10">
+                <div className="text-6xl">🎯</div>
+              </div>
+
+              {/* Main Content */}
+              <div className="relative z-10 text-center space-y-8">
+                {/* Animated Title */}
+                <div className={`transform transition-all duration-1000 ${
+                  animationStep >= 1 ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+                }`}>
+                  <h2 className="text-4xl font-bold mb-4 bg-gradient-to-r from-yellow-300 via-pink-300 to-purple-300 bg-clip-text text-transparent">
+                    Media & Branding Excellence
+                  </h2>
+                  <div className="flex items-center justify-center gap-4 mb-6">
+                    <div className="h-1 w-16 bg-gradient-to-r from-purple-400 to-pink-400 rounded"></div>
+                    <div className="text-2xl">🚀</div>
+                    <div className="h-1 w-16 bg-gradient-to-r from-pink-400 to-purple-400 rounded"></div>
+                  </div>
+                </div>
+
+                {/* Inspirational Quote */}
+                <div className={`transform transition-all duration-1000 delay-500 ${
+                  animationStep >= 2 ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+                }`}>
+                  <blockquote className="text-xl font-light leading-relaxed mb-6 px-4">
+                    <div className="mb-4">
+                      &ldquo;Konten bukan hanya tayang, tapi harus <span className="text-yellow-300 font-semibold">berdampak</span>.
+                    </div>
+                    <div className="mb-4">
+                      Publikasi bukan hanya tampil, tapi harus <span className="text-pink-300 font-semibold">menyampaikan pesan</span>.
+                    </div>
+                    <div className="mb-4">
+                      Karena... <span className="text-purple-200 font-medium">engagement</span> itu bukan sekadar partisipasi —
+                    </div>
+                    <div className="text-lg font-semibold">
+                      tapi komitmen untuk membawa instansi menjadi
+                    </div>
+                    <div className="text-2xl font-bold mt-2">
+                      <span className="text-yellow-300">Bigger</span>, <span className="text-pink-300">Smarter</span>, dan <span className="text-purple-300">Better</span>!&rdquo;
+                    </div>
+                  </blockquote>
+                  
+                  <div className="flex justify-center items-center gap-8 mt-8">
+                    {/* Bigger, Smarter, Better Stats */}
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-yellow-300">📈</div>
+                      <div className="text-sm opacity-80 font-medium">Bigger</div>
+                      <div className="text-xs opacity-60">Jangkauan Lebih Luas</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-pink-300">🧠</div>
+                      <div className="text-sm opacity-80 font-medium">Smarter</div>
+                      <div className="text-xs opacity-60">Strategi Cerdas</div>
+                    </div>
+                    <div className="text-center">
+                      <div className="text-3xl font-bold text-purple-300">⭐</div>
+                      <div className="text-sm opacity-80 font-medium">Better</div>
+                      <div className="text-xs opacity-60">Kualitas Unggul</div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Call to Action */}
+                <div className={`transform transition-all duration-1000 delay-1000 ${
+                  animationStep >= 2 ? 'translate-y-0 opacity-100' : 'translate-y-8 opacity-0'
+                }`}>
+                  <div className="bg-white/10 rounded-xl p-6 backdrop-blur-sm border border-white/20">
+                    <p className="text-lg mb-4">
+                      Mari wujudkan publikasi dan konten media yang 
+                      <span className="text-yellow-300 font-semibold"> berdampak nyata</span> dan 
+                      <span className="text-pink-300 font-semibold"> mengubah paradigma!</span>
+                    </p>
+                    <div className="flex justify-center gap-4 text-sm opacity-80">
+                      <span>🎯 Konten Berdampak</span>
+                      <span>•</span>
+                      <span>💡 Pesan Bermakna</span>
+                      <span>•</span>
+                      <span>� Engagement Berkualitas</span>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Close Button */}
+                <div className="pt-6">
+                  <Button 
+                    onClick={() => setShowMotivationalPopup(false)}
+                    className="bg-gradient-to-r from-purple-600 to-pink-600 hover:from-purple-700 hover:to-pink-700 text-white border-0 px-8 py-3 rounded-full font-medium transition-all duration-300 transform hover:scale-105"
+                  >
+                    Mari Berkarya! ✨
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </div>
         </DialogContent>
       </Dialog>
     </div>

@@ -86,6 +86,21 @@ export default function ProdukInovasiPage() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  // State for motivational popup
+  const [showMotivationModal, setShowMotivationModal] = useState(false)
+  const [motivationShown, setMotivationShown] = useState(false)
+  const [currentStep, setCurrentStep] = useState(0)
+  const [isAnimating, setIsAnimating] = useState(false)
+
+  // 4D Innovation Process
+  const innovationSteps = [
+    { step: "Drum Up", icon: "🥁", color: "from-red-500 to-pink-600", description: "Ide-ide brilian" },
+    { step: "Diagnose", icon: "🔍", color: "from-blue-500 to-cyan-600", description: "Masalah mendalam" },
+    { step: "Design", icon: "🎨", color: "from-purple-500 to-indigo-600", description: "Solusi inovatif" },
+    { step: "Delivered", icon: "🚀", color: "from-green-500 to-emerald-600", description: "Bukti nyata" }
+  ]
+
   // Fetch data from API on mount
   useEffect(() => {
     const fetchData = async () => {
@@ -121,9 +136,40 @@ export default function ProdukInovasiPage() {
         setError(err instanceof Error ? err.message : 'Gagal memuat data')
       } finally {
         setLoading(false)
-      }    }
+      }
+    }
+    
     fetchData()
-  }, [])
+    
+    // Show motivational popup after 3 seconds if not shown yet
+    if (!motivationShown) {
+      const timer = setTimeout(() => {
+        setShowMotivationModal(true)
+        setMotivationShown(true)
+        setIsAnimating(true)
+      }, 3000)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [motivationShown])
+
+  // 4D Process Animation
+  useEffect(() => {
+    if (isAnimating && showMotivationModal) {
+      const interval = setInterval(() => {
+        setCurrentStep((prev) => {
+          const next = (prev + 1) % innovationSteps.length
+          if (next === 0) {
+            setIsAnimating(false)
+            setTimeout(() => setIsAnimating(true), 2000) // Restart after 2s pause
+          }
+          return next
+        })
+      }, 1500) // Change step every 1.5 seconds
+      
+      return () => clearInterval(interval)
+    }
+  }, [isAnimating, showMotivationModal, innovationSteps.length])
 
   const [formData, setFormData] = useState({
     nama: '',
@@ -222,17 +268,6 @@ export default function ProdukInovasiPage() {
     },
   ]
 
-  const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const { name, value } = e.target
-    setFormData(prev => ({ ...prev, [name]: value }))
-  }
-  const handleSelectChange = (name: string, value: string) => {
-    if (name === 'status_id') {
-      setFormData(prev => ({ ...prev, [name]: parseInt(value) }))
-    } else {
-      setFormData(prev => ({ ...prev, [name]: value }))
-    }
-  }
   const handleEdit = (item: ProdukInovasiItem) => {
     setFormData({
       nama: item.nama,
@@ -413,102 +448,78 @@ export default function ProdukInovasiPage() {
               Tambah Produk
             </Button>
           </DialogTrigger>
-          <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogContent className="max-w-2xl">
             <DialogHeader>
-              <DialogTitle className="text-blue-700">
-                {editingId ? 'Edit Produk Inovasi' : 'Form Produk Inovasi'}
-              </DialogTitle>
+              <DialogTitle>{editingId ? 'Edit Produk Inovasi' : 'Tambah Produk Inovasi'}</DialogTitle>
             </DialogHeader>
-
             <form onSubmit={handleSubmit} className="space-y-4">
-              {/* Nama Produk */}
-              <div className="space-y-1">
+              <div>
                 <Label htmlFor="nama">Nama Produk</Label>
                 <Input
                   id="nama"
-                  name="nama"
                   value={formData.nama}
-                  onChange={handleChange}
+                  onChange={(e) => setFormData({...formData, nama: e.target.value})}
+                  placeholder="Masukkan nama produk inovasi"
                   required
-                  placeholder="Contoh: Sistem e-Integritas"
                 />
               </div>
-
-              {/* Jenis Produk */}
-              <div className="space-y-1">
+              
+              <div>
                 <Label htmlFor="jenis">Jenis Produk</Label>
-                <Select
-                  name="jenis"
-                  value={formData.jenis}
-                  onValueChange={(value) => handleSelectChange("jenis", value)}
-                >
-                  <SelectTrigger id="jenis">
+                <Select value={formData.jenis} onValueChange={(value) => setFormData({...formData, jenis: value})}>
+                  <SelectTrigger>
                     <SelectValue placeholder="Pilih jenis produk" />
                   </SelectTrigger>
                   <SelectContent>
-                    {jenisOptions.map((option) => (
-                      <SelectItem key={option} value={option}>
-                        {option}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>              {/* Status Produk */}
-              <div className="space-y-1">
-                <Label htmlFor="status">Status</Label>
-                <Select
-                  name="status_id"
-                  value={formData.status_id.toString()}
-                  onValueChange={(value) => handleSelectChange("status_id", value)}
-                >
-                  <SelectTrigger id="status">
-                    <SelectValue placeholder="Pilih status produk" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {statusOptions.map((option) => (
-                      <SelectItem key={option.id} value={option.id.toString()}>
-                        {option.status}
-                      </SelectItem>
+                    {jenisOptions.map((jenis) => (
+                      <SelectItem key={jenis} value={jenis}>{jenis}</SelectItem>
                     ))}
                   </SelectContent>
                 </Select>
               </div>
-
-              {/* Tanggal Rilis */}
-              <div className="space-y-1">
+              
+              <div>
+                <Label htmlFor="status">Status</Label>
+                <Select value={formData.status_id.toString()} onValueChange={(value) => setFormData({...formData, status_id: parseInt(value)})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map((status) => (
+                      <SelectItem key={status.id} value={status.id.toString()}>{status.status}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
                 <Label htmlFor="tanggalRilis">Tanggal Rilis</Label>
                 <Input
                   id="tanggalRilis"
                   type="date"
-                  name="tanggalRilis"
                   value={formData.tanggalRilis}
-                  onChange={handleChange}
+                  onChange={(e) => setFormData({...formData, tanggalRilis: e.target.value})}
                   required
                 />
               </div>
-
-              {/* Keterangan */}
-              <div className="space-y-1">
+              
+              <div>
                 <Label htmlFor="keterangan">Keterangan</Label>
                 <Input
                   id="keterangan"
-                  name="keterangan"
                   value={formData.keterangan}
-                  onChange={handleChange}
-                  placeholder="Contoh: Sistem pelaporan benturan kepentingan"
+                  onChange={(e) => setFormData({...formData, keterangan: e.target.value})}
+                  placeholder="Masukkan keterangan produk"
+                  required
                 />
               </div>
-
-              <div className="flex justify-end gap-3 pt-2">
-                <Button
-                  variant="outline"
-                  onClick={() => setShowModal(false)}
-                  type="button"
-                >
-                  Batal
+              
+              <div className="flex gap-4">
+                <Button type="submit" className="flex-1">
+                  {editingId ? 'Update' : 'Tambah'}
                 </Button>
-                <Button type="submit" className="bg-blue-600 hover:bg-blue-700">
-                  {editingId ? 'Perbarui' : 'Simpan'}
+                <Button type="button" variant="outline" onClick={() => setShowModal(false)} className="flex-1">
+                  Batal
                 </Button>
               </div>
             </form>
@@ -784,6 +795,213 @@ export default function ProdukInovasiPage() {
           ))}
         </div>
       </div>
+      
+      {/* 4D Innovation Hub - Motivational Popup */}
+      {showMotivationModal && (
+        <Dialog open={showMotivationModal} onOpenChange={setShowMotivationModal}>
+          <DialogContent className="max-w-4xl p-0 border-0 bg-transparent">
+            <div className="relative bg-gradient-to-br from-blue-900 via-purple-900 to-indigo-900 rounded-3xl shadow-2xl overflow-hidden">
+              {/* Animated Background */}
+              <div className="absolute inset-0">
+                <div className="absolute top-0 left-0 w-32 h-32 bg-blue-400/20 rounded-full blur-xl animate-pulse"></div>
+                <div className="absolute bottom-0 right-0 w-40 h-40 bg-purple-400/20 rounded-full blur-xl animate-pulse delay-1000"></div>
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-24 h-24 bg-yellow-400/20 rounded-full blur-xl animate-pulse delay-500"></div>
+              </div>
+              
+              {/* Floating Particles */}
+              {[...Array(6)].map((_, i) => (
+                <div 
+                  key={i}
+                  className={`absolute w-2 h-2 bg-white/30 rounded-full animate-bounce`}
+                  style={{
+                    left: `${20 + i * 15}%`,
+                    top: `${10 + (i % 3) * 30}%`,
+                    animationDelay: `${i * 300}ms`,
+                    animationDuration: '3s'
+                  }}
+                ></div>
+              ))}
+              
+              <div className="relative p-8 text-white">
+                <DialogTitle className="sr-only">4D Innovation Hub - Inspirasi Inovasi</DialogTitle>
+                
+                {/* Header */}
+                <div className="text-center mb-8">
+                  <div className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-gray-900 px-4 py-2 rounded-full text-sm font-bold mb-4">
+                    <span className="text-xl">🚀</span>
+                    4D Innovation Hub
+                  </div>
+                  <h2 className="text-3xl font-bold bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent mb-4">
+                    Inspirasi Inovasi
+                  </h2>
+                </div>
+                
+                {/* Main Quote */}
+                <div className="text-center mb-8">
+                  <blockquote className="text-xl md:text-2xl font-semibold leading-relaxed mb-4">
+                    &ldquo;Kerja bisa ditiru. Tapi inovasi… tak bisa dicopy-paste. 
+                    <span className="block mt-2 bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent">
+                      Inovasi harga mati!&rdquo;
+                    </span>
+                  </blockquote>
+                  <cite className="text-gray-300 text-sm">— Tim Inovasi Makarti</cite>
+                </div>
+                
+                {/* 4D Process Visualization */}
+                <div className="mb-8">
+                  <h3 className="text-lg font-semibold text-center mb-6 text-yellow-300">Proses 4D Innovation</h3>
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                    {innovationSteps.map((step, index) => (
+                      <div 
+                        key={index}
+                        className={`bg-white/10 backdrop-blur-sm rounded-xl p-4 text-center transition-all duration-500 transform ${
+                          currentStep === index 
+                            ? 'scale-110 bg-gradient-to-br from-yellow-400/30 to-orange-400/30 shadow-lg' 
+                            : 'hover:scale-105'
+                        }`}
+                      >
+                        <div className={`text-3xl mb-2 transition-transform duration-300 ${
+                          currentStep === index ? 'animate-bounce' : ''
+                        }`}>
+                          {step.icon}
+                        </div>
+                        <h4 className="font-bold text-sm mb-1">{step.step}</h4>
+                        <p className="text-xs text-gray-300">{step.description}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Progress Indicator */}
+                <div className="flex justify-center mb-6">
+                  <div className="flex space-x-2">
+                    {innovationSteps.map((_, index) => (
+                      <div 
+                        key={index}
+                        className={`w-3 h-3 rounded-full transition-all duration-300 ${
+                          currentStep === index 
+                            ? 'bg-yellow-400 scale-125' 
+                            : 'bg-gray-400/50'
+                        }`}
+                      ></div>
+                    ))}
+                  </div>
+                </div>
+                
+                {/* Action Buttons */}
+                <div className="flex justify-center gap-4">
+                  <button
+                    onClick={() => setShowMotivationModal(false)}
+                    className="px-6 py-3 bg-gradient-to-r from-yellow-500 to-orange-500 text-gray-900 rounded-xl font-semibold hover:from-yellow-400 hover:to-orange-400 transition-all duration-300 transform hover:scale-105 shadow-lg"
+                  >
+                    Mulai Berinovasi! 🌟
+                  </button>
+                  <button
+                    onClick={() => setShowMotivationModal(false)}
+                    className="px-6 py-3 bg-white/10 backdrop-blur-sm border border-white/20 rounded-xl font-semibold hover:bg-white/20 transition-all duration-300"
+                  >
+                    Tutup
+                  </button>
+                </div>
+              </div>
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Existing Modal */}
+      {showModal && (
+        <Dialog open={showModal} onOpenChange={(open) => {
+          setShowModal(open)
+          if (!open) {
+            setEditingId(null)
+            setFormData({
+              nama: '',
+              jenis: 'Aplikasi Digital',
+              status_id: statusOptions.length > 0 ? statusOptions[0].id : 1,
+              tanggalRilis: '',
+              keterangan: '',
+            })
+          }
+        }}>
+          <DialogContent className="max-w-2xl">
+            <DialogHeader>
+              <DialogTitle>{editingId ? 'Edit Produk Inovasi' : 'Tambah Produk Inovasi'}</DialogTitle>
+            </DialogHeader>
+            <form onSubmit={handleSubmit} className="space-y-4">
+              <div>
+                <Label htmlFor="nama">Nama Produk</Label>
+                <Input
+                  id="nama"
+                  value={formData.nama}
+                  onChange={(e) => setFormData({...formData, nama: e.target.value})}
+                  placeholder="Masukkan nama produk inovasi"
+                  required
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="jenis">Jenis Produk</Label>
+                <Select value={formData.jenis} onValueChange={(value) => setFormData({...formData, jenis: value})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih jenis produk" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {jenisOptions.map((jenis) => (
+                      <SelectItem key={jenis} value={jenis}>{jenis}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="status">Status</Label>
+                <Select value={formData.status_id.toString()} onValueChange={(value) => setFormData({...formData, status_id: parseInt(value)})}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Pilih status" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {statusOptions.map((status) => (
+                      <SelectItem key={status.id} value={status.id.toString()}>{status.status}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+              
+              <div>
+                <Label htmlFor="tanggalRilis">Tanggal Rilis</Label>
+                <Input
+                  id="tanggalRilis"
+                  type="date"
+                  value={formData.tanggalRilis}
+                  onChange={(e) => setFormData({...formData, tanggalRilis: e.target.value})}
+                  required
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="keterangan">Keterangan</Label>
+                <Input
+                  id="keterangan"
+                  value={formData.keterangan}
+                  onChange={(e) => setFormData({...formData, keterangan: e.target.value})}
+                  placeholder="Masukkan keterangan produk"
+                  required
+                />
+              </div>
+              
+              <div className="flex gap-4">
+                <Button type="submit" className="flex-1">
+                  {editingId ? 'Update' : 'Tambah'}
+                </Button>
+                <Button type="button" variant="outline" onClick={() => setShowModal(false)} className="flex-1">
+                  Batal
+                </Button>
+              </div>
+            </form>
+          </DialogContent>
+        </Dialog>
+      )}
     </div>
   )
 }

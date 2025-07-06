@@ -116,4 +116,27 @@
   .hover-lift:hover {
     transform: translateY(-2px);
   }
+
+  /* Custom scrollbar styles for modal */
+  .scrollbar-custom {
+    scrollbar-width: thin;
+    scrollbar-color: rgba(255, 255, 255, 0.3) transparent;
+  }
+  
+  .scrollbar-custom::-webkit-scrollbar {
+    width: 6px;
+  }
+  
+  .scrollbar-custom::-webkit-scrollbar-track {
+    background: transparent;
+  }
+  
+  .scrollbar-custom::-webkit-scrollbar-thumb {
+    background: rgba(255, 255, 255, 0.3);
+    border-radius: 3px;
+  }
+  
+  .scrollbar-custom::-webkit-scrollbar-thumb:hover {
+    background: rgba(255, 255, 255, 0.5);
+  }
 }

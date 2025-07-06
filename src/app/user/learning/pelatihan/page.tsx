@@ -205,7 +205,7 @@ export default function PelatihanPage() {
         fetchPelatihanData(parsedId)
         fetchEmployeesData(parsedId)
         
-        // Fetch summary data untuk champion modal
+        // Fetch summary data untuk champion modal with celebration delay
         const fetchSummaryData = async () => {
           try {
             const response = await fetch('/api/pelatihan_pegawai/summary')
@@ -219,10 +219,12 @@ export default function PelatihanPage() {
               )
               setChampionData(champion)
               
-              // Tampilkan modal champion hanya sekali setelah data load
-              if (!championShown) {
-                setShowChampionModal(true)
-                setChampionShown(true)
+              // Tampilkan modal champion dengan delay dramatis dan hanya sekali
+              if (!championShown && champion.total_jam > 0) {
+                setTimeout(() => {
+                  setShowChampionModal(true)
+                  setChampionShown(true)
+                }, 3000) // 3 detik delay untuk efek dramatis
               }
             }
           } catch (err) {
@@ -679,7 +681,7 @@ export default function PelatihanPage() {
                           border: '1px solid #e2e8f0',
                           borderRadius: '8px'
                         }}
-                        formatter={(value) => [`${value} pelatihan`, 'Jumlah Pelatihan']}
+                        formatter={(value: number) => [`${value} pelatihan`, 'Jumlah Pelatihan']}
                       />
                       <Bar dataKey="pelatihan" fill="url(#colorGradient)" radius={[4, 4, 0, 0]} />
                       <defs>
@@ -774,58 +776,151 @@ export default function PelatihanPage() {
         </>
       )}
       
-      {/* Modal Champion Pegawai */}
+      {/* Enhanced Modal Champion Pegawai - Scrollable Version */}
       <Dialog open={showChampionModal} onOpenChange={setShowChampionModal}>
-        <DialogContent className="max-w-md">
-          <DialogHeader>
-            <DialogTitle className="text-center text-2xl font-bold text-yellow-600 flex items-center justify-center gap-2">
-              <Award className="w-8 h-8" />
-              🏆 Learning Champion! 🏆
-            </DialogTitle>
+        <DialogContent className="max-w-lg border-0 p-0 overflow-hidden bg-transparent shadow-2xl max-h-[90vh]">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Learning Champion Achievement</DialogTitle>
           </DialogHeader>
-          <div className="text-center py-6">
-            {championData && (
-              <>
-                <div className="mb-6">
-                  <div className="text-6xl mb-4">🌟</div>
-                  <h3 className="text-xl font-bold text-gray-800 mb-2">
-                    {championData.nama}
-                  </h3>
-                  <p className="text-gray-600 mb-4">{championData.unit_kerja}</p>
+          {/* Animated Background with Floating Elements */}
+          <div className="relative bg-gradient-to-br from-yellow-400 via-yellow-500 to-orange-500 rounded-2xl shadow-2xl overflow-hidden">
+            {/* Floating Animation Elements */}
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute top-0 left-0 w-20 h-20 bg-white bg-opacity-20 rounded-full animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }}></div>
+              <div className="absolute top-1/4 right-0 w-16 h-16 bg-white bg-opacity-15 rounded-full animate-ping" style={{ animationDelay: '1s', animationDuration: '4s' }}></div>
+              <div className="absolute bottom-0 left-1/4 w-12 h-12 bg-white bg-opacity-25 rounded-full animate-pulse" style={{ animationDelay: '2s' }}></div>
+              <div className="absolute top-3/4 right-1/4 w-8 h-8 bg-white bg-opacity-30 rounded-full animate-bounce" style={{ animationDelay: '0.5s', animationDuration: '2.5s' }}></div>
+              <div className="absolute top-1/2 left-0 w-6 h-6 bg-white bg-opacity-20 rounded-full animate-ping" style={{ animationDelay: '1.5s' }}></div>
+            </div>
+
+            {/* Sparkle Effects */}
+            <div className="absolute inset-0">
+              <div className="absolute top-8 left-8 text-2xl animate-pulse" style={{ animationDelay: '0s' }}>✨</div>
+              <div className="absolute top-12 right-12 text-xl animate-bounce" style={{ animationDelay: '1s' }}>⭐</div>
+              <div className="absolute bottom-16 left-12 text-lg animate-pulse" style={{ animationDelay: '2s' }}>🌟</div>
+              <div className="absolute bottom-8 right-8 text-2xl animate-bounce" style={{ animationDelay: '0.5s' }}>💫</div>
+              <div className="absolute top-1/2 left-6 text-sm animate-ping" style={{ animationDelay: '1.5s' }}>✨</div>
+              <div className="absolute top-20 right-20 text-lg animate-pulse" style={{ animationDelay: '2.5s' }}>🎊</div>
+            </div>
+
+            {/* Scrollable Content Container */}
+            <div className="relative z-10 p-8 text-center text-white overflow-y-auto max-h-[85vh] scrollbar-custom">
+              {/* Header Section */}
+              <div className="mb-8">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-white bg-opacity-20 rounded-full mb-4 animate-pulse">
+                  <Award className="w-10 h-10 text-white" />
                 </div>
-                
-                <div className="bg-gradient-to-r from-yellow-50 to-orange-50 rounded-lg p-4 mb-6">
-                  <h4 className="font-semibold text-gray-800 mb-3">Prestasi Learning</h4>
-                  <div className="grid grid-cols-2 gap-4 text-sm">
-                    <div className="bg-white rounded-lg p-3">
-                      <div className="text-2xl font-bold text-blue-600">{championData.total_jam}</div>
-                      <div className="text-gray-600">Total Jam</div>
-                    </div>
-                    <div className="bg-white rounded-lg p-3">
-                      <div className="text-2xl font-bold text-green-600">{championData.jumlah_pelatihan}</div>
-                      <div className="text-gray-600">Pelatihan</div>
-                    </div>
-                    <div className="bg-white rounded-lg p-3 col-span-2">
-                      <div className="text-xl font-bold text-purple-600">{championData.rata_rata_jam.toFixed(1)}</div>
-                      <div className="text-gray-600">Rata-rata Jam per Pelatihan</div>
+                <h1 className="text-3xl font-bold mb-2 animate-bounce">
+                  🏆 LEARNING CHAMPION! 🏆
+                </h1>
+                <div className="flex justify-center space-x-1 mb-4">
+                  <span className="animate-bounce text-2xl" style={{ animationDelay: '0s' }}>🥇</span>
+                  <span className="animate-bounce text-2xl" style={{ animationDelay: '0.2s' }}>🎉</span>
+                  <span className="animate-bounce text-2xl" style={{ animationDelay: '0.4s' }}>🚀</span>
+                </div>
+                <div className="bg-white bg-opacity-90 rounded-full px-4 py-1 inline-block">
+                  <span className="text-yellow-600 font-bold text-sm">🌟 OUTSTANDING ACHIEVEMENT 🌟</span>
+                </div>
+              </div>
+
+              {championData && (
+                <>
+                  {/* Champion Info */}
+                  <div className="bg-white bg-opacity-95 rounded-xl p-6 mb-6 text-gray-800 shadow-lg">
+                    <div className="text-4xl mb-3 animate-pulse">👨‍�</div>
+                    <h2 className="text-2xl font-bold text-gray-800 mb-1">
+                      {championData.nama}
+                    </h2>
+                    <p className="text-gray-600 mb-4 font-medium">{championData.unit_kerja}</p>
+                    
+                    {/* Champion Badge */}
+                    <div className="inline-flex items-center bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg">
+                      👑 Learning Excellence Award 👑
                     </div>
                   </div>
+                  
+                  {/* Enhanced Stats Cards */}
+                  <div className="bg-white bg-opacity-95 rounded-xl p-6 mb-6 shadow-lg">
+                    <h3 className="text-xl font-bold text-gray-800 mb-4 flex items-center justify-center">
+                      <span className="mr-2">📊</span>
+                      Prestasi Luar Biasa
+                      <span className="ml-2">🏅</span>
+                    </h3>
+                    <div className="grid grid-cols-2 gap-4">
+                      <div className="bg-gradient-to-br from-blue-50 to-blue-100 rounded-lg p-4 border-2 border-blue-200 hover:scale-105 transition-transform">
+                        <div className="text-3xl font-bold text-blue-600 mb-1">{championData.total_jam}</div>
+                        <div className="text-blue-800 font-medium text-sm">Total Jam</div>
+                        <div className="text-xs text-blue-600 mt-1">⏰ Learning Hours</div>
+                      </div>
+                      <div className="bg-gradient-to-br from-green-50 to-green-100 rounded-lg p-4 border-2 border-green-200 hover:scale-105 transition-transform">
+                        <div className="text-3xl font-bold text-green-600 mb-1">{championData.jumlah_pelatihan}</div>
+                        <div className="text-green-800 font-medium text-sm">Pelatihan</div>
+                        <div className="text-xs text-green-600 mt-1">📚 Courses</div>
+                      </div>
+                      <div className="bg-gradient-to-br from-purple-50 to-purple-100 rounded-lg p-4 border-2 border-purple-200 col-span-2 hover:scale-105 transition-transform">
+                        <div className="text-2xl font-bold text-purple-600 mb-1">{championData.rata_rata_jam.toFixed(1)}</div>
+                        <div className="text-purple-800 font-medium text-sm">Rata-rata Jam per Pelatihan</div>
+                        <div className="text-xs text-purple-600 mt-1">📈 Efficiency Score</div>
+                      </div>
+                    </div>
+
+                    {/* Achievement Badges */}
+                    <div className="mt-4 flex justify-center space-x-2">
+                      <span className="bg-yellow-500 text-white px-3 py-1 rounded-full text-xs font-bold">🥇 Top Learner</span>
+                      <span className="bg-orange-500 text-white px-3 py-1 rounded-full text-xs font-bold">⭐ Dedicated</span>
+                      <span className="bg-red-500 text-white px-3 py-1 rounded-full text-xs font-bold">🚀 Inspiring</span>
+                    </div>
+                  </div>
+                  
+                  {/* Motivational Message */}
+                  <div className="bg-white bg-opacity-95 rounded-xl p-6 mb-6 text-gray-800 shadow-lg">
+                    <div className="text-4xl mb-3">🎊</div>
+                    <p className="text-gray-700 leading-relaxed font-medium">
+                      <span className="text-2xl">🎉</span> <strong className="text-yellow-600">{championData.nama}</strong> adalah 
+                      <span className="bg-yellow-200 px-2 py-1 rounded-md mx-1 font-bold text-yellow-800">LEARNING CHAMPION</span> 
+                      yang luar biasa! 
+                    </p>
+                    <p className="text-gray-600 mt-3 text-sm">
+                      Semangat belajar dan dedikasinya adalah contoh inspiratif bagi seluruh tim! 
+                      <span className="text-xl ml-1">🌟</span>
+                    </p>
+                    <div className="mt-4 flex justify-center space-x-2 text-2xl">
+                      <span className="animate-bounce" style={{ animationDelay: '0s' }}>👏</span>
+                      <span className="animate-bounce" style={{ animationDelay: '0.2s' }}>🎖️</span>
+                      <span className="animate-bounce" style={{ animationDelay: '0.4s' }}>🏆</span>
+                      <span className="animate-bounce" style={{ animationDelay: '0.6s' }}>🎊</span>
+                      <span className="animate-bounce" style={{ animationDelay: '0.8s' }}>👏</span>
+                    </div>
+                  </div>
+                  
+                  {/* Enhanced Action Buttons */}
+                  <div className="space-y-3">
+                    <Button 
+                      onClick={() => setShowChampionModal(false)}
+                      className="w-full bg-white text-yellow-600 hover:bg-yellow-50 font-bold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 border-2 border-yellow-200"
+                    >
+                      <span className="text-xl mr-2">✨</span>
+                      Terima Kasih Champion!
+                      <span className="text-xl ml-2">✨</span>
+                    </Button>
+                    <div className="text-center">
+                      <span className="text-white text-xs bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                        🎯 Keep up the excellent work! 🎯
+                      </span>
+                    </div>
+                  </div>
+                </>
+              )}
+              
+              {/* Scroll Indicator */}
+              <div className="flex justify-center mt-4 pb-2">
+                <div className="flex space-x-1">
+                  <div className="w-2 h-2 bg-white bg-opacity-40 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div>
+                  <div className="w-2 h-2 bg-white bg-opacity-40 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
+                  <div className="w-2 h-2 bg-white bg-opacity-40 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div>
                 </div>
-                
-                <div className="text-center">
-                  <p className="text-gray-700 mb-4">
-                    🎉 <strong>{championData.nama}</strong> adalah pegawai teladan yang dapat memberikan contoh untuk terus mengembangkan diri! 
-                    Semangat belajar dan dedikasinya patut diteladani! 🚀
-                  </p>
-                  <Button 
-                    onClick={() => setShowChampionModal(false)}
-                    className="bg-gradient-to-r from-yellow-500 to-orange-500 hover:from-yellow-600 hover:to-orange-600 text-white px-8"
-                  >
-                    ✨ Terima Kasih! ✨
-                  </Button>
-                </div>
-              </>
-            )}
+              </div>
+            </div>
           </div>
         </DialogContent>
       </Dialog>

@@ -915,7 +915,8 @@ export default function PesertaPage() {  const [data, setData] = useState<Penyel
               </div>
             </div>
           ) : (
-            <table className="min-w-full">              <thead className="bg-gray-50 text-sm text-gray-700">
+            <table className="min-w-full">
+              <thead className="bg-gray-50 text-sm text-gray-700">
                 <tr>
                   <th className="px-6 py-3 text-left font-medium">No</th>
                   <th className="px-6 py-3 text-left font-medium">

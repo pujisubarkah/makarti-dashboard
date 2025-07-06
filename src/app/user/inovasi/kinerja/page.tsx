@@ -66,6 +66,29 @@ export default function InovasiPage() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  
+  // State for motivational popup
+  const [showMotivationModal, setShowMotivationModal] = useState(false)
+  const [motivationShown, setMotivationShown] = useState(false)
+
+  // Motivational quotes array
+  const motivationalQuotes = [
+    {
+      quote: "Sampaikan ide inovasi Anda — karena perubahan besar dimulai dari suara kecil yang berani tampil beda. Ingat kata Buya Hamka: 'Kalau kerja hanya sekadar kerja, kerbau di sawah pun bekerja.' Maka bekerjalah dengan visi, bukan hanya rutinitas.",
+      author: "Tim Inovasi",
+      icon: "💡"
+    },
+    {
+      quote: "Inovasi bukan tentang sempurna, tapi tentang berani memulai. Setiap ide yang Anda wujudkan hari ini adalah fondasi pelayanan publik yang lebih baik di masa depan.",
+      author: "Inspirasi Inovator",
+      icon: "🚀"
+    },
+    {
+      quote: "Jangan takut untuk bermimpi besar dalam melayani. Inovasi terbaik lahir dari keberanian untuk melihat masalah sebagai peluang, bukan hambatan.",
+      author: "Semangat Pelayanan",
+      icon: "⭐"
+    }
+  ]
 
   // Fungsi untuk mengambil data dari API
   const fetchData = async () => {
@@ -98,7 +121,17 @@ export default function InovasiPage() {
   // Fetch data inovasi dari API saat komponen dimuat
   useEffect(() => {
     fetchData()
-  }, [])
+    
+    // Show motivational popup after 2 seconds if not shown yet
+    if (!motivationShown) {
+      const timer = setTimeout(() => {
+        setShowMotivationModal(true)
+        setMotivationShown(true)
+      }, 2000)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [motivationShown])
 
   const [formData, setFormData] = useState({
     judul: '',
@@ -156,7 +189,7 @@ export default function InovasiPage() {
       title: "Implementasi",
       value: implementasi,
       icon: <Rocket className="w-6 h-6" />,
-      color: 'blue',
+      color: 'green',
       bgGradient: 'from-green-500 to-green-600',
       bgLight: 'bg-green-100',
       textColor: 'text-green-600',
@@ -700,6 +733,96 @@ export default function InovasiPage() {
           ))}
         </div>
       </div>
+      
+      {/* Motivational Popup Modal */}
+      <Dialog open={showMotivationModal} onOpenChange={setShowMotivationModal}>
+        <DialogContent className="max-w-2xl border-0 p-0 overflow-hidden bg-transparent shadow-2xl">
+          <DialogHeader className="sr-only">
+            <DialogTitle>Motivational Message</DialogTitle>
+          </DialogHeader>
+          {/* Animated Background */}
+          <div className="relative bg-gradient-to-br from-blue-500 via-indigo-600 to-purple-700 rounded-2xl shadow-2xl overflow-hidden">
+            {/* Floating Animation Elements */}
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute top-0 left-0 w-20 h-20 bg-white bg-opacity-10 rounded-full animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }}></div>
+              <div className="absolute top-1/4 right-0 w-16 h-16 bg-white bg-opacity-15 rounded-full animate-ping" style={{ animationDelay: '1s', animationDuration: '4s' }}></div>
+              <div className="absolute bottom-0 left-1/4 w-12 h-12 bg-white bg-opacity-20 rounded-full animate-pulse" style={{ animationDelay: '2s' }}></div>
+              <div className="absolute top-3/4 right-1/4 w-8 h-8 bg-white bg-opacity-25 rounded-full animate-bounce" style={{ animationDelay: '0.5s', animationDuration: '2.5s' }}></div>
+            </div>
+
+            {/* Sparkle Effects */}
+            <div className="absolute inset-0">
+              <div className="absolute top-8 left-8 text-2xl animate-pulse" style={{ animationDelay: '0s' }}>✨</div>
+              <div className="absolute top-12 right-12 text-xl animate-bounce" style={{ animationDelay: '1s' }}>💡</div>
+              <div className="absolute bottom-16 left-12 text-lg animate-pulse" style={{ animationDelay: '2s' }}>🌟</div>
+              <div className="absolute bottom-8 right-8 text-2xl animate-bounce" style={{ animationDelay: '0.5s' }}>🚀</div>
+              <div className="absolute top-1/2 left-6 text-sm animate-ping" style={{ animationDelay: '1.5s' }}>⭐</div>
+            </div>
+
+            <div className="relative z-10 p-8 text-center text-white">
+              {/* Header Section */}
+              <div className="mb-6">
+                <div className="inline-flex items-center justify-center w-16 h-16 bg-white bg-opacity-20 rounded-full mb-4 animate-pulse">
+                  <Lightbulb className="w-8 h-8 text-white" />
+                </div>
+                <h1 className="text-2xl font-bold mb-2 animate-bounce">
+                  💡 SEMANGAT INOVASI! 🚀
+                </h1>
+                <div className="bg-white bg-opacity-90 rounded-full px-4 py-1 inline-block">
+                  <span className="text-blue-600 font-bold text-sm">🌟 INSPIRASI UNTUK BERINOVASI 🌟</span>
+                </div>
+              </div>
+
+              {/* Quote Section */}
+              <div className="bg-white bg-opacity-95 rounded-xl p-6 mb-6 text-gray-800 shadow-lg">
+                <div className="text-4xl mb-4">{motivationalQuotes[0].icon}</div>
+                <blockquote className="text-gray-700 leading-relaxed font-medium italic text-lg mb-4">
+                  &ldquo;{motivationalQuotes[0].quote}&rdquo;
+                </blockquote>
+                <cite className="text-blue-600 font-semibold">
+                  — {motivationalQuotes[0].author}
+                </cite>
+              </div>
+
+              {/* Call to Action */}
+              <div className="bg-white bg-opacity-95 rounded-xl p-6 mb-6 text-gray-800 shadow-lg">
+                <h3 className="text-lg font-bold text-gray-800 mb-3 flex items-center justify-center">
+                  <span className="mr-2">🎯</span>
+                  Mari Berkarya Bersama!
+                  <span className="ml-2">🎨</span>
+                </h3>
+                <p className="text-gray-600 text-sm leading-relaxed">
+                  Setiap inovasi yang Anda ciptakan adalah langkah nyata menuju pelayanan publik yang lebih baik. 
+                  Jangan ragu untuk berbagi ide dan mewujudkan perubahan positif!
+                </p>
+                <div className="mt-4 flex justify-center space-x-2 text-lg">
+                  <span className="animate-bounce" style={{ animationDelay: '0s' }}>🌟</span>
+                  <span className="animate-bounce" style={{ animationDelay: '0.2s' }}>💡</span>
+                  <span className="animate-bounce" style={{ animationDelay: '0.4s' }}>🚀</span>
+                  <span className="animate-bounce" style={{ animationDelay: '0.6s' }}>⭐</span>
+                </div>
+              </div>
+
+              {/* Action Buttons */}
+              <div className="space-y-3">
+                <Button 
+                  onClick={() => setShowMotivationModal(false)}
+                  className="w-full bg-white text-blue-600 hover:bg-blue-50 font-bold py-3 px-6 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 border-2 border-blue-200"
+                >
+                  <span className="text-lg mr-2">✨</span>
+                  Siap Berinovasi!
+                  <span className="text-lg ml-2">🚀</span>
+                </Button>
+                <div className="text-center">
+                  <span className="text-white text-xs bg-white bg-opacity-20 px-3 py-1 rounded-full">
+                    💪 Wujudkan Ide Terbaik Anda! 💪
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }

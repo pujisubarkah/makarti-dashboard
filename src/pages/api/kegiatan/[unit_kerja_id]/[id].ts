@@ -3,46 +3,132 @@ import { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  const { id } = req.query;
+  const { unit_kerja_id, id } = req.query;
 
-  if (!id || Array.isArray(id)) return res.status(400).json({ message: "ID tidak valid" });
+  if (!id || Array.isArray(id)) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "ID tidak valid" 
+    });
+  }
+
+  if (!unit_kerja_id || Array.isArray(unit_kerja_id)) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "Unit kerja ID tidak valid" 
+    });
+  }
 
   const kegiatanId = parseInt(id);
+  const unitKerjaId = parseInt(unit_kerja_id);
+
+  if (isNaN(kegiatanId) || isNaN(unitKerjaId)) {
+    return res.status(400).json({ 
+      success: false, 
+      message: "ID harus berupa angka" 
+    });
+  }
 
   switch (req.method) {
     case "GET":
       try {
-        const kegiatan = await prisma.event_schedule.findUnique({
-          where: { id: kegiatanId },
+        const kegiatan = await prisma.event_schedule.findFirst({
+          where: { 
+            id: kegiatanId,
+            unit_kerja_id: unitKerjaId 
+          },
         });
-        if (!kegiatan) return res.status(404).json({ message: "Kegiatan tidak ditemukan" });
-        return res.status(200).json(kegiatan);
+        if (!kegiatan) {
+          return res.status(404).json({ 
+            success: false, 
+            message: "Kegiatan tidak ditemukan" 
+          });
+        }
+        return res.status(200).json({ 
+          success: true, 
+          data: kegiatan 
+        });
       } catch (err) {
-        return res.status(500).json({ message: "Gagal mengambil data kegiatan" });
+        console.error('Error fetching kegiatan:', err);
+        return res.status(500).json({ 
+          success: false, 
+          message: "Gagal mengambil data kegiatan" 
+        });
       }
 
     case "PUT":
       try {
+        // Cek apakah kegiatan exists dan milik unit kerja ini
+        const existingKegiatan = await prisma.event_schedule.findFirst({
+          where: { 
+            id: kegiatanId,
+            unit_kerja_id: unitKerjaId 
+          },
+        });
+        
+        if (!existingKegiatan) {
+          return res.status(404).json({ 
+            success: false, 
+            message: "Kegiatan tidak ditemukan atau akses ditolak" 
+          });
+        }
+
         const updated = await prisma.event_schedule.update({
           where: { id: kegiatanId },
-          data: req.body,
+          data: {
+            ...req.body,
+            updated_at: new Date()
+          },
         });
-        return res.status(200).json(updated);
+        return res.status(200).json({ 
+          success: true, 
+          message: "Kegiatan berhasil diperbarui",
+          data: updated 
+        });
       } catch (err) {
-        return res.status(500).json({ message: "Gagal memperbarui kegiatan" });
+        console.error('Error updating kegiatan:', err);
+        return res.status(500).json({ 
+          success: false, 
+          message: "Gagal memperbarui kegiatan" 
+        });
       }
 
     case "DELETE":
       try {
+        // Cek apakah kegiatan exists dan milik unit kerja ini
+        const existingKegiatan = await prisma.event_schedule.findFirst({
+          where: { 
+            id: kegiatanId,
+            unit_kerja_id: unitKerjaId 
+          },
+        });
+        
+        if (!existingKegiatan) {
+          return res.status(404).json({ 
+            success: false, 
+            message: "Kegiatan tidak ditemukan atau akses ditolak" 
+          });
+        }
+
         await prisma.event_schedule.delete({
           where: { id: kegiatanId },
         });
-        return res.status(200).json({ message: "Kegiatan berhasil dihapus" });
+        return res.status(200).json({ 
+          success: true, 
+          message: "Kegiatan berhasil dihapus" 
+        });
       } catch (err) {
-        return res.status(500).json({ message: "Gagal menghapus kegiatan" });
+        console.error('Error deleting kegiatan:', err);
+        return res.status(500).json({ 
+          success: false, 
+          message: "Gagal menghapus kegiatan" 
+        });
       }
 
     default:
-      return res.status(405).json({ message: "Metode tidak diizinkan" });
+      return res.status(405).json({ 
+        success: false, 
+        message: "Metode tidak diizinkan" 
+      });
   }
 }

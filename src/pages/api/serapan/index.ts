@@ -42,7 +42,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   // Ambil unit_kerja_id dari query atau body
   const unit_kerja_id =
     typeof req.query.unit_kerja_id === 'string' ? req.query.unit_kerja_id :
-    typeof req.body.unit_kerja_id === 'string' ? req.body.unit_kerja_id : null;
+    typeof req.body.unit_kerja_id === 'string' ? req.body.unit_kerja_id :
+    typeof req.body.unit_kerja_id === 'number' ? req.body.unit_kerja_id.toString() : null;
+
+  console.log('API Serapan - Method:', req.method);
+  console.log('API Serapan - Query:', req.query);
+  console.log('API Serapan - Body:', req.body);
+  console.log('API Serapan - unit_kerja_id:', unit_kerja_id);
 
   try {
     if (req.method === 'GET') {
@@ -194,13 +200,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // POST & DELETE tetap butuh unit_kerja_id
     if ((req.method === 'POST' || req.method === 'DELETE') && !unit_kerja_id) {
       return res.status(400).json({ error: 'unit_kerja_id diperlukan' });
-    }
-
-    if (req.method === 'POST') {
+    }    if (req.method === 'POST') {
       const { bulan, pagu_anggaran, realisasi_pengeluaran } = req.body;
 
       if (!bulan || pagu_anggaran === undefined || realisasi_pengeluaran === undefined) {
         return res.status(400).json({ message: "Semua field diperlukan" });
+      }
+
+      // Konversi unit_kerja_id ke integer
+      const unitKerjaIdInt = parseInt(unit_kerja_id, 10);
+      if (isNaN(unitKerjaIdInt)) {
+        return res.status(400).json({ message: "unit_kerja_id harus berupa angka valid" });
       }
 
       const parsedPagu = parseFloat(pagu_anggaran);
@@ -216,7 +226,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const existingData = await prisma.serapan_anggaran.findFirst({
         where: {
-          unit_kerja_id: unit_kerja_id,
+          unit_kerja_id: unitKerjaIdInt,
           bulan
         },
         include: {
@@ -238,7 +248,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       } else {
         await prisma.serapan_anggaran.create({
           data: {
-            unit_kerja_id: unit_kerja_id,
+            unit_kerja_id: unitKerjaIdInt,
             bulan,
             pagu_anggaran: parsedPagu,
             realisasi_pengeluaran: parsedRealisasi,

@@ -128,12 +128,17 @@ export default function SerapanAnggaranPage() {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
     }
-  );
-
-  // SWR hook - fetch unit options
-  const { data: unitOptions, error: unitError, isLoading: unitLoading } = useSWR<string[]>(
-    mounted ? '/api/users/alias' : null,
-    fetcher,
+  );  // SWR hook - fetch unit options with id mapping
+  const { data: unitOptions, error: unitError, isLoading: unitLoading } = useSWR<{id: number, alias: string}[]>(
+    mounted ? '/api/users' : null,
+    async (url) => {
+      const res = await fetch(url);
+      if (!res.ok) throw new Error('Failed to fetch');
+      const data = await res.json();
+      return data.users
+        .filter((user: any) => user.unit_kerja) // Filter hanya yang punya unit_kerja
+        .map((user: any) => ({ id: user.id, alias: user.unit_kerja }));
+    },
     {
       revalidateOnFocus: false,
       revalidateOnReconnect: true,
@@ -147,10 +152,17 @@ export default function SerapanAnggaranPage() {
     if (!userId) {
       toast.error('User ID tidak ditemukan. Silakan login ulang.');
       return;
-    }
-
-    if (!formData.paguAnggaran || !formData.realisasiPengeluaran || !formData.unitKerja) {
+    }    if (!formData.paguAnggaran || !formData.realisasiPengeluaran || !formData.unitKerja) {
       toast.error('Semua field harus diisi');
+      return;
+    }    // Cari unit_kerja_id berdasarkan alias yang dipilih
+    const selectedUnit = unitOptions?.find(unit => unit.alias === formData.unitKerja);
+    console.log('Available units:', unitOptions);
+    console.log('Selected unit kerja alias:', formData.unitKerja);
+    console.log('Found unit:', selectedUnit);
+    
+    if (!selectedUnit) {
+      toast.error('Unit kerja yang dipilih tidak valid');
       return;
     }
 
@@ -172,39 +184,43 @@ export default function SerapanAnggaranPage() {
       return;
     }
 
-    setIsSubmitting(true);
-
-    const loadingPromise = new Promise((resolve, reject) => {
-      setTimeout(async () => {
-        try {
-          console.log('Submitting to API:', `/api/serapan/${userId}`);
+    setIsSubmitting(true);    const loadingPromise = new Promise((resolve, reject) => {
+      setTimeout(async () => {        try {
+          console.log('Submitting to API:', editingId ? `/api/serapan/${editingId}` : '/api/serapan');
+          console.log('Selected unit_kerja_id:', selectedUnit.id);
+          console.log('Request body:', {
+            unit_kerja_id: selectedUnit.id.toString(),
+            bulan: formData.bulan,
+            pagu_anggaran: paguAnggaran,
+            realisasi_pengeluaran: realisasiPengeluaran,
+          });
           
-          const url = editingId ? `/api/serapan/${userId}/${editingId}` : `/api/serapan/${userId}`;
+          const url = editingId ? `/api/serapan/${editingId}` : '/api/serapan';
           const method = editingId ? 'PUT' : 'POST';
           
           const response = await fetch(url, {
             method: method,
             headers: {
               'Content-Type': 'application/json',
-            },
-            body: JSON.stringify({
+            },            body: JSON.stringify({
+              unit_kerja_id: selectedUnit.id.toString(), // Konversi ke string
               bulan: formData.bulan,
-              unit_kerja: formData.unitKerja,
               pagu_anggaran: paguAnggaran,
               realisasi_pengeluaran: realisasiPengeluaran,
             }),
-          });
-
-          if (!response.ok) {
+          });          if (!response.ok) {
             const errorData = await response.json();
+            console.error('API Error Response:', {
+              status: response.status,
+              statusText: response.statusText,
+              error: errorData
+            });
             throw new Error(errorData.message || 'Gagal menyimpan data');
           }
 
           const result = await response.json();
-          console.log('API Response:', result);
-
-          // Update data dengan SWR mutate
-          mutate(`/api/serapan/${userId}`, result, false);
+          console.log('API Response:', result);          // Update data dengan SWR mutate
+          mutate('/api/serapan', undefined, true); // Revalidate data dari server
 
           // Reset form dan tutup modal
           setFormData({
@@ -526,15 +542,14 @@ export default function SerapanAnggaranPage() {
                           <Loader2 className="w-4 h-4 animate-spin mr-2" />
                           Memuat unit kerja...
                         </div>
-                      </SelectItem>
-                    ) : unitError ? (
+                      </SelectItem>                    ) : unitError ? (
                       <SelectItem value="" disabled>
                         Error memuat unit kerja
                       </SelectItem>
                     ) : unitOptions && unitOptions.length > 0 ? (
                       unitOptions.map((unit) => (
-                        <SelectItem key={unit} value={unit}>
-                          {unit.replace(/_/g, ' ')}
+                        <SelectItem key={unit.id} value={unit.alias}>
+                          {unit.alias.replace(/_/g, ' ')}
                         </SelectItem>
                       ))
                     ) : (

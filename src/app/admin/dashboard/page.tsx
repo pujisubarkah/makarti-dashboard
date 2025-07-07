@@ -25,8 +25,11 @@ import {
   Rocket, 
   Star, 
   Brain,
-  Target
+  Target,
+  Clock
 } from 'lucide-react'
+import DailyScheduleWithAvatars from '@/components/DailyScheduleWithAvatars'
+import TodaySchedulePreview from '@/components/TodaySchedulePreview'
 
 const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6']
 
@@ -509,10 +512,10 @@ export default function RingkasanMakartiPage() {
         </div>
       </div>
 
-      {/* Bottom Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+      {/* Bottom Grid - Updated with Today's Schedule */}
+      <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
         {/* Pie Chart - Serapan */}
-        <div className="bg-white p-6 rounded-xl shadow-lg">
+        <div className="bg-white p-6 rounded-xl shadow-lg lg:col-span-2">
           <h2 className="text-xl font-bold mb-4 text-gray-800">Serapan Anggaran</h2>
           <div className="h-[300px]">
             <ResponsiveContainer width="100%" height="100%">
@@ -541,44 +544,67 @@ export default function RingkasanMakartiPage() {
           </div>
         </div>
 
-        {/* Monthly Highlights */}
-        <div className="bg-white p-6 rounded-xl shadow-lg lg:col-span-2">
-          <h2 className="text-xl font-bold mb-4 text-gray-800">Highlight: Pilar MAKARTI → Bigger Smarter Better</h2>
-          <div className="space-y-4">
-            <div className="flex items-start space-x-3 p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-              <div className="bg-blue-500 rounded-full p-2">
-                <Rocket className="w-4 h-4 text-white" />
+        {/* Today's Schedule Preview */}
+        <div className="bg-white rounded-xl shadow-lg lg:col-span-2">
+          <TodaySchedulePreview />
+        </div>
+
+        {/* BSB Highlights - Compact */}
+        <div className="bg-white p-6 rounded-xl shadow-lg lg:col-span-1">
+          <h2 className="text-lg font-bold mb-4 text-gray-800">Highlight BSB</h2>
+          <div className="space-y-3">
+            <div className="p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
+              <div className="flex items-center gap-2 mb-1">
+                <Rocket className="w-4 h-4 text-blue-600" />
+                <h3 className="font-medium text-blue-800 text-sm">BIGGER</h3>
               </div>
-              <div>
-                <h3 className="font-medium text-blue-800">BIGGER: Melalui Inovasi & Networking</h3>
-                <p className="text-sm text-blue-600">15 inovasi dan 8 kunjungan instansi menghasilkan jangkauan 45 unit dengan 12,500 penerima manfaat</p>
-                <p className="text-xs text-blue-500 mt-1">Kontribusi: Inovasi 70% • Networking 65%</p>
-              </div>
-            </div>
-            
-            <div className="flex items-start space-x-3 p-3 bg-purple-50 rounded-lg border-l-4 border-purple-500">
-              <div className="bg-purple-500 rounded-full p-2">
-                <Brain className="w-4 h-4 text-white" />
-              </div>
-              <div>
-                <h3 className="font-medium text-purple-800">SMARTER: Melalui Inovasi & Komunikasi</h3>
-                <p className="text-sm text-purple-600">Inovasi teknologi dan 42 komunikasi mencapai digitalisasi 78% dan literasi digital 68%</p>
-                <p className="text-xs text-purple-500 mt-1">Kontribusi: Inovasi 85% • Komunikasi 60%</p>
+              <p className="text-xs text-blue-600">Jangkauan 45 unit dengan 12,500 penerima manfaat</p>
+              <div className="mt-2 flex items-center justify-between">
+                <div className="text-2xl font-bold text-blue-600">82%</div>
+                <div className="w-12 bg-blue-200 rounded-full h-2">
+                  <div className="bg-blue-600 h-2 rounded-full" style={{ width: '82%' }}></div>
+                </div>
               </div>
             </div>
             
-            <div className="flex items-start space-x-3 p-3 bg-green-50 rounded-lg border-l-4 border-green-500">
-              <div className="bg-green-500 rounded-full p-2">
-                <Star className="w-4 h-4 text-white" />
+            <div className="p-3 bg-purple-50 rounded-lg border-l-4 border-purple-500">
+              <div className="flex items-center gap-2 mb-1">
+                <Brain className="w-4 h-4 text-purple-600" />
+                <h3 className="font-medium text-purple-800 text-sm">SMARTER</h3>
               </div>
-              <div>
-                <h3 className="font-medium text-green-800">BETTER: Melalui Learning & Inovasi</h3>
-                <p className="text-sm text-green-600">10 kegiatan pembelajaran dan inovasi menghasilkan kepuasan layanan 92% dan efisiensi 85%</p>
-                <p className="text-xs text-green-500 mt-1">Kontribusi: Learning 80% • Inovasi 75%</p>
+              <p className="text-xs text-purple-600">Digitalisasi 78% dan otomatisasi 65%</p>
+              <div className="mt-2 flex items-center justify-between">
+                <div className="text-2xl font-bold text-purple-600">71%</div>
+                <div className="w-12 bg-purple-200 rounded-full h-2">
+                  <div className="bg-purple-600 h-2 rounded-full" style={{ width: '71%' }}></div>
+                </div>
+              </div>
+            </div>
+            
+            <div className="p-3 bg-green-50 rounded-lg border-l-4 border-green-500">
+              <div className="flex items-center gap-2 mb-1">
+                <Star className="w-4 h-4 text-green-600" />
+                <h3 className="font-medium text-green-800 text-sm">BETTER</h3>
+              </div>
+              <p className="text-xs text-green-600">Kepuasan layanan 92% dan efisiensi 85%</p>
+              <div className="mt-2 flex items-center justify-between">
+                <div className="text-2xl font-bold text-green-600">84%</div>
+                <div className="w-12 bg-green-200 rounded-full h-2">
+                  <div className="bg-green-600 h-2 rounded-full" style={{ width: '84%' }}></div>
+                </div>
               </div>
             </div>
           </div>
         </div>
+      </div>
+
+      {/* Daily Schedule Section */}
+      <div className="mt-8 bg-white rounded-xl shadow-lg p-6">
+        <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
+          <Clock className="w-6 h-6 mr-2 text-orange-500" />
+          Jadwal Harian & Tim Management
+        </h2>
+        <DailyScheduleWithAvatars />
       </div>
     </div>
   )

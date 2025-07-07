@@ -27,6 +27,40 @@ model bigger_score {
   @@schema("makarti")
 }
 
+model evaluasi_unit_kerja {
+  id            Int       @id @default(autoincrement())
+  unit_kerja_id Int       @unique
+  inovasi       Decimal   @db.Decimal
+  learning      Decimal   @db.Decimal
+  komunikasi    Decimal   @db.Decimal
+  networking    Decimal   @db.Decimal
+  better_score  Decimal   @db.Decimal
+  bigger_score  Decimal   @db.Decimal
+  smarter_score Decimal   @db.Decimal
+  updated_at    DateTime? @default(now()) @db.Timestamptz(6)
+  status        String?
+  users         users     @relation(fields: [unit_kerja_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_unit_kerja")
+
+  @@schema("makarti")
+}
+
+model event_schedule {
+  id            Int       @id @default(autoincrement())
+  unit_kerja_id Int
+  date          DateTime  @db.Date
+  title         String    @db.VarChar(255)
+  location      String?   @db.VarChar(255)
+  time          String?   @db.VarChar(50)
+  type          String?   @db.VarChar(50)
+  priority      String?   @db.VarChar(20)
+  attendees     Int?      @default(0)
+  description   String?
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
+  users         users     @relation(fields: [unit_kerja_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_unit_kerja_user")
+
+  @@schema("makarti")
+}
+
 model inovasi {
   id            Int      @id(map: "Inovasi_pkey") @default(autoincrement())
   judul         String
@@ -87,6 +121,23 @@ model networking {
   status        String?
   users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Networking_unit_kerja_id_fkey")
 
+  @@schema("makarti")
+}
+
+model notification {
+  id            Int       @id @default(autoincrement())
+  sender_id     Int
+  receiver_id   Int?
+  receiver_role String?   @db.VarChar(10)
+  message       String
+  type          String?   @default("info") @db.VarChar(20)
+  is_read       Boolean?  @default(false)
+  created_at    DateTime? @default(now()) @db.Timestamptz(6)
+  users         users     @relation(fields: [sender_id], references: [id], onDelete: Cascade, onUpdate: NoAction, map: "fk_sender")
+
+  @@index([created_at])
+  @@index([receiver_id])
+  @@index([receiver_role])
   @@schema("makarti")
 }
 
@@ -284,16 +335,21 @@ model status_inovasi {
 model users {
   created_at          DateTime              @default(now()) @db.Timestamptz(6)
   unit_kerja          String?
-  username            String                @db.VarChar
+  username            String                @db.VarChar @unique
   password            String?               @db.VarChar
   id                  Int                   @id @unique @default(autoincrement())
   role_id             Int?
   alias               String?               @db.VarChar(255)
+  name                String?               @db.VarChar(255)
+  role                String?               @db.VarChar(10)
   bigger_score        bigger_score[]
+  evaluasi_unit_kerja evaluasi_unit_kerja?
+  event_schedule      event_schedule[]
   inovasi             inovasi[]
   kajian              kajian[]
   koordinasi          koordinasi[]
   networking          networking[]
+  notification        notification[]
   pegawai             pegawai[]
   pelatihan           pelatihan[]
   penyelenggaraan     penyelenggaraan[]

@@ -114,16 +114,16 @@ export default function InovasiPage() {  const [dataInovasi, setDataInovasi] = u
       }
     }
   }, [dataInovasi, loading, error])
-
   // Filter and sort data
   const getFilteredAndSortedData = () => {
-    let filtered = dataInovasi.filter(item =>
+    const filtered = dataInovasi.filter(item =>
       item.users.unit_kerja.toLowerCase().includes(searchUnit.toLowerCase())
     )
 
     if (sortColumn) {
       filtered.sort((a, b) => {
-        let aValue: any, bValue: any
+        let aValue: string | number | Date
+        let bValue: string | number | Date
 
         switch (sortColumn) {
           case 'judul':
@@ -869,8 +869,7 @@ export default function InovasiPage() {  const [dataInovasi, setDataInovasi] = u
                   </div>
                   <h3 className="text-3xl font-bold text-gray-600 mb-6 bg-gradient-to-r from-gray-600 to-gray-800 bg-clip-text text-transparent">
                     🔍 Belum Ada Ide Brilian Terdeteksi
-                  </h3>
-                  <p className="text-gray-500 text-xl max-w-2xl mx-auto leading-relaxed mb-8">
+                  </h3>                  <p className="text-gray-500 text-xl max-w-2xl mx-auto leading-relaxed mb-8">
                     Sistem sedang mencari inovasi yang sudah diimplementasi atau memiliki indikator kualitas tinggi untuk ditampilkan di sini
                   </p>
                   <div className="bg-gradient-to-r from-blue-500 to-purple-600 text-white px-8 py-4 rounded-2xl inline-block shadow-lg">

@@ -532,7 +532,7 @@ export default function InovasiPage() {  const [dataInovasi, setDataInovasi] = u
           <div className="px-6 py-3 bg-gray-50 border-t border-gray-200">
             <div className="flex items-center justify-between text-sm">
               <div className="text-gray-600">
-                Hasil pencarian untuk: <span className="font-medium text-gray-800">"{searchUnit}"</span>
+                Hasil pencarian untuk: <span className="font-medium text-gray-800">{searchUnit}</span>
               </div>
               <div className="flex items-center space-x-4">
                 <span className="text-gray-600">

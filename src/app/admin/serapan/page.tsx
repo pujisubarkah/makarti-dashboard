@@ -74,14 +74,14 @@ export default function SerapanTablePage() {
           setTimeout(() => setShowLowestUnitAlert(true), 1000)
         }
       } catch (err) {
-        setError(err instanceof Error ? err.message : 'Terjadi kesalahan')
-      } finally {
+        setError(err instanceof Error ? err.message : 'Terjadi kesalahan')      } finally {
         setLoading(false)
       }
     }
 
     fetchData()
   }, [])
+
   const handleRowClick = (unit: SerapanData) => {
     setSelectedUnit(unit)
   }
@@ -90,17 +90,25 @@ export default function SerapanTablePage() {
   const filteredAndSortedData = dataSerapan
     .filter(item => 
       formatUnitName(item.unit_kerja).toLowerCase().includes(searchTerm.toLowerCase())
-    )
-    .sort((a, b) => {
+    )    .sort((a, b) => {
       if (!sortConfig.key) return 0
       
-      let aValue: any = a[sortConfig.key]
-      let bValue: any = b[sortConfig.key]
+      let aValue: string | number
+      let bValue: string | number
+      
+      const key = sortConfig.key
+      if (key === 'detail_per_bulan') {
+        // Skip sorting for detail_per_bulan as it's an array
+        return 0
+      }
+      
+      aValue = a[key] as string | number
+      bValue = b[key] as string | number
       
       // Untuk unit_kerja, gunakan nama yang sudah diformat
       if (sortConfig.key === 'unit_kerja') {
-        aValue = formatUnitName(aValue).toLowerCase()
-        bValue = formatUnitName(bValue).toLowerCase()
+        aValue = formatUnitName(aValue as string).toLowerCase()
+        bValue = formatUnitName(bValue as string).toLowerCase()
       }
       
       if (aValue < bValue) {

@@ -138,11 +138,9 @@ export default function ProdukInovasiPage() {
         return () => clearTimeout(timer)
       }
     }
-  }, [dataProduk, loading, error])
-
-  // Filter and sort functions
+  }, [dataProduk, loading, error])  // Filter and sort functions
   const filteredAndSortedData = () => {
-    let filtered = dataProduk.filter(item => 
+    const filtered = dataProduk.filter(item => 
       item.users.unit_kerja.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.jenis.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -151,8 +149,8 @@ export default function ProdukInovasiPage() {
 
     if (sortConfig.key) {
       filtered.sort((a, b) => {
-        let aValue: any
-        let bValue: any
+        let aValue: string | number | Date
+        let bValue: string | number | Date
 
         if (sortConfig.key === 'users.unit_kerja') {
           aValue = a.users.unit_kerja
@@ -161,15 +159,16 @@ export default function ProdukInovasiPage() {
           aValue = a.status_inovasi.status
           bValue = b.status_inovasi.status
         } else {
-          aValue = a[sortConfig.key as keyof ProdukInovasiData]
-          bValue = b[sortConfig.key as keyof ProdukInovasiData]
+          const key = sortConfig.key as keyof ProdukInovasiData
+          aValue = a[key] as string | number
+          bValue = b[key] as string | number
         }
 
         // Handle different data types
         if (sortConfig.key === 'tanggalRilis') {
-          aValue = new Date(aValue)
-          bValue = new Date(bValue)
-        } else if (typeof aValue === 'string') {
+          aValue = new Date(aValue as string)
+          bValue = new Date(bValue as string)
+        } else if (typeof aValue === 'string' && typeof bValue === 'string') {
           aValue = aValue.toLowerCase()
           bValue = bValue.toLowerCase()
         }
@@ -923,8 +922,7 @@ export default function ProdukInovasiPage() {
                   </div>
                   <h3 className="text-3xl font-bold text-gray-600 mb-6 bg-gradient-to-r from-gray-600 to-gray-800 bg-clip-text text-transparent">
                     🔍 Belum Ada Produk Unggulan Terdeteksi
-                  </h3>
-                  <p className="text-gray-500 text-xl max-w-2xl mx-auto leading-relaxed mb-8">
+                  </h3>                  <p className="text-gray-500 text-xl max-w-2xl mx-auto leading-relaxed mb-8">
                     Sistem sedang mencari produk inovasi yang sudah selesai atau memiliki karakteristik unggulan untuk analisis 4D Framework
                   </p>
                   <div className="bg-gradient-to-r from-purple-500 to-blue-600 text-white px-8 py-4 rounded-2xl inline-block shadow-lg">

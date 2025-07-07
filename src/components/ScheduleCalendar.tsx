@@ -1,9 +1,15 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Calendar } from "@/components/ui/calendar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
+import { toast } from "sonner";
 import { format } from "date-fns";
 import { 
   Clock, 
@@ -13,14 +19,32 @@ import {
   Users, 
   Bell,
   Star,
-  ChevronRight
+  ChevronRight,
+  Edit,
+  Trash2,
+  Save,
+  X
 } from "lucide-react";
 
-// Enhanced dummy data untuk kegiatan harian
+// Interface untuk event dari API
 interface Event {
   id: number;
-  date: Date;
+  date: string | Date;
   title: string;
+  location?: string;
+  time?: string;
+  type?: string;
+  priority?: string;
+  attendees?: number;
+  description?: string;
+  unit_kerja_id: number;
+  created_at?: string;
+}
+
+// Interface untuk form data
+interface EventFormData {
+  title: string;
+  date: string;
   location: string;
   time: string;
   type: string;
@@ -29,72 +53,262 @@ interface Event {
   description: string;
 }
 
-const dummyEvents: Event[] = [
-  {
-    id: 1,
-    date: new Date(2025, 6, 5), // July 5, 2025 (current date)
-    title: "Rapat Evaluasi Triwulan",
-    location: "Ruangan A",
-    time: "10:00 - 12:00",
-    type: "meeting",
-    priority: "high",
-    attendees: 12,
-    description: "Evaluasi kinerja triwulan dan perencanaan strategi"
-  },
-  {
-    id: 2,
-    date: new Date(2025, 6, 5), // July 5, 2025
-    title: "Pelatihan Teknologi Baru",
-    location: "Zoom Meeting",
-    time: "14:00 - 16:00",
-    type: "training",
-    priority: "medium",
-    attendees: 25,
-    description: "Workshop implementasi AI dalam workflow"
-  },
-  {
-    id: 3,
-    date: new Date(2025, 6, 8), // July 8, 2025
-    title: "Kunjungan Lapangan",
-    location: "Proyek Site X",
-    time: "09:00 - 15:00",
-    type: "fieldwork",
-    priority: "high",
-    attendees: 8,
-    description: "Monitoring progress dan quality control"
-  },
-  {
-    id: 4,
-    date: new Date(2025, 6, 6), // July 6, 2025
-    title: "Presentasi Inovasi Q2",
-    location: "Auditorium Utama",
-    time: "13:00 - 15:00",
-    type: "presentation",
-    priority: "high",
-    attendees: 45,
-    description: "Showcase inovasi terbaru dari semua unit kerja"
-  },
-  {
-    id: 5,
-    date: new Date(2025, 6, 7), // July 7, 2025
-    title: "Workshop Bigger Better Smarter",
-    location: "Ruangan Training B",
-    time: "09:00 - 12:00",
-    type: "workshop",
-    priority: "medium",
-    attendees: 30,
-    description: "Sesi kolaboratif peningkatan kualitas layanan"
-  }
-];
-
 export default function ScheduleCalendar() {
   const [date, setDate] = useState<Date | undefined>(new Date());
   const [selectedEvent, setSelectedEvent] = useState<Event | null>(null);
+  const [events, setEvents] = useState<Event[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [showAddDialog, setShowAddDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+  const [editingEvent, setEditingEvent] = useState<Event | null>(null);
+  
+  // Form data untuk tambah/edit event
+  const [formData, setFormData] = useState<EventFormData>({
+    title: "",
+    date: format(new Date(), "yyyy-MM-dd"),
+    location: "",
+    time: "",
+    type: "meeting",
+    priority: "medium",
+    attendees: 0,
+    description: ""
+  });
+
+  // Load events from API
+  useEffect(() => {
+    // Debug localStorage
+    console.log('=== USEEFFECT DEBUG ===');
+    console.log('All localStorage keys:', Object.keys(localStorage));
+    console.log('localStorage id:', localStorage.getItem('id'));
+    console.log('localStorage username:', localStorage.getItem('username'));
+    console.log('localStorage role:', localStorage.getItem('role'));
+    
+    // Delay untuk memastikan localStorage sudah terisi
+    const timer = setTimeout(() => {
+      fetchEvents();
+    }, 100);
+
+    return () => clearTimeout(timer);
+  }, []);
+
+  const fetchEvents = async () => {
+    try {
+      setLoading(true); // Set loading state
+      const unitKerjaId = localStorage.getItem('id');
+      console.log('Unit Kerja ID from localStorage:', unitKerjaId);
+      
+      if (!unitKerjaId) {
+        console.error('Unit kerja ID tidak ditemukan di localStorage');
+        toast.error('Unit kerja ID tidak ditemukan. Silakan login ulang.');
+        return;
+      }
+
+      console.log('Fetching events from:', `/api/kegiatan/${unitKerjaId}`);
+      const response = await fetch(`/api/kegiatan/${unitKerjaId}`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
+      
+      console.log('Response status:', response.status);
+      console.log('Response ok:', response.ok);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+      
+      const data = await response.json();
+      console.log('Response data:', data);
+      console.log('Response data type:', typeof data);
+      console.log('Is response array?', Array.isArray(data));
+
+      // Handle both response formats: array directly or {success, data} object
+      let events = [];
+      if (Array.isArray(data)) {
+        // Direct array response
+        events = data;
+        console.log('Using direct array response:', events);
+      } else if (data.success && data.data) {
+        // Structured response with success flag
+        events = data.data;
+        console.log('Using structured response:', events);
+      } else if (data && !data.success) {
+        // Error response
+        console.error('API returned error:', data.message);
+        toast.error(data.message || 'Gagal memuat kegiatan dari server');
+        return;
+      }
+
+      console.log('Final events to set:', events);
+      setEvents(events || []);
+      
+      if (events && events.length > 0) {
+        toast.success(`Berhasil memuat ${events.length} kegiatan`);
+        console.log('First event sample:', events[0]);
+      } else {
+        console.log('No events found for unit_kerja_id:', unitKerjaId);
+        toast.info('Tidak ada kegiatan ditemukan');
+      }
+    } catch (error) {
+      console.error('Error fetching events:', error);
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      toast.error(`Gagal memuat kegiatan: ${errorMessage}`);
+      
+      // Set empty array jika error untuk menghindari undefined
+      setEvents([]);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // Create new event
+  const handleCreateEvent = async () => {
+    try {
+      const unitKerjaId = localStorage.getItem('id');
+      if (!unitKerjaId) {
+        toast.error('Unit kerja ID tidak ditemukan');
+        return;
+      }
+
+      const response = await fetch(`/api/kegiatan/${unitKerjaId}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Kegiatan berhasil ditambahkan');
+        setShowAddDialog(false);
+        resetForm();
+        fetchEvents();
+      } else {
+        toast.error(data.message || 'Gagal menambahkan kegiatan');
+      }
+    } catch (error) {
+      console.error('Error creating event:', error);
+      toast.error('Gagal menambahkan kegiatan');
+    }
+  };
+
+  // Update event
+  const handleUpdateEvent = async () => {
+    try {
+      const unitKerjaId = localStorage.getItem('id');
+      if (!unitKerjaId || !editingEvent) {
+        toast.error('Data tidak lengkap');
+        return;
+      }
+
+      console.log('Updating event:', editingEvent.id, 'for unit:', unitKerjaId);
+      const response = await fetch(`/api/kegiatan/${unitKerjaId}/${editingEvent.id}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(formData)
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Kegiatan berhasil diperbarui');
+        setShowEditDialog(false);
+        setEditingEvent(null);
+        resetForm();
+        fetchEvents();
+      } else {
+        toast.error(data.message || 'Gagal memperbarui kegiatan');
+      }
+    } catch (error) {
+      console.error('Error updating event:', error);
+      toast.error('Gagal memperbarui kegiatan');
+    }
+  };
+
+  // Delete event
+  const handleDeleteEvent = async (eventId: number) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus kegiatan ini?')) {
+      return;
+    }
+
+    try {
+      const unitKerjaId = localStorage.getItem('id');
+      if (!unitKerjaId) {
+        toast.error('Unit kerja ID tidak ditemukan');
+        return;
+      }
+
+      console.log('Deleting event:', eventId, 'for unit:', unitKerjaId);
+      const response = await fetch(`/api/kegiatan/${unitKerjaId}/${eventId}`, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
+      });
+
+      const data = await response.json();
+
+      if (data.success) {
+        toast.success('Kegiatan berhasil dihapus');
+        fetchEvents();
+      } else {
+        toast.error(data.message || 'Gagal menghapus kegiatan');
+      }
+    } catch (error) {
+      console.error('Error deleting event:', error);
+      toast.error('Gagal menghapus kegiatan');
+    }
+  };
+
+  // Reset form
+  const resetForm = () => {
+    setFormData({
+      title: "",
+      date: format(new Date(), "yyyy-MM-dd"),
+      location: "",
+      time: "",
+      type: "meeting",
+      priority: "medium",
+      attendees: 0,
+      description: ""
+    });
+  };
+
+  // Open edit dialog
+  const openEditDialog = (event: Event) => {
+    setEditingEvent(event);
+    setFormData({
+      title: event.title,
+      date: typeof event.date === 'string' ? event.date.split('T')[0] : format(new Date(event.date), "yyyy-MM-dd"),
+      location: event.location || "",
+      time: event.time || "",
+      type: event.type || "meeting",
+      priority: event.priority || "medium",
+      attendees: event.attendees || 0,
+      description: event.description || ""
+    });
+    setShowEditDialog(true);
+  };
 
   // Filter event berdasarkan tanggal yang dipilih
-  const filteredEvents = dummyEvents.filter(
-    (event) => event.date.toDateString() === date?.toDateString()
-  );
+  const filteredEvents = events.filter((event) => {
+    const eventDate = new Date(event.date);
+    const selectedDate = date?.toDateString();
+    const eventDateString = eventDate.toDateString();
+    
+    console.log('Filtering event:', {
+      eventTitle: event.title,
+      eventDate: event.date,
+      eventDateString,
+      selectedDate,
+      matches: eventDateString === selectedDate
+    });
+    
+    return eventDateString === selectedDate;
+  });
+
+  console.log('Final filtered events:', filteredEvents);
+  console.log('Total events:', events.length);
+  console.log('Filtered events count:', filteredEvents.length);
 
   // Function to get event type styling
   const getEventTypeStyle = (type: string, priority: string): { bg: string; border: string; icon: string; color: string } => {
@@ -164,7 +378,7 @@ export default function ScheduleCalendar() {
             <div className="flex items-center justify-between">
               <div>
                 <p className="text-green-100 text-sm">Total Peserta</p>
-                <p className="text-2xl font-bold">{filteredEvents.reduce((sum, event) => sum + event.attendees, 0)}</p>
+                <p className="text-2xl font-bold">{filteredEvents.reduce((sum, event) => sum + (event.attendees || 0), 0)}</p>
               </div>
               <Users className="w-8 h-8 text-green-200" />
             </div>
@@ -225,10 +439,143 @@ export default function ScheduleCalendar() {
             
             {/* Quick Add Event Button */}
             <div className="mt-4">
-              <Button className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white">
-                <Plus className="w-4 h-4 mr-2" />
-                Tambah Kegiatan
-              </Button>
+              <Dialog open={showAddDialog} onOpenChange={setShowAddDialog}>
+                <DialogTrigger asChild>
+                  <Button className="w-full bg-gradient-to-r from-indigo-500 to-purple-600 hover:from-indigo-600 hover:to-purple-700 text-white">
+                    <Plus className="w-4 h-4 mr-2" />
+                    Tambah Kegiatan
+                  </Button>
+                </DialogTrigger>
+                <DialogContent className="max-w-2xl">
+                  <DialogHeader>
+                    <DialogTitle>Tambah Kegiatan Baru</DialogTitle>
+                  </DialogHeader>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+                    <div className="space-y-2">
+                      <Label htmlFor="title">Judul Kegiatan</Label>
+                      <Input
+                        id="title"
+                        value={formData.title}
+                        onChange={(e) => setFormData({...formData, title: e.target.value})}
+                        placeholder="Masukkan judul kegiatan"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="date">Tanggal</Label>
+                      <Input
+                        id="date"
+                        type="date"
+                        value={formData.date}
+                        onChange={(e) => setFormData({...formData, date: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="time">Waktu</Label>
+                      <Input
+                        id="time"
+                        value={formData.time}
+                        onChange={(e) => setFormData({...formData, time: e.target.value})}
+                        placeholder="09:00 - 12:00"
+                      />
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="location">Lokasi</Label>
+                      <Select value={formData.location} onValueChange={(value) => {
+                        if (value === 'custom') {
+                          setFormData({...formData, location: ''});
+                        } else {
+                          setFormData({...formData, location: value});
+                        }
+                      }}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih atau ketik lokasi" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Ruang Meeting A">📍 Ruang Meeting A</SelectItem>
+                          <SelectItem value="Ruang Meeting B">📍 Ruang Meeting B</SelectItem>
+                          <SelectItem value="Auditorium">📍 Auditorium</SelectItem>
+                          <SelectItem value="Ruang Training">📍 Ruang Training</SelectItem>
+                          <SelectItem value="Zoom Meeting">💻 Zoom Meeting</SelectItem>
+                          <SelectItem value="Google Meet: meet.google.com/xyz-abc-123">💻 Google Meet</SelectItem>
+                          <SelectItem value="Microsoft Teams - Channel: Rapat Harian">💻 Microsoft Teams</SelectItem>
+                          <SelectItem value="Webex">💻 Webex</SelectItem>
+                          <SelectItem value="Hybrid (Ruangan + Online)">🔗 Hybrid (Ruangan + Online)</SelectItem>
+                          <SelectItem value="custom">✏️ Lokasi Lainnya</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {/* Input manual jika pilih custom atau tidak ada di preset */}
+                      {(!formData.location || 
+                        !['Ruang Meeting A', 'Ruang Meeting B', 'Auditorium', 'Ruang Training', 
+                          'Zoom Meeting', 'Google Meet: meet.google.com/xyz-abc-123', 'Microsoft Teams - Channel: Rapat Harian', 'Webex', 
+                          'Hybrid (Ruangan + Online)'].includes(formData.location)) && (
+                        <Input
+                          value={formData.location}
+                          onChange={(e) => setFormData({...formData, location: e.target.value})}
+                          placeholder="Ketik lokasi custom (contoh: Zoom ID: 123-456-789)"
+                          className="mt-2"
+                        />
+                      )}
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="type">Jenis Kegiatan</Label>
+                      <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih jenis" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="meeting">Meeting</SelectItem>
+                          <SelectItem value="training">Training</SelectItem>
+                          <SelectItem value="workshop">Workshop</SelectItem>
+                          <SelectItem value="presentation">Presentation</SelectItem>
+                          <SelectItem value="fieldwork">Fieldwork</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="priority">Prioritas</Label>
+                      <Select value={formData.priority} onValueChange={(value) => setFormData({...formData, priority: value})}>
+                        <SelectTrigger>
+                          <SelectValue placeholder="Pilih prioritas" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="high">Tinggi</SelectItem>
+                          <SelectItem value="medium">Sedang</SelectItem>
+                          <SelectItem value="low">Rendah</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="attendees">Jumlah Peserta</Label>
+                      <Input
+                        id="attendees"
+                        type="number"
+                        value={formData.attendees}
+                        onChange={(e) => setFormData({...formData, attendees: parseInt(e.target.value) || 0})}
+                        placeholder="0"
+                      />
+                    </div>
+                    <div className="space-y-2 md:col-span-2">
+                      <Label htmlFor="description">Deskripsi</Label>
+                      <Textarea
+                        id="description"
+                        value={formData.description}
+                        onChange={(e) => setFormData({...formData, description: e.target.value})}
+                        placeholder="Deskripsi kegiatan..."
+                        rows={3}
+                      />
+                    </div>
+                  </div>
+                  <div className="flex justify-end gap-2">
+                    <Button variant="outline" onClick={() => setShowAddDialog(false)}>
+                      Batal
+                    </Button>
+                    <Button onClick={handleCreateEvent}>
+                      <Save className="w-4 h-4 mr-2" />
+                      Simpan
+                    </Button>
+                  </div>
+                </DialogContent>
+              </Dialog>
             </div>
           </CardContent>
         </Card>
@@ -236,16 +583,58 @@ export default function ScheduleCalendar() {
         {/* Enhanced Daftar Kegiatan */}
         <Card className="lg:col-span-2 shadow-lg hover:shadow-xl transition-shadow duration-300">
           <CardHeader className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white rounded-t-lg">
-            <CardTitle className="flex items-center gap-2">
-              <Clock className="w-5 h-5" />
-              Kegiatan pada {format(date || new Date(), "EEEE, dd MMMM yyyy")}
-            </CardTitle>
+            <div className="flex items-center justify-between">
+              <CardTitle className="flex items-center gap-2">
+                <Clock className="w-5 h-5" />
+                Kegiatan pada {format(date || new Date(), "EEEE, dd MMMM yyyy")}
+              </CardTitle>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={fetchEvents}
+                className="text-white border-white hover:bg-white hover:text-teal-600"
+                disabled={loading}
+              >
+                {loading ? "Loading..." : "Refresh"}
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  // Test dengan unit kerja ID 6 (dari contoh data Anda)
+                  localStorage.setItem('id', '6');
+                  fetchEvents();
+                }}
+                className="text-white border-white hover:bg-white hover:text-teal-600 ml-2"
+              >
+                Test ID 6
+              </Button>
+              <Button 
+                variant="outline" 
+                size="sm" 
+                onClick={() => {
+                  // Set tanggal ke 8 Juli 2025 untuk melihat event
+                  setDate(new Date('2025-07-08'));
+                }}
+                className="text-white border-white hover:bg-white hover:text-teal-600 ml-2"
+              >
+                Go to 8 Juli
+              </Button>
+            </div>
           </CardHeader>
           <CardContent className="p-6">
-            {filteredEvents.length > 0 ? (
+            {loading ? (
+              <div className="text-center py-12">
+                <div className="w-8 h-8 border-4 border-blue-500 border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+                <p className="text-gray-600">Memuat kegiatan...</p>
+                <p className="text-xs text-gray-400 mt-2">
+                  Unit ID: {localStorage.getItem('id') || 'Tidak ditemukan'}
+                </p>
+              </div>
+            ) : filteredEvents.length > 0 ? (
               <div className="space-y-4">
                 {filteredEvents.map((event) => {
-                  const eventStyle = getEventTypeStyle(event.type, event.priority);
+                  const eventStyle = getEventTypeStyle(event.type || 'meeting', event.priority || 'medium');
                   return (
                     <div
                       key={event.id}
@@ -261,17 +650,21 @@ export default function ScheduleCalendar() {
                                 {event.title}
                               </h4>
                               <div className="flex items-center gap-4 text-sm text-gray-600 mt-1">
-                                <div className="flex items-center gap-1">
-                                  <Clock className="w-4 h-4" />
-                                  <span>{event.time}</span>
-                                </div>
-                                <div className="flex items-center gap-1">
-                                  <MapPin className="w-4 h-4" />
-                                  <span>{event.location}</span>
-                                </div>
+                                {event.time && (
+                                  <div className="flex items-center gap-1">
+                                    <Clock className="w-4 h-4" />
+                                    <span>{event.time}</span>
+                                  </div>
+                                )}
+                                {event.location && (
+                                  <div className="flex items-center gap-1">
+                                    <MapPin className="w-4 h-4" />
+                                    <span>{event.location}</span>
+                                  </div>
+                                )}
                                 <div className="flex items-center gap-1">
                                   <Users className="w-4 h-4" />
-                                  <span>{event.attendees} peserta</span>
+                                  <span>{event.attendees || 0} peserta</span>
                                 </div>
                               </div>
                             </div>
@@ -279,23 +672,45 @@ export default function ScheduleCalendar() {
                           
                           {/* Priority Badge */}
                           <div className="flex items-center gap-2 mb-2">
-                            <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityBadge(event.priority)}`}>
+                            <span className={`px-2 py-1 rounded-full text-xs font-medium border ${getPriorityBadge(event.priority || 'medium')}`}>
                               {event.priority === 'high' ? 'Prioritas Tinggi' : 
                                event.priority === 'medium' ? 'Prioritas Sedang' : 'Prioritas Rendah'}
                             </span>
                           </div>
 
-                          {/* Expandable Description */}
+                          {/* Expandable Description and Actions */}
                           {selectedEvent?.id === event.id && (
                             <div className="mt-3 p-3 bg-white/50 rounded-lg">
-                              <p className="text-sm text-gray-700 mb-3">{event.description}</p>
+                              {event.description && (
+                                <p className="text-sm text-gray-700 mb-3">{event.description}</p>
+                              )}
                               <div className="flex gap-2">
                                 <Button size="sm" className="bg-blue-500 hover:bg-blue-600">
                                   <Bell className="w-4 h-4 mr-1" />
                                   Set Reminder
                                 </Button>
-                                <Button size="sm" variant="outline">
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    openEditDialog(event);
+                                  }}
+                                >
+                                  <Edit className="w-4 h-4 mr-1" />
                                   Edit
+                                </Button>
+                                <Button 
+                                  size="sm" 
+                                  variant="outline" 
+                                  className="text-red-600 hover:text-red-700"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    handleDeleteEvent(event.id);
+                                  }}
+                                >
+                                  <Trash2 className="w-4 h-4 mr-1" />
+                                  Hapus
                                 </Button>
                               </div>
                             </div>
@@ -319,7 +734,25 @@ export default function ScheduleCalendar() {
                 </div>
                 <h3 className="text-lg font-medium text-gray-700 mb-2">Tidak ada kegiatan</h3>
                 <p className="text-gray-500 mb-4">Belum ada kegiatan yang dijadwalkan pada tanggal ini.</p>
-                <Button className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white">
+                <div className="text-xs text-gray-400 mb-4 space-y-1">
+                  <p>Total events loaded: {events.length}</p>
+                  <p>Selected date: {date?.toDateString()}</p>
+                  <p>Unit ID: {localStorage.getItem('id') || 'Tidak ditemukan'}</p>
+                  {events.length > 0 && (
+                    <div className="mt-2">
+                      <p className="font-medium">Semua events:</p>
+                      {events.map((event, index) => (
+                        <p key={index} className="text-xs">
+                          {index + 1}. {event.title} - {new Date(event.date).toLocaleDateString()}
+                        </p>
+                      ))}
+                    </div>
+                  )}
+                </div>
+                <Button 
+                  className="bg-gradient-to-r from-blue-500 to-purple-600 hover:from-blue-600 hover:to-purple-700 text-white"
+                  onClick={() => setShowAddDialog(true)}
+                >
                   <Plus className="w-4 h-4 mr-2" />
                   Tambah Kegiatan Baru
                 </Button>
@@ -328,6 +761,144 @@ export default function ScheduleCalendar() {
           </CardContent>
         </Card>
       </div>
+
+      {/* Edit Event Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Kegiatan</DialogTitle>
+          </DialogHeader>
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="edit-title">Judul Kegiatan</Label>
+              <Input
+                id="edit-title"
+                value={formData.title}
+                onChange={(e) => setFormData({...formData, title: e.target.value})}
+                placeholder="Masukkan judul kegiatan"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-date">Tanggal</Label>
+              <Input
+                id="edit-date"
+                type="date"
+                value={formData.date}
+                onChange={(e) => setFormData({...formData, date: e.target.value})}
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-time">Waktu</Label>
+              <Input
+                id="edit-time"
+                value={formData.time}
+                onChange={(e) => setFormData({...formData, time: e.target.value})}
+                placeholder="09:00 - 12:00"
+              />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-location">Lokasi</Label>
+              <Select value={formData.location} onValueChange={(value) => {
+                if (value === 'custom') {
+                  setFormData({...formData, location: ''});
+                } else {
+                  setFormData({...formData, location: value});
+                }
+              }}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih atau ketik lokasi" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="Ruang Meeting A">📍 Ruang Meeting A</SelectItem>
+                  <SelectItem value="Ruang Meeting B">📍 Ruang Meeting B</SelectItem>
+                  <SelectItem value="Auditorium">📍 Auditorium</SelectItem>
+                  <SelectItem value="Ruang Training">📍 Ruang Training</SelectItem>
+                  <SelectItem value="Zoom Meeting">💻 Zoom Meeting</SelectItem>
+                  <SelectItem value="Google Meet: meet.google.com/xyz-abc-123">💻 Google Meet</SelectItem>
+                  <SelectItem value="Microsoft Teams - Channel: Rapat Harian">💻 Microsoft Teams</SelectItem>
+                  <SelectItem value="Webex">💻 Webex</SelectItem>
+                  <SelectItem value="Hybrid (Ruangan + Online)">🔗 Hybrid (Ruangan + Online)</SelectItem>
+                  <SelectItem value="custom">✏️ Lokasi Lainnya</SelectItem>
+                </SelectContent>
+              </Select>
+              {/* Input manual jika pilih custom atau tidak ada di preset */}
+              {(!formData.location || 
+                !['Ruang Meeting A', 'Ruang Meeting B', 'Auditorium', 'Ruang Training', 
+                  'Zoom Meeting', 'Google Meet: meet.google.com/xyz-abc-123', 'Microsoft Teams - Channel: Rapat Harian', 'Webex', 
+                  'Hybrid (Ruangan + Online)'].includes(formData.location)) && (
+                <Input
+                  value={formData.location}
+                  onChange={(e) => setFormData({...formData, location: e.target.value})}
+                  placeholder="Ketik lokasi custom (contoh: Zoom ID: 123-456-789)"
+                  className="mt-2"
+                />
+              )}
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-type">Jenis Kegiatan</Label>
+              <Select value={formData.type} onValueChange={(value) => setFormData({...formData, type: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih jenis" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="meeting">Meeting</SelectItem>
+                  <SelectItem value="training">Training</SelectItem>
+                  <SelectItem value="workshop">Workshop</SelectItem>
+                  <SelectItem value="presentation">Presentation</SelectItem>
+                  <SelectItem value="fieldwork">Fieldwork</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-priority">Prioritas</Label>
+              <Select value={formData.priority} onValueChange={(value) => setFormData({...formData, priority: value})}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Pilih prioritas" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="high">Tinggi</SelectItem>
+                  <SelectItem value="medium">Sedang</SelectItem>
+                  <SelectItem value="low">Rendah</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-attendees">Jumlah Peserta</Label>
+              <Input
+                id="edit-attendees"
+                type="number"
+                value={formData.attendees}
+                onChange={(e) => setFormData({...formData, attendees: parseInt(e.target.value) || 0})}
+                placeholder="0"
+              />
+            </div>
+            <div className="space-y-2 md:col-span-2">
+              <Label htmlFor="edit-description">Deskripsi</Label>
+              <Textarea
+                id="edit-description"
+                value={formData.description}
+                onChange={(e) => setFormData({...formData, description: e.target.value})}
+                placeholder="Deskripsi kegiatan..."
+                rows={3}
+              />
+            </div>
+          </div>
+          <div className="flex justify-end gap-2">
+            <Button variant="outline" onClick={() => {
+              setShowEditDialog(false);
+              setEditingEvent(null);
+              resetForm();
+            }}>
+              <X className="w-4 h-4 mr-2" />
+              Batal
+            </Button>
+            <Button onClick={handleUpdateEvent}>
+              <Save className="w-4 h-4 mr-2" />
+              Perbarui
+            </Button>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

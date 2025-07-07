@@ -297,8 +297,8 @@ export default function NetworkingPage() {
   return (
     <div className="p-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard Networking & Kunjungan</h1>
-        <p className="text-blue-600">Pantau kegiatan networking, kunjungan, dan kerjasama antar instansi</p>
+        <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard Networking Eksternal</h1>
+        <p className="text-blue-600">Pantau kegiatan networking, kunjungan, dan kerjasama unit kerja LAN ke instansi eksternal</p>
       </div>
 
       {/* Champion Alert Popup */}

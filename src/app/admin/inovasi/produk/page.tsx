@@ -14,7 +14,7 @@ import {
   YAxis,
   CartesianGrid,
 } from 'recharts'
-import { AlertTriangle, X, Award, Rocket } from 'lucide-react'
+import { AlertTriangle, X, Award, Rocket, Search, ChevronUp, ChevronDown } from 'lucide-react'
 
 interface ProdukInovasiData {
   id: number
@@ -41,6 +41,11 @@ export default function ProdukInovasiPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showInnovationModal, setShowInnovationModal] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof ProdukInovasiData | 'users.unit_kerja' | 'status_inovasi.status' | null
+    direction: 'asc' | 'desc'
+  }>({ key: null, direction: 'asc' })
 
   useEffect(() => {
     const fetchProdukData = async () => {
@@ -134,6 +139,69 @@ export default function ProdukInovasiPage() {
       }
     }
   }, [dataProduk, loading, error])
+
+  // Filter and sort functions
+  const filteredAndSortedData = () => {
+    let filtered = dataProduk.filter(item => 
+      item.users.unit_kerja.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.jenis.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.keterangan.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+
+    if (sortConfig.key) {
+      filtered.sort((a, b) => {
+        let aValue: any
+        let bValue: any
+
+        if (sortConfig.key === 'users.unit_kerja') {
+          aValue = a.users.unit_kerja
+          bValue = b.users.unit_kerja
+        } else if (sortConfig.key === 'status_inovasi.status') {
+          aValue = a.status_inovasi.status
+          bValue = b.status_inovasi.status
+        } else {
+          aValue = a[sortConfig.key as keyof ProdukInovasiData]
+          bValue = b[sortConfig.key as keyof ProdukInovasiData]
+        }
+
+        // Handle different data types
+        if (sortConfig.key === 'tanggalRilis') {
+          aValue = new Date(aValue)
+          bValue = new Date(bValue)
+        } else if (typeof aValue === 'string') {
+          aValue = aValue.toLowerCase()
+          bValue = bValue.toLowerCase()
+        }
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1
+        }
+        return 0
+      })
+    }
+
+    return filtered
+  }
+
+  const handleSort = (key: keyof ProdukInovasiData | 'users.unit_kerja' | 'status_inovasi.status') => {
+    setSortConfig(prevConfig => ({
+      key,
+      direction: prevConfig.key === key && prevConfig.direction === 'asc' ? 'desc' : 'asc'
+    }))
+  }
+
+  const getSortIcon = (columnKey: keyof ProdukInovasiData | 'users.unit_kerja' | 'status_inovasi.status') => {
+    if (sortConfig.key !== columnKey) {
+      return <ChevronUp className="w-4 h-4 text-gray-400" />
+    }
+    return sortConfig.direction === 'asc' ? 
+      <ChevronUp className="w-4 h-4 text-blue-600" /> : 
+      <ChevronDown className="w-4 h-4 text-blue-600" />
+  }
 
   if (loading) {
     return (
@@ -332,13 +400,42 @@ export default function ProdukInovasiPage() {
             <div className="text-sm text-amber-800">Tahun Inovasi</div>
           </div>
         </div>
-      </div>
-
-      {/* Enhanced Table */}
+      </div>      {/* Enhanced Table */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
         <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
-          <h2 className="text-xl font-bold">Detail Produk Inovasi</h2>
-          <p className="text-blue-100 text-sm">Daftar lengkap produk inovasi per unit kerja</p>
+          <div className="flex justify-between items-center">
+            <div>
+              <h2 className="text-xl font-bold">Detail Produk Inovasi</h2>
+              <p className="text-blue-100 text-sm">Daftar lengkap produk inovasi per unit kerja</p>
+            </div>
+            <div className="text-blue-100 text-sm">
+              Menampilkan {filteredAndSortedData().length} dari {dataProduk.length} produk
+            </div>
+          </div>
+        </div>
+
+        {/* Search and Filter Section */}
+        <div className="px-6 py-4 bg-gray-50 border-b">
+          <div className="flex flex-col md:flex-row gap-4 items-center justify-between">
+            <div className="relative flex-1 max-w-md">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Cari berdasarkan unit kerja, nama produk, jenis, atau keterangan..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 bg-white shadow-sm"
+              />
+            </div>
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="text-gray-500 hover:text-gray-700 px-3 py-2 rounded-lg hover:bg-gray-100 transition-colors duration-200"
+              >
+                <X className="w-4 h-4" />
+              </button>
+            )}
+          </div>
         </div>
         
         <div className="overflow-x-auto">
@@ -346,50 +443,112 @@ export default function ProdukInovasiPage() {
             <thead className="bg-gray-50 text-sm text-gray-700">
               <tr>
                 <th className="px-6 py-3 text-left font-medium">No</th>
-                <th className="px-6 py-3 text-left font-medium">Nama Produk</th>
-                <th className="px-6 py-3 text-left font-medium">Unit</th>
-                <th className="px-6 py-3 text-left font-medium">Jenis</th>
-                <th className="px-6 py-3 text-left font-medium">Status</th>
-                <th className="px-6 py-3 text-left font-medium">Tanggal Rilis</th>
+                <th 
+                  className="px-6 py-3 text-left font-medium cursor-pointer hover:bg-gray-100 transition-colors duration-200"
+                  onClick={() => handleSort('nama')}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Nama Produk</span>
+                    {getSortIcon('nama')}
+                  </div>
+                </th>
+                <th 
+                  className="px-6 py-3 text-left font-medium cursor-pointer hover:bg-gray-100 transition-colors duration-200"
+                  onClick={() => handleSort('users.unit_kerja')}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Unit</span>
+                    {getSortIcon('users.unit_kerja')}
+                  </div>
+                </th>
+                <th 
+                  className="px-6 py-3 text-left font-medium cursor-pointer hover:bg-gray-100 transition-colors duration-200"
+                  onClick={() => handleSort('jenis')}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Jenis</span>
+                    {getSortIcon('jenis')}
+                  </div>
+                </th>
+                <th 
+                  className="px-6 py-3 text-left font-medium cursor-pointer hover:bg-gray-100 transition-colors duration-200"
+                  onClick={() => handleSort('status_inovasi.status')}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Status</span>
+                    {getSortIcon('status_inovasi.status')}
+                  </div>
+                </th>
+                <th 
+                  className="px-6 py-3 text-left font-medium cursor-pointer hover:bg-gray-100 transition-colors duration-200"
+                  onClick={() => handleSort('tanggalRilis')}
+                >
+                  <div className="flex items-center space-x-1">
+                    <span>Tanggal Rilis</span>
+                    {getSortIcon('tanggalRilis')}
+                  </div>
+                </th>
                 <th className="px-6 py-3 text-left font-medium">Keterangan</th>
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-gray-200">
-              {dataProduk.map((item, index) => (
-                <tr key={item.id} className="hover:bg-blue-50 transition-colors">
-                  <td className="px-6 py-4 text-gray-600">{index + 1}</td>
-                  <td className="px-6 py-4 font-medium text-gray-800">{item.nama}</td>
-                  <td className="px-6 py-4">
-                    <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                      {item.users.unit_kerja}
-                    </span>
+              {filteredAndSortedData().length > 0 ? (
+                filteredAndSortedData().map((item, index) => (
+                  <tr key={item.id} className="hover:bg-blue-50 transition-colors">
+                    <td className="px-6 py-4 text-gray-600">{index + 1}</td>
+                    <td className="px-6 py-4 font-medium text-gray-800">{item.nama}</td>
+                    <td className="px-6 py-4">
+                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                        {item.users.unit_kerja}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                        item.jenis.includes('Digital') || item.jenis === 'Dashboard' || item.jenis === 'Aplikasi' ? 'bg-purple-100 text-purple-800' :
+                        item.jenis === 'Modul Pelatihan' ? 'bg-green-100 text-green-800' :
+                        'bg-yellow-100 text-yellow-800'
+                      }`}>
+                        {item.jenis.includes('Digital') || item.jenis === 'Dashboard' || item.jenis === 'Aplikasi' ? '💻' :
+                         item.jenis === 'Modul Pelatihan' ? '📚' : '📋'} {item.jenis}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4">
+                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                        item.status_inovasi.status === 'Selesai' ? 'bg-green-100 text-green-800' :
+                        item.status_inovasi.status === 'Proses' ? 'bg-orange-100 text-orange-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {item.status_inovasi.status === 'Selesai' ? '✅' :
+                         item.status_inovasi.status === 'Proses' ? '⏳' : '📦'} {item.status_inovasi.status}
+                      </span>
+                    </td>
+                    <td className="px-6 py-4 text-gray-600">
+                      {new Date(item.tanggalRilis).toLocaleDateString('id-ID')}
+                    </td>
+                    <td className="px-6 py-4 text-gray-600 max-w-xs truncate">{item.keterangan}</td>
+                  </tr>
+                ))
+              ) : (
+                <tr>
+                  <td colSpan={7} className="px-6 py-12 text-center">
+                    <div className="flex flex-col items-center">
+                      <Search className="w-12 h-12 text-gray-300 mb-4" />
+                      <p className="text-gray-500 text-lg font-medium mb-2">Tidak ada hasil yang ditemukan</p>
+                      <p className="text-gray-400 text-sm">
+                        Coba ubah kata kunci pencarian atau hapus filter
+                      </p>
+                      {searchTerm && (
+                        <button
+                          onClick={() => setSearchTerm('')}
+                          className="mt-4 bg-blue-500 hover:bg-blue-600 text-white px-4 py-2 rounded-lg transition-colors duration-200"
+                        >
+                          Hapus Filter
+                        </button>
+                      )}
+                    </div>
                   </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                      item.jenis.includes('Digital') || item.jenis === 'Dashboard' || item.jenis === 'Aplikasi' ? 'bg-purple-100 text-purple-800' :
-                      item.jenis === 'Modul Pelatihan' ? 'bg-green-100 text-green-800' :
-                      'bg-yellow-100 text-yellow-800'
-                    }`}>
-                      {item.jenis.includes('Digital') || item.jenis === 'Dashboard' || item.jenis === 'Aplikasi' ? '💻' :
-                       item.jenis === 'Modul Pelatihan' ? '📚' : '📋'} {item.jenis}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4">
-                    <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                      item.status_inovasi.status === 'Selesai' ? 'bg-green-100 text-green-800' :
-                      item.status_inovasi.status === 'Proses' ? 'bg-orange-100 text-orange-800' :
-                      'bg-gray-100 text-gray-800'
-                    }`}>
-                      {item.status_inovasi.status === 'Selesai' ? '✅' :
-                       item.status_inovasi.status === 'Proses' ? '�' : '📦'} {item.status_inovasi.status}
-                    </span>
-                  </td>
-                  <td className="px-6 py-4 text-gray-600">
-                    {new Date(item.tanggalRilis).toLocaleDateString('id-ID')}
-                  </td>
-                  <td className="px-6 py-4 text-gray-600 max-w-xs truncate">{item.keterangan}</td>
                 </tr>
-              ))}
+              )}
             </tbody>
           </table>
         </div>

@@ -51,6 +51,11 @@ export default function SerapanTablePage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [showLowestUnitAlert, setShowLowestUnitAlert] = useState(false)
+  const [searchTerm, setSearchTerm] = useState('')
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof SerapanData | null
+    direction: 'asc' | 'desc'
+  }>({ key: null, direction: 'asc' })
 
   // Fetch data from API
   useEffect(() => {
@@ -77,9 +82,49 @@ export default function SerapanTablePage() {
 
     fetchData()
   }, [])
-
   const handleRowClick = (unit: SerapanData) => {
     setSelectedUnit(unit)
+  }
+
+  // Filter dan sort data
+  const filteredAndSortedData = dataSerapan
+    .filter(item => 
+      formatUnitName(item.unit_kerja).toLowerCase().includes(searchTerm.toLowerCase())
+    )
+    .sort((a, b) => {
+      if (!sortConfig.key) return 0
+      
+      let aValue: any = a[sortConfig.key]
+      let bValue: any = b[sortConfig.key]
+      
+      // Untuk unit_kerja, gunakan nama yang sudah diformat
+      if (sortConfig.key === 'unit_kerja') {
+        aValue = formatUnitName(aValue).toLowerCase()
+        bValue = formatUnitName(bValue).toLowerCase()
+      }
+      
+      if (aValue < bValue) {
+        return sortConfig.direction === 'asc' ? -1 : 1
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === 'asc' ? 1 : -1
+      }
+      return 0
+    })
+
+  const handleSort = (key: keyof SerapanData) => {
+    let direction: 'asc' | 'desc' = 'asc'
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc'
+    }
+    setSortConfig({ key, direction })
+  }
+
+  const getSortIcon = (columnKey: keyof SerapanData) => {
+    if (sortConfig.key !== columnKey) {
+      return '⇅'
+    }
+    return sortConfig.direction === 'asc' ? '↑' : '↓'
   }
 
   // Loading state
@@ -111,27 +156,25 @@ export default function SerapanTablePage() {
       </div>
     )
   }
-
-  // Hitung summary data
-  const totalAnggaran = dataSerapan.reduce((sum, item) => sum + item.pagu_anggaran, 0)
-  const totalRealisasi = dataSerapan.reduce((sum, item) => sum + item.total_realisasi, 0)
-  const totalSisaAnggaran = dataSerapan.reduce((sum, item) => sum + item.sisa_anggaran, 0)
-  const rataRataSerapan = dataSerapan.length > 0 ? 
-    Math.round(dataSerapan.reduce((sum, item) => sum + item.capaian_realisasi, 0) / dataSerapan.length) : 0
+  // Hitung summary data berdasarkan data yang sudah difilter
+  const totalAnggaran = filteredAndSortedData.reduce((sum, item) => sum + item.pagu_anggaran, 0)
+  const totalRealisasi = filteredAndSortedData.reduce((sum, item) => sum + item.total_realisasi, 0)
+  const totalSisaAnggaran = filteredAndSortedData.reduce((sum, item) => sum + item.sisa_anggaran, 0)
+  const rataRataSerapan = filteredAndSortedData.length > 0 ? 
+    Math.round(filteredAndSortedData.reduce((sum, item) => sum + item.capaian_realisasi, 0) / filteredAndSortedData.length) : 0
   
   // Find unit with lowest absorption rate
   const unitTerendah = dataSerapan.length > 0 ? 
     dataSerapan.reduce((lowest, current) => 
       current.capaian_realisasi < lowest.capaian_realisasi ? current : lowest
     ) : null
-  
-  // Hitung unit berdasarkan status
-  const unitBaik = dataSerapan.filter(item => item.capaian_realisasi >= 80).length
-  const unitCukup = dataSerapan.filter(item => {
+    // Hitung unit berdasarkan status dari data yang sudah difilter
+  const unitBaik = filteredAndSortedData.filter(item => item.capaian_realisasi >= 80).length
+  const unitCukup = filteredAndSortedData.filter(item => {
     const persen = item.capaian_realisasi
     return persen >= 60 && persen < 80
   }).length
-  const unitKurang = dataSerapan.filter(item => item.capaian_realisasi < 60).length
+  const unitKurang = filteredAndSortedData.filter(item => item.capaian_realisasi < 60).length
 
   const pieData =
     selectedUnit && [
@@ -293,9 +336,9 @@ export default function SerapanTablePage() {
             <div className="bg-purple-100 p-3 rounded-full">
               <span className="text-2xl">📈</span>
             </div>
-          </div>
-          <p className="text-purple-600 text-xs mt-2">
-            Dari {dataSerapan.length} unit kerja
+          </div>          <p className="text-purple-600 text-xs mt-2">
+            Dari {filteredAndSortedData.length} unit kerja
+            {searchTerm && ` (filtered dari ${dataSerapan.length} total)`}
           </p>
         </div>
       </div>
@@ -320,67 +363,151 @@ export default function SerapanTablePage() {
             <div className="text-sm text-red-600">&lt; 60% serapan</div>
           </div>
         </div>
-      </div>
-
-      {/* Tabel Serapan */}
+      </div>      {/* Tabel Serapan */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
         <div className="px-6 py-4 bg-blue-50 border-b">
-          <h2 className="text-xl font-bold text-blue-800">Detail Serapan per Unit</h2>
-          <p className="text-sm text-blue-600">Klik pada baris untuk melihat detail grafik</p>
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold text-blue-800">Detail Serapan per Unit</h2>
+              <p className="text-sm text-blue-600">Klik pada baris untuk melihat detail grafik</p>
+            </div>
+            
+            {/* Search and Filter Controls */}
+            <div className="flex flex-col sm:flex-row gap-3">
+              {/* Search Input */}
+              <div className="relative">
+                <input
+                  type="text"
+                  placeholder="Cari unit kerja..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 text-sm"
+                />
+                <span className="absolute left-3 top-2.5 text-gray-400">🔍</span>
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="absolute right-3 top-2.5 text-gray-400 hover:text-gray-600"
+                  >
+                    ✕
+                  </button>
+                )}
+              </div>
+              
+              {/* Clear Sort Button */}
+              {sortConfig.key && (
+                <button
+                  onClick={() => setSortConfig({ key: null, direction: 'asc' })}
+                  className="px-3 py-2 text-sm bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors"
+                >
+                  Reset Sort
+                </button>
+              )}
+            </div>
+          </div>
+          
+          {/* Search Results Info */}
+          {searchTerm && (
+            <div className="mt-3 text-sm text-blue-600">
+              Menampilkan {filteredAndSortedData.length} dari {dataSerapan.length} unit kerja
+              {filteredAndSortedData.length === 0 && (
+                <span className="text-red-600 ml-2">- Tidak ada unit yang cocok dengan pencarian</span>
+              )}
+            </div>
+          )}
         </div>
-        
-        <div className="overflow-x-auto">
+          <div className="overflow-x-auto">
           <table className="min-w-full">
             <thead className="bg-gray-50 text-sm text-gray-700">
               <tr>
                 <th className="px-6 py-3 text-left">No</th>
-                <th className="px-6 py-3 text-left">Unit Kerja</th>
-                <th className="px-6 py-3 text-right">Total Anggaran</th>
-                <th className="px-6 py-3 text-right">Realisasi</th>
-                <th className="px-6 py-3 text-right">Persentase</th>
+                <th className="px-6 py-3 text-left">
+                  <button
+                    onClick={() => handleSort('unit_kerja')}
+                    className="flex items-center gap-1 hover:text-blue-600 transition-colors"
+                  >
+                    Unit Kerja
+                    <span className="text-xs">{getSortIcon('unit_kerja')}</span>
+                  </button>
+                </th>
+                <th className="px-6 py-3 text-right">
+                  <button
+                    onClick={() => handleSort('pagu_anggaran')}
+                    className="flex items-center gap-1 hover:text-blue-600 transition-colors ml-auto"
+                  >
+                    Total Anggaran
+                    <span className="text-xs">{getSortIcon('pagu_anggaran')}</span>
+                  </button>
+                </th>
+                <th className="px-6 py-3 text-right">
+                  <button
+                    onClick={() => handleSort('total_realisasi')}
+                    className="flex items-center gap-1 hover:text-blue-600 transition-colors ml-auto"
+                  >
+                    Realisasi
+                    <span className="text-xs">{getSortIcon('total_realisasi')}</span>
+                  </button>
+                </th>
+                <th className="px-6 py-3 text-right">
+                  <button
+                    onClick={() => handleSort('capaian_realisasi')}
+                    className="flex items-center gap-1 hover:text-blue-600 transition-colors ml-auto"
+                  >
+                    Persentase
+                    <span className="text-xs">{getSortIcon('capaian_realisasi')}</span>
+                  </button>
+                </th>
                 <th className="px-6 py-3 text-center">Status</th>
               </tr>
             </thead>
             <tbody className="text-sm divide-y divide-gray-200">
-              {dataSerapan.map((item, index) => {
-                const persen = Math.round(item.capaian_realisasi)
-                const badgeColor = getStatusColor(persen)
-                const isSelected = selectedUnit?.unit_kerja === item.unit_kerja
-                
-                return (
-                  <tr
-                    key={index}
-                    className={`cursor-pointer hover:bg-blue-50 transition-colors ${
-                      isSelected ? 'bg-blue-100' : ''
-                    }`}
-                    onClick={() => handleRowClick(item)}
-                  >
-                    <td className="px-6 py-4">{index + 1}</td>
-                    <td className="px-6 py-4 font-medium">{formatUnitName(item.unit_kerja)}</td>
-                    <td className="px-6 py-4 text-right">
-                      Rp {item.pagu_anggaran.toLocaleString('id-ID')}
-                    </td>
-                    <td className="px-6 py-4 text-right">
-                      Rp {item.total_realisasi.toLocaleString('id-ID')}
-                    </td>
-                    <td className="px-6 py-4 text-right font-bold">{persen}%</td>
-                    <td className="px-6 py-4 text-center">
-                      <span
-                        className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                          persen >= 80
-                            ? 'bg-green-100 text-green-800'
-                            : persen >= 60
-                            ? 'bg-yellow-100 text-yellow-800'
-                            : 'bg-red-100 text-red-800'
-                        }`}
-                      >
-                        <span className={`w-2 h-2 rounded-full mr-1 ${badgeColor}`}></span>
-                        {persen >= 80 ? 'Baik' : persen >= 60 ? 'Cukup' : 'Kurang'}
-                      </span>
-                    </td>
-                  </tr>
-                )
-              })}
+              {filteredAndSortedData.length === 0 ? (
+                <tr>
+                  <td colSpan={6} className="px-6 py-8 text-center text-gray-500">
+                    {searchTerm ? 'Tidak ada unit kerja yang cocok dengan pencarian' : 'Tidak ada data'}
+                  </td>
+                </tr>
+              ) : (
+                filteredAndSortedData.map((item, index) => {
+                  const persen = Math.round(item.capaian_realisasi)
+                  const badgeColor = getStatusColor(persen)
+                  const isSelected = selectedUnit?.unit_kerja === item.unit_kerja
+                  
+                  return (
+                    <tr
+                      key={index}
+                      className={`cursor-pointer hover:bg-blue-50 transition-colors ${
+                        isSelected ? 'bg-blue-100' : ''
+                      }`}
+                      onClick={() => handleRowClick(item)}
+                    >
+                      <td className="px-6 py-4">{index + 1}</td>
+                      <td className="px-6 py-4 font-medium">{formatUnitName(item.unit_kerja)}</td>
+                      <td className="px-6 py-4 text-right">
+                        Rp {item.pagu_anggaran.toLocaleString('id-ID')}
+                      </td>
+                      <td className="px-6 py-4 text-right">
+                        Rp {item.total_realisasi.toLocaleString('id-ID')}
+                      </td>
+                      <td className="px-6 py-4 text-right font-bold">{persen}%</td>
+                      <td className="px-6 py-4 text-center">
+                        <span
+                          className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                            persen >= 80
+                              ? 'bg-green-100 text-green-800'
+                              : persen >= 60
+                              ? 'bg-yellow-100 text-yellow-800'
+                              : 'bg-red-100 text-red-800'
+                          }`}
+                        >
+                          <span className={`w-2 h-2 rounded-full mr-1 ${badgeColor}`}></span>
+                          {persen >= 80 ? 'Baik' : persen >= 60 ? 'Cukup' : 'Kurang'}
+                        </span>
+                      </td>
+                    </tr>
+                  )
+                })
+              )}
             </tbody>
           </table>
         </div>

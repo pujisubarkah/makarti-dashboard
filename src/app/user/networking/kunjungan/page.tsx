@@ -531,7 +531,7 @@ export default function NetworkingPage() {
       <div className="flex justify-between items-center mb-8">
         <div>
           <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard Kegiatan Networking</h1>
-          <p className="text-blue-600">Kelola dan monitor kegiatan networking dengan instansi lain</p>
+          <p className="text-blue-600">Kelola dan monitor kegiatan networking dengan instansi eksternal lain</p>
         </div>
         <Dialog open={showModal} onOpenChange={setShowModal}>
           <DialogTrigger asChild>

@@ -296,8 +296,8 @@ export default function KoordinasiDashboardPage() {
   return (
     <div className="p-6">
       <div className="mb-8">
-        <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard Koordinasi & Networking</h1>
-        <p className="text-blue-600">Pantau dan kelola kegiatan koordinasi antar instansi</p>
+        <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard Koordinasi Eksternal</h1>
+        <p className="text-blue-600">Pantau dan kelola kegiatan koordinasi/kunjungan dari instansi eksternal/stakeholder ke unit kerja LAN</p>
       </div>
 
       {/* Loading State */}

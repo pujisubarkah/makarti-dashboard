@@ -61,6 +61,26 @@ interface SerapanDetailItem {
   capaian_realisasi_kumulatif: number;
 }
 
+// Interface untuk data unit kerja
+interface UnitDataType {
+  unit_kerja: string;
+  pagu_anggaran: number;
+  total_realisasi: number;
+  sisa_anggaran: number;
+  detail_per_bulan: SerapanDetailItem[];
+}
+
+// Interface untuk data unit kerja dengan persentase
+interface UnitDataWithPercentage extends UnitDataType {
+  persentase_serapan: number;
+}
+
+// Interface untuk user data dari API
+interface UserApiResponse {
+  id: number;
+  unit_kerja: string | null;
+}
+
 // Fungsi fetcher untuk SWR
 const fetcher = async (url: string) => {
   console.log('Fetching:', url); // Debug log
@@ -143,11 +163,10 @@ export default function SerapanAnggaranPage() {
     mounted ? '/api/users' : null,
     async (url) => {
       const res = await fetch(url);
-      if (!res.ok) throw new Error('Failed to fetch');
-      const data = await res.json();
+      if (!res.ok) throw new Error('Failed to fetch');      const data = await res.json();
       return data.users
-        .filter((user: any) => user.unit_kerja) // Filter hanya yang punya unit_kerja
-        .map((user: any) => ({ id: user.id, alias: user.unit_kerja }));
+        .filter((user: UserApiResponse) => user.unit_kerja) // Filter hanya yang punya unit_kerja
+        .map((user: UserApiResponse) => ({ id: user.id, alias: user.unit_kerja! }));
     },
     {
       revalidateOnFocus: false,
@@ -461,14 +480,13 @@ export default function SerapanAnggaranPage() {
     }
     setSortConfig({ key, direction });
   };
-
   // Fungsi untuk mengurutkan data
-  const getSortedData = (data: any[]) => {
+  const getSortedData = (data: UnitDataWithPercentage[]) => {
     if (!sortConfig) return data;
 
     return [...data].sort((a, b) => {
-      let aValue = a[sortConfig.key];
-      let bValue = b[sortConfig.key];
+      let aValue = a[sortConfig.key as keyof UnitDataWithPercentage];
+      let bValue = b[sortConfig.key as keyof UnitDataWithPercentage];
 
       // Handle string comparison (untuk unit_kerja)
       if (typeof aValue === 'string' && typeof bValue === 'string') {
@@ -493,7 +511,7 @@ export default function SerapanAnggaranPage() {
   };
 
   // Fungsi untuk filter data berdasarkan search term
-  const getFilteredData = (data: any[]) => {
+  const getFilteredData = (data: UnitDataType[]) => {
     if (!searchTerm) return data;
     
     return data.filter(item =>
@@ -897,13 +915,13 @@ export default function SerapanAnggaranPage() {
                     return (
                       <TableRow>
                         <TableCell colSpan={17} className="text-center text-gray-500 py-8">
-                          Tidak ada data yang sesuai dengan pencarian "{searchTerm}"
+                          Tidak ada data yang sesuai dengan pencarian &quot;{searchTerm}&quot;
                         </TableCell>
                       </TableRow>
                     );
                   }
                   
-                  return sortedData.map((unitData: any, idx: number) => {
+                  return sortedData.map((unitData: UnitDataWithPercentage, idx: number) => {
                     const realisasiPerBulan: { [bulan: string]: number } = {};
                     const totalRealisasi = unitData.total_realisasi || 0;
                     const sisaAnggaran = unitData.sisa_anggaran || 0;
@@ -959,7 +977,7 @@ export default function SerapanAnggaranPage() {
             {searchTerm ? (
               <>
                 Menampilkan {getFilteredData(data).length} dari {data.length} unit kerja 
-                {searchTerm && <span className="font-medium"> untuk "{searchTerm}"</span>}
+                {searchTerm && <span className="font-medium"> untuk &quot;{searchTerm}&quot;</span>}
                 {searchTerm && (
                   <button
                     onClick={() => setSearchTerm('')}

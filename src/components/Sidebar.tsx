@@ -28,6 +28,7 @@ const menuItems = [
       { title: "Kinerja Inovasi", href: "/admin/inovasi/kinerja" },
       // { title: "SKP Transformasional", href: "/admin/inovasi/skp" },
       { title: "Produk Inovasi", href: "/admin/inovasi/produk" },
+      { title: "Produk Kajian", href: "/admin/inovasi/kajian" },
     ],
   },
   {

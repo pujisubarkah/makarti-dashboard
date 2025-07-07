@@ -32,6 +32,10 @@ import {
   Loader2,
   TrendingUp,
   Plus,
+  Search,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown,
 } from "lucide-react";
 import {
   ResponsiveContainer,
@@ -92,13 +96,19 @@ export default function SerapanAnggaranPage() {
   const [userId, setUserId] = useState<string | null>(null);
   const [showModal, setShowModal] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [editingId, setEditingId] = useState<number | null>(null);
-  const [formData, setFormData] = useState({
+  const [editingId, setEditingId] = useState<number | null>(null);  const [formData, setFormData] = useState({
     bulan: 'Januari',
     unitKerja: '',
     paguAnggaran: '',
     realisasiPengeluaran: '',
   });
+  
+  // State untuk filter dan sort tabel
+  const [searchTerm, setSearchTerm] = useState('');
+  const [sortConfig, setSortConfig] = useState<{
+    key: string;
+    direction: 'asc' | 'desc';
+  } | null>(null);
 
   const bulanOptions = [
     "Januari", "Februari", "Maret", "April", "Mei", "Juni",
@@ -441,12 +451,66 @@ export default function SerapanAnggaranPage() {
       borderColor: 'border-purple-500',
       change: '+3%',
       description: 'Persentase capaian'
-    },
-  ];
+    },  ];
 
-  // Split bulan options for two tables
-  const bulanOptions1 = bulanOptions.slice(0, 6); // Januari–Juni
-  const bulanOptions2 = bulanOptions.slice(6);    // Juli–Desember
+  // Fungsi untuk handle sorting
+  const handleSort = (key: string) => {
+    let direction: 'asc' | 'desc' = 'asc';
+    if (sortConfig && sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc';
+    }
+    setSortConfig({ key, direction });
+  };
+
+  // Fungsi untuk mengurutkan data
+  const getSortedData = (data: any[]) => {
+    if (!sortConfig) return data;
+
+    return [...data].sort((a, b) => {
+      let aValue = a[sortConfig.key];
+      let bValue = b[sortConfig.key];
+
+      // Handle string comparison (untuk unit_kerja)
+      if (typeof aValue === 'string' && typeof bValue === 'string') {
+        aValue = aValue.toLowerCase();
+        bValue = bValue.toLowerCase();
+      }
+
+      // Handle numeric comparison
+      if (typeof aValue === 'number' && typeof bValue === 'number') {
+        return sortConfig.direction === 'asc' ? aValue - bValue : bValue - aValue;
+      }
+
+      // Handle string comparison
+      if (aValue < bValue) {
+        return sortConfig.direction === 'asc' ? -1 : 1;
+      }
+      if (aValue > bValue) {
+        return sortConfig.direction === 'asc' ? 1 : -1;
+      }
+      return 0;
+    });
+  };
+
+  // Fungsi untuk filter data berdasarkan search term
+  const getFilteredData = (data: any[]) => {
+    if (!searchTerm) return data;
+    
+    return data.filter(item =>
+      item.unit_kerja.toLowerCase().includes(searchTerm.toLowerCase())
+    );
+  };
+
+  // Render icon sort
+  const renderSortIcon = (columnKey: string) => {
+    if (!sortConfig || sortConfig.key !== columnKey) {
+      return <ArrowUpDown className="w-4 h-4 text-gray-400" />;
+    }
+    
+    return sortConfig.direction === 'asc' 
+      ? <ArrowUp className="w-4 h-4 text-blue-600" />
+      : <ArrowDown className="w-4 h-4 text-blue-600" />;
+  };
 
   return (
     <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
@@ -742,118 +806,174 @@ export default function SerapanAnggaranPage() {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Table - Split menjadi dua: Jan-Jun dan Jul-Des */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Tabel 1: Januari–Juni */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden mb-8">
-          <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
-            <h2 className="text-xl font-bold">Data Serapan Anggaran Bulanan (Januari–Juni)</h2>
-            <p className="text-blue-100 text-sm">Monitoring realisasi anggaran per bulan (Januari–Juni)</p>
-          </div>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-50">
-                  <TableHead className="font-medium">No</TableHead>
-                  <TableHead className="font-medium">Unit Kerja</TableHead>
-                  <TableHead className="font-medium">Pagu Anggaran</TableHead>
-                  {bulanOptions1.map((bulan) => (
-                    <TableHead key={bulan} className="font-medium text-center">{bulan}</TableHead>
-                  ))}
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {Array.isArray(data) && data.length > 0 ? (
-                  data.map((unitData: { unit_kerja: string; pagu_anggaran: number; detail_per_bulan: SerapanDetailItem[]; }, idx: number) => {
-                    const realisasiPerBulan: { [bulan: string]: number } = {};
-                    const paguAnggaran = unitData.pagu_anggaran || 0;
-                    (unitData.detail_per_bulan || []).forEach((item: SerapanDetailItem) => {
-                      realisasiPerBulan[item.bulan] = item.realisasi_pengeluaran;
-                    });
-                    return (
-                      <TableRow key={unitData.unit_kerja + '-1'}>
-                        <TableCell>{idx + 1}</TableCell>
-                        <TableCell>{unitData.unit_kerja}</TableCell>
-                        <TableCell>{formatRupiah(paguAnggaran)}</TableCell>
-                        {bulanOptions1.map(bulan => (
-                          <TableCell key={bulan} className="text-center text-blue-600 font-semibold">
-                            {realisasiPerBulan[bulan] ? formatRupiah(realisasiPerBulan[bulan]) : '-'}
-                          </TableCell>
-                        ))}
-                      </TableRow>
-                    );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center text-gray-500 py-8">
-                      Belum ada data serapan anggaran.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
+      </div>      {/* Table - Gabungan Semua Bulan + Summary */}
+      <div className="bg-white rounded-xl shadow-lg overflow-hidden">
+        <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+            <div>
+              <h2 className="text-xl font-bold">Data Serapan Anggaran Bulanan (Januari–Desember)</h2>
+              <p className="text-blue-100 text-sm">Monitoring realisasi anggaran per bulan dan ringkasan tahunan</p>
+            </div>
+            
+            {/* Search Filter */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                type="text"
+                placeholder="Cari unit kerja..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 pr-4 py-2 w-64 bg-white text-gray-800 placeholder-gray-500 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-300 focus:border-transparent"
+              />
+            </div>
           </div>
         </div>
-
-        {/* Table 2: Juli–Desember + summary */}
-        <div className="bg-white rounded-xl shadow-lg overflow-hidden">
-          <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
-            <h2 className="text-xl font-bold">Data Serapan Anggaran Bulanan (Juli–Desember &amp; Summary)</h2>
-            <p className="text-blue-100 text-sm">Monitoring realisasi anggaran per bulan (Juli–Desember) &amp; ringkasan</p>
-          </div>
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow className="bg-gray-50">
-                  <TableHead className="font-medium">No</TableHead>
-                  <TableHead className="font-medium">Unit Kerja</TableHead>
-                  {bulanOptions2.map((bulan) => (
-                    <TableHead key={bulan} className="font-medium text-center">{bulan}</TableHead>
-                  ))}
-                  <TableHead className="font-medium text-right">Total Realisasi</TableHead>
-                  <TableHead className="font-medium text-center">Persentase Serapan</TableHead>
-                  <TableHead className="font-medium text-right">Sisa Anggaran</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {Array.isArray(data) && data.length > 0 ? (
-                  data.map((unitData: { unit_kerja: string; total_realisasi: number; sisa_anggaran: number; pagu_anggaran: number; detail_per_bulan: SerapanDetailItem[]; }, idx: number) => {
+        <div className="overflow-x-auto">
+          <Table>
+            <TableHeader>
+              <TableRow className="bg-gray-50">
+                <TableHead className="font-medium">No</TableHead>
+                <TableHead 
+                  className="font-medium cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => handleSort('unit_kerja')}
+                >
+                  <div className="flex items-center gap-2">
+                    Unit Kerja
+                    {renderSortIcon('unit_kerja')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="font-medium cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => handleSort('pagu_anggaran')}
+                >
+                  <div className="flex items-center gap-2">
+                    Pagu Anggaran
+                    {renderSortIcon('pagu_anggaran')}
+                  </div>
+                </TableHead>
+                {bulanOptions.map((bulan) => (
+                  <TableHead key={bulan} className="font-medium text-center text-xs">{bulan.substring(0, 3)}</TableHead>
+                ))}
+                <TableHead 
+                  className="font-medium text-right cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => handleSort('total_realisasi')}
+                >
+                  <div className="flex items-center justify-end gap-2">
+                    Total Realisasi
+                    {renderSortIcon('total_realisasi')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="font-medium text-center cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => handleSort('persentase_serapan')}
+                >
+                  <div className="flex items-center justify-center gap-2">
+                    % Serapan
+                    {renderSortIcon('persentase_serapan')}
+                  </div>
+                </TableHead>
+                <TableHead 
+                  className="font-medium text-right cursor-pointer hover:bg-gray-100 transition-colors"
+                  onClick={() => handleSort('sisa_anggaran')}
+                >
+                  <div className="flex items-center justify-end gap-2">
+                    Sisa Anggaran
+                    {renderSortIcon('sisa_anggaran')}
+                  </div>
+                </TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {Array.isArray(data) && data.length > 0 ? (
+                (() => {
+                  // Apply filter and sort
+                  const filteredData = getFilteredData(data);
+                  const sortedData = getSortedData(filteredData.map(unitData => ({
+                    ...unitData,
+                    persentase_serapan: unitData.pagu_anggaran > 0 ? (unitData.total_realisasi / unitData.pagu_anggaran) * 100 : 0
+                  })));
+                  
+                  if (sortedData.length === 0) {
+                    return (
+                      <TableRow>
+                        <TableCell colSpan={17} className="text-center text-gray-500 py-8">
+                          Tidak ada data yang sesuai dengan pencarian "{searchTerm}"
+                        </TableCell>
+                      </TableRow>
+                    );
+                  }
+                  
+                  return sortedData.map((unitData: any, idx: number) => {
                     const realisasiPerBulan: { [bulan: string]: number } = {};
                     const totalRealisasi = unitData.total_realisasi || 0;
                     const sisaAnggaran = unitData.sisa_anggaran || 0;
                     const paguAnggaran = unitData.pagu_anggaran || 0;
-                    const persentaseSerapan = paguAnggaran > 0 ? (totalRealisasi / paguAnggaran) * 100 : 0;
+                    const persentaseSerapan = unitData.persentase_serapan;
+                    
+                    // Mapping realisasi per bulan
                     (unitData.detail_per_bulan || []).forEach((item: SerapanDetailItem) => {
                       realisasiPerBulan[item.bulan] = item.realisasi_pengeluaran;
                     });
+                    
                     return (
-                      <TableRow key={unitData.unit_kerja + '-2'}>
+                      <TableRow key={unitData.unit_kerja}>
                         <TableCell>{idx + 1}</TableCell>
-                        <TableCell>{unitData.unit_kerja}</TableCell>
-                        {bulanOptions2.map(bulan => (
-                          <TableCell key={bulan} className="text-center text-blue-600 font-semibold">
-                            {realisasiPerBulan[bulan] ? formatRupiah(realisasiPerBulan[bulan]) : '-'}
+                        <TableCell className="font-medium">{unitData.unit_kerja}</TableCell>
+                        <TableCell className="font-semibold text-blue-800">{formatRupiah(paguAnggaran)}</TableCell>
+                        {bulanOptions.map(bulan => (
+                          <TableCell key={bulan} className="text-center text-xs">
+                            {realisasiPerBulan[bulan] ? (
+                              <span className="text-green-600 font-semibold">
+                                {(realisasiPerBulan[bulan] / 1000000).toFixed(1)}Jt
+                              </span>
+                            ) : (
+                              <span className="text-gray-400">-</span>
+                            )}
                           </TableCell>
                         ))}
-                        <TableCell className="text-right">{formatRupiah(totalRealisasi)}</TableCell>
-                        <TableCell className="text-center">{persentaseSerapan.toFixed(1)}%</TableCell>
-                        <TableCell className="text-right">{formatRupiah(sisaAnggaran)}</TableCell>
+                        <TableCell className="text-right font-bold text-green-700">{formatRupiah(totalRealisasi)}</TableCell>
+                        <TableCell className="text-center">
+                          <span className={`font-bold ${persentaseSerapan >= 80 ? 'text-green-600' : persentaseSerapan >= 50 ? 'text-yellow-600' : 'text-red-600'}`}>
+                            {persentaseSerapan.toFixed(1)}%
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-right font-semibold text-blue-700">{formatRupiah(sisaAnggaran)}</TableCell>
                       </TableRow>
                     );
-                  })
-                ) : (
-                  <TableRow>
-                    <TableCell colSpan={9} className="text-center text-gray-500 py-8">
-                      Belum ada data serapan anggaran.
-                    </TableCell>
-                  </TableRow>
-                )}
-              </TableBody>
-            </Table>
-          </div>
+                  });
+                })()
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={17} className="text-center text-gray-500 py-8">
+                    Belum ada data serapan anggaran.
+                  </TableCell>
+                </TableRow>
+              )}
+            </TableBody>
+          </Table>
         </div>
+        
+        {/* Info hasil pencarian */}
+        {Array.isArray(data) && data.length > 0 && (
+          <div className="px-6 py-3 bg-gray-50 border-t text-sm text-gray-600">
+            {searchTerm ? (
+              <>
+                Menampilkan {getFilteredData(data).length} dari {data.length} unit kerja 
+                {searchTerm && <span className="font-medium"> untuk "{searchTerm}"</span>}
+                {searchTerm && (
+                  <button
+                    onClick={() => setSearchTerm('')}
+                    className="ml-2 text-blue-600 hover:text-blue-800 underline"
+                  >
+                    Hapus filter
+                  </button>
+                )}
+              </>
+            ) : (
+              `Total ${data.length} unit kerja`
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

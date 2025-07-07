@@ -1,12 +1,8 @@
 'use client'
 
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import {
-  PieChart,
-  Pie,
-  Cell,
   Tooltip,
-  Legend,
   ResponsiveContainer,
   BarChart,
   Bar,
@@ -14,7 +10,7 @@ import {
   YAxis,
   CartesianGrid,
 } from 'recharts'
-import { AlertTriangle, X, Award, BookOpen, Search, ChevronUp, ChevronDown, FileText, Users, Target, TrendingUp } from 'lucide-react'
+import { AlertTriangle, X, BookOpen, Search, ChevronUp, ChevronDown, FileText, Users, Target } from 'lucide-react'
 
 interface KajianData {
   id: number
@@ -29,8 +25,6 @@ interface KajianData {
     alias: string | null
   } | null
 }
-
-const COLORS = ['#60a5fa', '#34d399', '#facc15', '#f472b6', '#a78bfa', '#fb7185']
 
 // Get unique values for filters
 const getUniqueJenis = (data: KajianData[]) => {
@@ -103,9 +97,8 @@ export default function KajianPage() {
       )
     )
   }
-
   // Get top 3 units with most kajian for Strategic Analysis Hub
-  const getTop3UnitsWithMostKajian = () => {
+  const getTop3UnitsWithMostKajian = useCallback(() => {
     // Group all kajian by unit
     const grouped = dataKajian.reduce((acc, item) => {
       const unitName = item.users?.unit_kerja || 'Unit Tidak Diketahui'
@@ -142,7 +135,7 @@ export default function KajianPage() {
       })
       .sort((a, b) => b.totalKajian - a.totalKajian)
       .slice(0, 3) // Only top 3
-  }
+  }, [dataKajian])
   // Auto-show analysis modal when data is loaded
   useEffect(() => {
     if (dataKajian.length > 0 && !loading && !error) {
@@ -156,7 +149,7 @@ export default function KajianPage() {
         return () => clearTimeout(timer)
       }
     }
-  }, [dataKajian, loading, error])
+  }, [dataKajian, loading, error, getTop3UnitsWithMostKajian])
   // Filter and sort functions
   const filteredAndSortedData = () => {
     const filtered = dataKajian.filter(item => {

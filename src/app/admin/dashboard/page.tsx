@@ -1,5 +1,6 @@
 'use client'
 
+import { useState, useEffect } from 'react'
 import {
   BarChart,
   Bar,
@@ -25,10 +26,8 @@ import {
   Rocket, 
   Star, 
   Brain,
-  Target,
-  Clock
+  Target
 } from 'lucide-react'
-import DailyScheduleWithAvatars from '@/components/DailyScheduleWithAvatars'
 import TodaySchedulePreview from '@/components/TodaySchedulePreview'
 
 const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6']
@@ -102,11 +101,6 @@ const trendData = [
   { bulan: 'Apr', total: 28 },
   { bulan: 'Mei', total: 35 },
   { bulan: 'Jun', total: 42 },
-]
-
-const serapanData = [
-  { name: 'Terserap', value: 375 },
-  { name: 'Sisa', value: 125 },
 ]
 
 // Data Bigger Smarter Better yang dicapai melalui 4 pilar MAKARTI
@@ -209,6 +203,39 @@ const pillarContributionData = [
 ]
 
 export default function RingkasanMakartiPage() {
+  const [serapanData, setSerapanData] = useState([
+    { name: 'Terserap', value: 375 },
+    { name: 'Sisa', value: 125 },
+  ])
+  const [serapanSummary, setSerapanSummary] = useState({
+    total_pagu: 500000000,
+    total_realisasi: 375000000,
+    total_sisa: 125000000,
+    unit_kerja_penginput: []
+  })
+  const [loading, setLoading] = useState(true)
+
+  useEffect(() => {
+    const fetchSerapanData = async () => {
+      try {
+        const response = await fetch('/api/serapan/summary')
+        const data = await response.json()
+        
+        setSerapanSummary(data)
+        setSerapanData([
+          { name: 'Terserap', value: Math.round(data.total_realisasi / 1000000) }, // Convert to millions
+          { name: 'Sisa', value: Math.round(data.total_sisa / 1000000) },
+        ])
+        setLoading(false)
+      } catch (error) {
+        console.error('Error fetching serapan data:', error)
+        setLoading(false)
+      }
+    }
+
+    fetchSerapanData()
+  }, [])
+
   return (
     <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
       {/* Header */}
@@ -517,31 +544,66 @@ export default function RingkasanMakartiPage() {
         {/* Pie Chart - Serapan */}
         <div className="bg-white p-6 rounded-xl shadow-lg lg:col-span-2">
           <h2 className="text-xl font-bold mb-4 text-gray-800">Serapan Anggaran</h2>
-          <div className="h-[300px]">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={serapanData}
-                  dataKey="value"
-                  nameKey="name"
-                  outerRadius={80}
-                  label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                >
-                  {serapanData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  formatter={(value) => [`Rp${value} juta`, 'Jumlah']}
-                />
-                <Legend />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-          <div className="mt-4 p-4 bg-gray-50 rounded-lg">
-            <p className="text-sm text-gray-600">Total Anggaran: <span className="font-bold">Rp500 juta</span></p>
-            <p className="text-sm text-gray-600">Persentase Serapan: <span className="font-bold text-green-600">75%</span></p>
-          </div>
+          {loading ? (
+            <div className="h-[300px] flex items-center justify-center">
+              <div className="text-gray-500">Loading...</div>
+            </div>
+          ) : (
+            <>
+              <div className="h-[300px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={serapanData}
+                      dataKey="value"
+                      nameKey="name"
+                      outerRadius={80}
+                      label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
+                    >
+                      {serapanData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value) => [`Rp${value} juta`, 'Jumlah']}
+                    />
+                    <Legend />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-4 space-y-3">
+                <div className="p-4 bg-gray-50 rounded-lg">
+                  <p className="text-sm text-gray-600">
+                    Total Pagu: <span className="font-bold">Rp{(serapanSummary.total_pagu / 1000000).toLocaleString()} juta</span>
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Total Realisasi: <span className="font-bold text-green-600">Rp{(serapanSummary.total_realisasi / 1000000).toLocaleString()} juta</span>
+                  </p>
+                  <p className="text-sm text-gray-600">
+                    Persentase Serapan: <span className="font-bold text-green-600">
+                      {((serapanSummary.total_realisasi / serapanSummary.total_pagu) * 100).toFixed(1)}%
+                    </span>
+                  </p>
+                </div>
+                
+                {serapanSummary.unit_kerja_penginput.length > 0 && (
+                  <div className="p-4 bg-blue-50 rounded-lg">
+                    <h4 className="text-sm font-medium text-gray-800 mb-2">Unit Kerja Penginput:</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {serapanSummary.unit_kerja_penginput.map((unit, index) => (
+                        <span 
+                          key={index}
+                          className="px-2 py-1 bg-blue-100 text-blue-800 text-xs rounded-full font-medium"
+                        >
+                          {unit}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Today's Schedule Preview */}
@@ -598,14 +660,6 @@ export default function RingkasanMakartiPage() {
         </div>
       </div>
 
-      {/* Daily Schedule Section */}
-      <div className="mt-8 bg-white rounded-xl shadow-lg p-6">
-        <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
-          <Clock className="w-6 h-6 mr-2 text-orange-500" />
-          Jadwal Harian & Tim Management
-        </h2>
-        <DailyScheduleWithAvatars />
-      </div>
     </div>
   )
 }

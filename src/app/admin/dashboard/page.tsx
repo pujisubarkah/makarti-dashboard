@@ -44,6 +44,26 @@ interface Kegiatan {
   unit_kerja: string
 }
 
+interface InovasiSummary {
+  month: string
+  count: number
+}
+
+interface PublikasiBulan {
+  month: string
+  year: number
+  count: number
+}
+
+interface PublikasiResponse {
+  totalPublikasi: number
+  perUnitKerja: Array<{
+    unit_kerja: string
+    count: number
+  }>
+  perBulan: PublikasiBulan[]
+}
+
 const summaryData = [
   { 
     title: 'Jumlah Inovasi Aktif', 
@@ -226,10 +246,81 @@ export default function RingkasanMakartiPage() {
     unit_kerja_penginput: []
   })
   const [kegiatanData, setKegiatanData] = useState<Kegiatan[]>([])
+  const [dynamicSummaryData, setDynamicSummaryData] = useState(summaryData)
   const [loading, setLoading] = useState(true)
   const [kegiatanLoading, setKegiatanLoading] = useState(true)
 
   useEffect(() => {
+    const calculateChange = (current: number, previous: number): { change: string; type: 'increase' | 'decrease' | 'same' } => {
+      if (previous === 0) return { change: '+100%', type: 'increase' }
+      const percentage = ((current - previous) / previous) * 100
+      if (percentage > 0) {
+        return { change: `+${percentage.toFixed(0)}%`, type: 'increase' }
+      } else if (percentage < 0) {
+        return { change: `${percentage.toFixed(0)}%`, type: 'decrease' }
+      } else {
+        return { change: '0%', type: 'same' }
+      }
+    }
+
+    const fetchSummaryData = async () => {
+      try {
+        // Fetch inovasi data
+        const inovasiResponse = await fetch('/api/inovasi/summary')
+        const inovasiData: InovasiSummary[] = await inovasiResponse.json()
+        
+        // Fetch publikasi data
+        const publikasiResponse = await fetch('/api/publikasi/rekapan')
+        const publikasiData: PublikasiResponse = await publikasiResponse.json()
+
+        const currentMonth = new Date().toLocaleString('en-US', { month: 'long' })
+        const currentYear = new Date().getFullYear()
+        const lastMonth = new Date(currentYear, new Date().getMonth() - 1).toLocaleString('en-US', { month: 'long' })
+
+        // Process inovasi data
+        const currentInovasiMonth = inovasiData.find((item: InovasiSummary) => item.month === currentMonth)
+        const lastInovasiMonth = inovasiData.find((item: InovasiSummary) => item.month === lastMonth)
+        const inovasiChange = calculateChange(
+          currentInovasiMonth?.count || 0,
+          lastInovasiMonth?.count || 0
+        )
+
+        // Process publikasi data
+        const currentPublikasiMonth = publikasiData.perBulan?.find((item: PublikasiBulan) => 
+          item.month === currentMonth && item.year === currentYear
+        )
+        const lastPublikasiMonth = publikasiData.perBulan?.find((item: PublikasiBulan) => 
+          item.month === lastMonth && item.year === currentYear
+        )
+        const publikasiChange = calculateChange(
+          currentPublikasiMonth?.count || 0,
+          lastPublikasiMonth?.count || 0
+        )
+
+        // Update summary data with real values
+        const updatedSummaryData = [
+          {
+            ...summaryData[0],
+            value: currentInovasiMonth?.count || 0,
+            change: inovasiChange.change,
+            changeType: inovasiChange.type
+          },
+          {
+            ...summaryData[1],
+            value: publikasiData.totalPublikasi || 0,
+            change: publikasiChange.change,
+            changeType: publikasiChange.type
+          },
+          ...summaryData.slice(2) // Keep the other two cards as static for now
+        ]
+
+        setDynamicSummaryData(updatedSummaryData)
+      } catch (error) {
+        console.error('Error fetching summary data:', error)
+        setDynamicSummaryData(summaryData) // Fallback to static data
+      }
+    }
+
     const fetchSerapanData = async () => {
       try {
         const response = await fetch('/api/serapan/summary')
@@ -267,6 +358,7 @@ export default function RingkasanMakartiPage() {
       }
     }
 
+    fetchSummaryData()
     fetchSerapanData()
     fetchKegiatanData()
   }, [])
@@ -281,7 +373,7 @@ export default function RingkasanMakartiPage() {
 
       {/* Enhanced Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-        {summaryData.map((item, idx) => (
+        {dynamicSummaryData.map((item, idx) => (
           <div
             key={idx}
             className={`bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border-l-4 ${item.borderColor} hover:scale-105 group overflow-hidden`}
@@ -296,8 +388,18 @@ export default function RingkasanMakartiPage() {
                     {item.value}
                   </p>
                   <div className="flex items-center">
-                    <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                    <span className="text-sm font-medium text-green-600">
+                    {item.changeType === 'increase' ? (
+                      <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
+                    ) : item.changeType === 'decrease' ? (
+                      <TrendingUp className="w-4 h-4 text-red-500 mr-1 transform rotate-180" />
+                    ) : (
+                      <TrendingUp className="w-4 h-4 text-gray-500 mr-1" />
+                    )}
+                    <span className={`text-sm font-medium ${
+                      item.changeType === 'increase' ? 'text-green-600' :
+                      item.changeType === 'decrease' ? 'text-red-600' :
+                      'text-gray-600'
+                    }`}>
                       {item.change}
                     </span>
                     <span className="text-xs text-gray-500 ml-1">vs bulan lalu</span>
@@ -316,14 +418,15 @@ export default function RingkasanMakartiPage() {
                   <div 
                     className={`bg-gradient-to-r ${item.bgGradient} h-2 rounded-full transition-all duration-500`}
                     style={{ 
-                      width: `${Math.min((item.value / Math.max(...summaryData.map(c => c.value))) * 100, 100)}%` 
+                      width: `${Math.min((item.value / Math.max(...dynamicSummaryData.map(c => c.value))) * 100, 100)}%` 
                     }}
                   ></div>
                 </div>
                 <div className="flex items-center justify-between text-xs text-gray-600 mt-2">
                   <span>Performance</span>
-                  <span className={`font-medium ${item.textColor}`}>
-                    📈 Aktif
+                  <span className={`font-medium ${item.textColor} flex items-center`}>
+                    {item.changeType === 'increase' ? '📈' : 
+                     item.changeType === 'decrease' ? '📉' : '➡️'} Aktif
                   </span>
                 </div>
               </div>

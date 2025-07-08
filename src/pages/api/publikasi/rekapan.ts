@@ -70,7 +70,7 @@ export default async function handler(
           EXTRACT(MONTH FROM tanggal::timestamp) AS month,
           EXTRACT(YEAR FROM tanggal::timestamp) AS year,
           COUNT(*) AS count
-        FROM publikasi
+        FROM makarti.publikasi
         WHERE tanggal IS NOT NULL
         GROUP BY EXTRACT(YEAR FROM tanggal::timestamp), EXTRACT(MONTH FROM tanggal::timestamp)
         ORDER BY EXTRACT(YEAR FROM tanggal::timestamp), EXTRACT(MONTH FROM tanggal::timestamp)

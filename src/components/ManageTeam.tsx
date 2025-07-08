@@ -67,9 +67,27 @@ interface UpcomingEventItem {
   time: string;
   location: string;
   type: string;
+  priority: string;
+  attendees: number;
+  description: string;
+  unit_kerja_id: number;
   requiredRoles: string[];
   maxParticipants: number;
   currentAssignments: number;
+}
+
+// Interface for API response from /api/kegiatan
+interface ApiKegiatan {
+  id: number;
+  date: string;
+  title: string;
+  location: string;
+  time: string;
+  type: string;
+  priority: string;
+  attendees: number;
+  description: string;
+  unit_kerja_id: number;
 }
 
 interface TeamMember {
@@ -107,11 +125,8 @@ const transformApiToTeamMember = (apiEmployee: ApiEmployee): TeamMember => {
 
 // Helper function to determine department from jabatan
 const getDepartmentFromJabatan = (jabatan: string): string => {
-  if (jabatan.includes("Direktur")) return "Direksi";
-  if (jabatan.includes("Analis")) return "Analisis Kebijakan";
-  if (jabatan.includes("Pengolah Data")) return "IT Development";
-  if (jabatan.includes("Pengadministrasi")) return "General Affairs";
-  return "General Affairs";
+  // Return the unit/position name directly from jabatan
+  return jabatan || "Unit Kerja";
 };
 
 // Helper function to determine expertise from jabatan
@@ -123,46 +138,70 @@ const getExpertiseFromJabatan = (jabatan: string): string[] => {
   return ["General Skills"];
 };
 
-// Sample Events from ScheduleCalendar (untuk assignment)
-const upcomingEvents: UpcomingEventItem[] = [
-  {
-    id: 5,
-    title: "Workshop Bigger Better Smarter",
-    date: "2025-07-07",
-    time: "09:00 - 12:00",
-    location: "Ruangan Training B",
-    type: "workshop",
-    requiredRoles: ["facilitator", "technical_support", "participant"],
-    maxParticipants: 30,
-    currentAssignments: 2
-  },
-  {
-    id: 6,
-    title: "Rapat Pagi Tim Teknis",
-    date: "2025-07-08",
-    time: "08:00 - 09:00",
-    location: "Ruangan Meeting A",
-    type: "meeting",
-    requiredRoles: ["lead", "participant"],
-    maxParticipants: 8,
-    currentAssignments: 0
-  },
-  {
-    id: 7,
-    title: "Training Digital Transformation",
-    date: "2025-07-10",
-    time: "13:00 - 17:00",
-    location: "Auditorium",
-    type: "training",
-    requiredRoles: ["trainer", "assistant", "participant"],
-    maxParticipants: 50,
-    currentAssignments: 0
-  }
-];
+// Helper function to transform API kegiatan to UpcomingEventItem
+const transformApiKegiatanToEvent = (apiKegiatan: ApiKegiatan): UpcomingEventItem => {
+  // Determine required roles based on event type
+  const getRequiredRoles = (type: string): string[] => {
+    switch (type.toLowerCase()) {
+      case "workshop":
+        return ["facilitator", "technical_support", "participant"];
+      case "meeting":
+        return ["lead", "participant"];
+      case "training":
+        return ["trainer", "assistant", "participant"];
+      case "rapat":
+        return ["moderator", "presenter", "participant"];
+      case "seminar":
+        return ["presenter", "moderator", "participant"];
+      default:
+        return ["participant"];
+    }
+  };
 
-const departments = ["Pengembangan SDM", "Analisis Kebijakan", "IT Development", "General Affairs"];
-const positions = ["Kepala Unit", "Senior Analis", "Lead Developer", "Administrasi", "Junior Staff"];
+  // Determine max participants based on type and current attendees
+  const getMaxParticipants = (type: string, currentAttendees: number): number => {
+    const baseCapacity = Math.max(currentAttendees + 10, 20); // At least current + 10 or 20
+    switch (type.toLowerCase()) {
+      case "workshop":
+        return Math.min(baseCapacity, 50);
+      case "training":
+        return Math.min(baseCapacity, 100);
+      case "meeting":
+      case "rapat":
+        return Math.min(baseCapacity, 25);
+      case "seminar":
+        return Math.min(baseCapacity, 200);
+      default:
+        return baseCapacity;
+    }
+  };
+
+  return {
+    id: apiKegiatan.id,
+    title: apiKegiatan.title,
+    date: apiKegiatan.date,
+    time: apiKegiatan.time || "Belum ditentukan",
+    location: apiKegiatan.location || "Belum ditentukan",
+    type: apiKegiatan.type || "event",
+    priority: apiKegiatan.priority || "medium",
+    attendees: apiKegiatan.attendees || 0,
+    description: apiKegiatan.description || "",
+    unit_kerja_id: apiKegiatan.unit_kerja_id,
+    requiredRoles: getRequiredRoles(apiKegiatan.type || ""),
+    maxParticipants: getMaxParticipants(apiKegiatan.type || "", apiKegiatan.attendees || 0),
+    currentAssignments: 0 // Will be calculated from assignments
+  };
+};
+
+const positions = ["Direktur", "Kepala Unit", "Senior Analis", "Analis", "Pengolah Data", "Pengadministrasi", "Staff"];
 const eventRoles = ["moderator", "presenter", "facilitator", "trainer", "technical_support", "participant", "coordinator"];
+
+// Helper: normalize date to midnight
+const normalizeToMidnight = (date: Date) => {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
+};
 
 export default function ManageTeam() {
   const [newMember, setNewMember] = useState({ 
@@ -170,18 +209,18 @@ export default function ManageTeam() {
     position: "", 
     email: "", 
     phone: "",
-    department: "",
     expertise: ""
   });
   const [members, setMembers] = useState<TeamMember[]>(defaultTeamData);
+  const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEventItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [eventsLoading, setEventsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedEvent, setSelectedEvent] = useState<UpcomingEventItem | null>(null);
   const [showEventAssignment, setShowEventAssignment] = useState(false);
   const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [filterStatus, setFilterStatus] = useState("all");
-  const [filterDepartment, setFilterDepartment] = useState("all");
 
   // Fetch team data from API
   useEffect(() => {
@@ -216,6 +255,50 @@ export default function ManageTeam() {
     fetchTeamData();
   }, []);
 
+  // Fetch events data from API
+  useEffect(() => {
+    const fetchEventsData = async () => {
+      try {
+        setEventsLoading(true);
+        
+        // Get unit_kerja_id from localStorage
+        const unitKerjaId = localStorage.getItem('id');
+        
+        if (!unitKerjaId) {
+          console.warn('No unit kerja ID found');
+          setUpcomingEvents([]);
+          return;
+        }
+        
+        const response = await fetch(`/api/kegiatan/${unitKerjaId}`);
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        const apiKegiatan: ApiKegiatan[] = await response.json();
+        
+        // Transform API data to UpcomingEventItem format
+        const transformedEvents = apiKegiatan.map(transformApiKegiatanToEvent);
+        
+        // Filter future events only (today and after, normalized)
+        const today = normalizeToMidnight(new Date());
+        const futureEvents = transformedEvents.filter(event => {
+          const eventDate = normalizeToMidnight(new Date(event.date));
+          return eventDate >= today;
+        });
+        
+        setUpcomingEvents(futureEvents);
+      } catch (err) {
+        console.error('Error fetching events data:', err);
+        setUpcomingEvents([]);
+      } finally {
+        setEventsLoading(false);
+      }
+    };
+
+    fetchEventsData();
+  }, []);
+
   const handleAddMember = async () => {
     if (!newMember.name || !newMember.position || !newMember.email) return;
     
@@ -223,6 +306,7 @@ export default function ManageTeam() {
     const fullNewMember: TeamMember = {
       ...newMember,
       id: newId,
+      department: getDepartmentFromJabatan(newMember.position), // Add department property
       status: "active",
       expertise: newMember.expertise ? newMember.expertise.split(",").map(s => s.trim()) : [],
       eventHistory: [],
@@ -235,7 +319,6 @@ export default function ManageTeam() {
       position: "", 
       email: "", 
       phone: "",
-      department: "",
       expertise: ""
     });
   };
@@ -298,9 +381,8 @@ export default function ManageTeam() {
                          member.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          member.email.toLowerCase().includes(searchQuery.toLowerCase());
     const matchesStatus = filterStatus === "all" || member.status === filterStatus;
-    const matchesDepartment = filterDepartment === "all" || member.department === filterDepartment;
     
-    return matchesSearch && matchesStatus && matchesDepartment;
+    return matchesSearch && matchesStatus;
   });
 
   return (
@@ -352,9 +434,39 @@ export default function ManageTeam() {
             variant="outline" 
             onClick={() => setShowEventAssignment(true)}
             className="flex items-center gap-2"
+            disabled={upcomingEvents.length === 0}
           >
             <CalendarPlus className="w-4 h-4" />
-            Assign ke Event
+            Assign ke Event ({upcomingEvents.length})
+          </Button>
+          <Button 
+            variant="outline" 
+            onClick={async () => {
+              setEventsLoading(true);
+              const unitKerjaId = localStorage.getItem('id');
+              try {
+                const response = await fetch(`/api/kegiatan/${unitKerjaId}`);
+                if (response.ok) {
+                  const apiKegiatan: ApiKegiatan[] = await response.json();
+                  const transformedEvents = apiKegiatan.map(transformApiKegiatanToEvent);
+                  const today = normalizeToMidnight(new Date());
+                  const futureEvents = transformedEvents.filter(event => {
+                    const eventDate = normalizeToMidnight(new Date(event.date));
+                    return eventDate >= today;
+                  });
+                  setUpcomingEvents(futureEvents);
+                }
+              } catch (err) {
+                console.error('Error refreshing events:', err);
+              } finally {
+                setEventsLoading(false);
+              }
+            }}
+            className="flex items-center gap-2"
+            disabled={eventsLoading}
+          >
+            <Calendar className="w-4 h-4" />
+            {eventsLoading ? 'Memuat...' : 'Refresh Events'}
           </Button>
           <Button variant="outline" className="flex items-center gap-2">
             <FileText className="w-4 h-4" />
@@ -414,20 +526,6 @@ export default function ManageTeam() {
                 </div>
                 
                 <div className="space-y-2">
-                  <Label>Departemen</Label>
-                  <Select value={newMember.department} onValueChange={(value) => setNewMember({...newMember, department: value})}>
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih departemen" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {departments.map(dept => (
-                        <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                
-                <div className="space-y-2">
                   <Label>Keahlian (pisahkan dengan koma)</Label>
                   <Input 
                     value={newMember.expertise} 
@@ -466,10 +564,14 @@ export default function ManageTeam() {
           </CardHeader>
           <CardContent>
             <div className="flex items-center justify-between">
-              <p className="text-3xl font-bold text-orange-600">{upcomingEvents.length}</p>
+              <p className="text-3xl font-bold text-orange-600">
+                {eventsLoading ? '...' : upcomingEvents.length}
+              </p>
               <Calendar className="w-8 h-8 text-orange-500" />
             </div>
-            <p className="text-xs text-blue-600 mt-1">Perlu assignment</p>
+            <p className="text-xs text-blue-600 mt-1">
+              {eventsLoading ? 'Memuat...' : 'Tersedia untuk assignment'}
+            </p>
           </CardContent>
         </Card>
         
@@ -534,18 +636,6 @@ export default function ManageTeam() {
                 <SelectItem value="inactive">Nonaktif</SelectItem>
               </SelectContent>
             </Select>
-            
-            <Select value={filterDepartment} onValueChange={setFilterDepartment}>
-              <SelectTrigger className="w-full lg:w-48">
-                <SelectValue placeholder="Filter Departemen" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Departemen</SelectItem>
-                {departments.map(dept => (
-                  <SelectItem key={dept} value={dept}>{dept}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
           </div>
         </CardContent>
       </Card>
@@ -573,7 +663,6 @@ export default function ManageTeam() {
               <TableRow>
                 <TableHead>Pegawai</TableHead>
                 <TableHead>Kontak</TableHead>
-                <TableHead>Departemen</TableHead>
                 <TableHead>Status</TableHead>
                 <TableHead>Event Mendatang</TableHead>
                 <TableHead>Partisipasi</TableHead>
@@ -611,13 +700,7 @@ export default function ManageTeam() {
                         <Phone className="w-3 h-3 text-gray-400" />
                         {member.phone}
                       </div>
-                    </div>
-                  </TableCell>
-                  
-                  <TableCell>
-                    <div className="space-y-1">
-                      <div className="text-sm font-medium">{member.department}</div>
-                      <div className="text-xs text-gray-500">
+                      <div className="text-xs text-blue-600">
                         {member.expertise.slice(0, 2).join(", ")}
                         {member.expertise.length > 2 && ` +${member.expertise.length - 2}`}
                       </div>
@@ -691,7 +774,13 @@ export default function ManageTeam() {
       </Card>
 
       {/* Event Assignment Dialog */}
-      <Dialog open={showEventAssignment} onOpenChange={setShowEventAssignment}>
+      <Dialog open={showEventAssignment} onOpenChange={(open) => {
+  setShowEventAssignment(open);
+  if (open) {
+    setSelectedMembers([]); // Reset selection when dialog opens
+    setSelectedEvent(null); // Optionally reset selected event
+  }
+}}>
         <DialogContent className="max-w-4xl">
           <DialogHeader>
             <DialogTitle>Assign Tim ke Event</DialogTitle>
@@ -700,24 +789,43 @@ export default function ManageTeam() {
             {/* Select Event */}
             <div className="space-y-2">
               <Label>Pilih Event</Label>
-              <Select value={selectedEvent?.id?.toString()} onValueChange={(value) => {
-                const event = upcomingEvents.find(e => e.id === parseInt(value));
-                setSelectedEvent(event || null);
-              }}>
+              <Select 
+                value={selectedEvent?.id?.toString()} 
+                onValueChange={(value) => {
+                  const event = upcomingEvents.find((e: UpcomingEventItem) => e.id === parseInt(value));
+                  setSelectedEvent(event || null);
+                }}
+                disabled={eventsLoading || upcomingEvents.length === 0}
+              >
                 <SelectTrigger>
-                  <SelectValue placeholder="Pilih event yang akan ditugaskan" />
+                  <SelectValue placeholder={
+                    eventsLoading ? "Memuat events..." : 
+                    upcomingEvents.length === 0 ? "Tidak ada event tersedia" :
+                    "Pilih event yang akan ditugaskan"
+                  } />
                 </SelectTrigger>
                 <SelectContent>
-                  {upcomingEvents.map(event => (
+                  {upcomingEvents.map((event: UpcomingEventItem) => (
                     <SelectItem key={event.id} value={event.id.toString()}>
                       <div className="flex flex-col">
                         <span className="font-medium">{event.title}</span>
-                        <span className="text-sm text-gray-500">{event.date} • {event.time}</span>
+                        <span className="text-sm text-gray-500">
+                          {new Date(event.date).toLocaleDateString('id-ID')} • {event.time}
+                        </span>
+                        <span className="text-xs text-blue-600">
+                          {event.type} • {event.location}
+                        </span>
                       </div>
                     </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
+              
+              {!eventsLoading && upcomingEvents.length === 0 && (
+                <p className="text-sm text-gray-500 mt-2">
+                  💡 Belum ada event yang terjadwal. Buat event baru di ScheduleCalendar untuk melakukan assignment tim.
+                </p>
+              )}
             </div>
 
             {selectedEvent && (
@@ -728,7 +836,7 @@ export default function ManageTeam() {
                     <div className="grid grid-cols-2 gap-4 text-sm">
                       <div className="flex items-center gap-2">
                         <Calendar className="w-4 h-4 text-blue-500" />
-                        <span>{selectedEvent.date}</span>
+                        <span>{new Date(selectedEvent.date).toLocaleDateString('id-ID')}</span>
                       </div>
                       <div className="flex items-center gap-2">
                         <Clock className="w-4 h-4 text-green-500" />
@@ -743,10 +851,32 @@ export default function ManageTeam() {
                         <span>Max: {selectedEvent.maxParticipants} orang</span>
                       </div>
                     </div>
-                    <div className="mt-3">
-                      <p className="text-sm text-gray-600">
-                        Role yang dibutuhkan: {selectedEvent.requiredRoles.join(", ")}
-                      </p>
+                    <div className="mt-3 space-y-2">
+                      <div className="flex items-center gap-2 text-sm">
+                        <span className="font-medium">Jenis:</span>
+                        <Badge variant="outline">{selectedEvent.type}</Badge>
+                        <span className="font-medium">Prioritas:</span>
+                        <Badge 
+                          className={
+                            selectedEvent.priority === 'high' ? 'bg-red-100 text-red-800' :
+                            selectedEvent.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                            'bg-green-100 text-green-800'
+                          }
+                        >
+                          {selectedEvent.priority}
+                        </Badge>
+                      </div>
+                      <div className="text-sm text-gray-600">
+                        <span className="font-medium">Role yang dibutuhkan:</span> {selectedEvent.requiredRoles.join(", ")}
+                      </div>
+                      {selectedEvent.description && (
+                        <div className="text-sm text-gray-600">
+                          <span className="font-medium">Deskripsi:</span> {selectedEvent.description}
+                        </div>
+                      )}
+                      <div className="text-sm text-blue-600">
+                        <span className="font-medium">Peserta saat ini:</span> {selectedEvent.attendees} orang
+                      </div>
                     </div>
                   </CardContent>
                 </Card>
@@ -776,7 +906,7 @@ export default function ManageTeam() {
                           </Avatar>
                           <div>
                             <div className="font-medium">{member.name}</div>
-                            <div className="text-sm text-gray-500">{member.position} • {member.department}</div>
+                            <div className="text-sm text-gray-500">{member.position}</div>
                             <div className="text-xs text-blue-600">
                               Keahlian: {member.expertise.slice(0, 2).join(", ")}
                               {member.expertise.length > 2 && ` +${member.expertise.length - 2} lainnya`}

@@ -150,12 +150,8 @@ export default function ScheduleCalendar() {
         console.log('No events found for unit_kerja_id:', unitKerjaId);
         toast.info('Tidak ada kegiatan ditemukan');
       }
-    } catch (error) {
-      console.error('Error fetching events:', error);
-      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-      toast.error(`Gagal memuat kegiatan: ${errorMessage}`);
-      
-      // Set empty array jika error untuk menghindari undefined
+    } catch {
+      toast.error('Gagal memuat kegiatan: terjadi kesalahan tak terduga');
       setEvents([]);
     } finally {
       setLoading(false);
@@ -164,35 +160,61 @@ export default function ScheduleCalendar() {
 
   // Create new event
   const handleCreateEvent = async () => {
-    try {
-      const unitKerjaId = localStorage.getItem('id');
-      if (!unitKerjaId) {
-        toast.error('Unit kerja ID tidak ditemukan');
-        return;
-      }
-
-      const response = await fetch(`/api/kegiatan/${unitKerjaId}`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(formData)
-      });
-
-      const data = await response.json();
-
-      if (data.success) {
-        toast.success('Kegiatan berhasil ditambahkan');
-        setShowAddDialog(false);
-        resetForm();
-        fetchEvents();
-      } else {
-        toast.error(data.message || 'Gagal menambahkan kegiatan');
-      }
-    } catch (error) {
-      console.error('Error creating event:', error);
-      toast.error('Gagal menambahkan kegiatan');
+  try {
+    const unitKerjaId = localStorage.getItem('id');
+    if (!unitKerjaId) {
+      toast.error('Unit kerja ID tidak ditemukan');
+      return;
     }
-  };
 
+    const response = await fetch(`/api/kegiatan/${unitKerjaId}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData)
+    });
+
+    // Debug: Lihat status respons
+    console.log("Response status:", response.status);
+    
+    if (!response.ok) {
+      // Jika respon tidak OK, coba baca sebagai teks untuk debugging
+      const errorText = await response.text();
+      console.error("Error response (text):", errorText);
+
+      // Coba parse sebagai JSON jika memungkinkan
+      let errorMessage = "Gagal menambahkan kegiatan";
+      try {
+        const errorJson = JSON.parse(errorText);
+        errorMessage = errorJson.message || errorMessage;
+      } catch {
+        // Jika parsing gagal, gunakan text mentah
+      }
+
+      toast.error(errorMessage);
+      return;
+    }
+
+    // Parsing JSON hanya jika response.ok
+    const data = await response.json();
+    console.log("Success response:", data);
+
+    // Jika API mengembalikan pesan sukses meskipun success: false
+    if (data.success === false && /berhasil/i.test(data.message)) {
+      toast.info(data.message); // Contoh: "Data tersimpan, notifikasi gagal"
+    } else if (data.success !== false) {
+      toast.success('Kegiatan berhasil ditambahkan');
+      setShowAddDialog(false);
+      resetForm();
+      fetchEvents(); // Refresh daftar kegiatan
+    } else {
+      toast.error(data.message || 'Gagal menambahkan kegiatan');
+    }
+
+  } catch (error) {
+    console.error("Error creating event:", error);
+    toast.error("Terjadi kesalahan saat menambahkan kegiatan");
+  }
+};
   // Update event
   const handleUpdateEvent = async () => {
     try {
@@ -662,8 +684,7 @@ export default function ScheduleCalendar() {
                                 <Button 
                                   size="sm" 
                                   variant="outline" 
-                                  onClick={(e) => {
-                                    e.stopPropagation();
+                                  onClick={() => {
                                     openEditDialog(event);
                                   }}
                                 >

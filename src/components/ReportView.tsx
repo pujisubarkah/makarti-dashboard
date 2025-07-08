@@ -60,6 +60,21 @@ interface ReportData {
   duration: string;
 }
 
+interface ApiKegiatan {
+  id: number;
+  date: string;
+  title: string;
+  status?: string;
+  impact?: number;
+  smarter_score?: number;
+  better_score?: number;
+  type?: string;
+  description?: string;
+  location?: string;
+  assignments?: EventAssignment[];
+  time?: string;
+}
+
 // Sample team members data (matching DailyScheduleWithAvatars)
 const teamMembers: TeamMember[] = [
   {
@@ -120,109 +135,14 @@ const teamMembers: TeamMember[] = [
   }
 ];
 
-// Enhanced Report Data with team assignments
-const reportData: ReportData[] = [
-  {
-    id: 1,
-    date: new Date("2025-07-07"),
-    initiative: "Rapat Pagi Tim Teknis",
-    status: "Completed",
-    impact: 85,
-    smarter_score: 78,
-    better_score: 92,
-    category: "Team Meeting",
-    description: "Evaluasi progress proyek dan koordinasi teknis mingguan",
-    location: "Ruangan A",
-    duration: "08:30 - 10:00",
-    assignments: [
-      { memberId: 1, role: "moderator", confirmed: true },
-      { memberId: 3, role: "presenter", confirmed: true },
-      { memberId: 6, role: "technical_support", confirmed: true },
-      { memberId: 8, role: "participant", confirmed: false }
-    ]
-  },
-  {
-    id: 2,
-    date: new Date("2025-07-07"),
-    initiative: "Workshop MAKARTI Implementation",
-    status: "In Progress",
-    impact: 92,
-    smarter_score: 85,
-    better_score: 88,
-    category: "Workshop",
-    description: "Workshop implementasi framework MAKARTI untuk semua unit",
-    location: "Auditorium",
-    duration: "10:30 - 12:00",
-    assignments: [
-      { memberId: 2, role: "trainer", confirmed: true },
-      { memberId: 4, role: "facilitator", confirmed: true },
-      { memberId: 5, role: "facilitator", confirmed: true },
-      { memberId: 7, role: "coordinator", confirmed: true }
-    ]
-  },
-  {
-    id: 3,
-    date: new Date("2025-07-07"),
-    initiative: "Presentasi Inovasi Q2",
-    status: "Scheduled",
-    impact: 88,
-    smarter_score: 90,
-    better_score: 85,
-    category: "Presentation",
-    description: "Showcase inovasi terbaru dari semua unit kerja",
-    location: "Meeting Room B",
-    duration: "14:00 - 16:00",
-    assignments: [
-      { memberId: 1, role: "moderator", confirmed: true },
-      { memberId: 2, role: "presenter", confirmed: true },
-      { memberId: 3, role: "presenter", confirmed: true },
-      { memberId: 6, role: "technical_support", confirmed: true },
-      { memberId: 7, role: "coordinator", confirmed: false }
-    ]
-  },
-  {
-    id: 4,
-    date: new Date("2025-07-06"),
-    initiative: "Peningkatan Efisiensi Proses",
-    status: "Completed",
-    impact: 85,
-    smarter_score: 70,
-    better_score: 90,
-    category: "Process Improvement",
-    description: "Optimalisasi workflow dan pengurangan redundansi proses",
-    location: "Ruang Kerja Tim",
-    duration: "09:00 - 17:00",
-    assignments: [
-      { memberId: 1, role: "coordinator", confirmed: true },
-      { memberId: 3, role: "technical_support", confirmed: true },
-      { memberId: 8, role: "participant", confirmed: true }
-    ]
-  },
-  {
-    id: 5,
-    date: new Date("2025-07-05"),
-    initiative: "Implementasi AI di Layanan",
-    status: "In Progress",
-    impact: 75,
-    smarter_score: 85,
-    better_score: 80,
-    category: "Digital Innovation",
-    description: "Implementasi chatbot AI untuk customer service 24/7",
-    location: "Lab IT",
-    duration: "13:00 - 17:00",
-    assignments: [
-      { memberId: 3, role: "trainer", confirmed: true },
-      { memberId: 6, role: "technical_support", confirmed: true },
-      { memberId: 2, role: "facilitator", confirmed: true }
-    ]
-  }
-];
-
 export default function ReportView() {
   const [filter, setFilter] = useState("all");
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedCategory, setSelectedCategory] = useState("all");
   const [teamData, setTeamData] = useState<TeamMember[]>(teamMembers);
+  // Fetch event data from API
+  const [eventData, setEventData] = useState<ReportData[]>([]);
+  const [eventLoading, setEventLoading] = useState(true);
 
   // Load team data from API (same as other components)
   useEffect(() => {
@@ -246,6 +166,43 @@ export default function ReportView() {
       }
     };
     fetchTeamData();
+  }, []);
+
+  // Fetch event data from API
+  useEffect(() => {
+    const fetchEventData = async () => {
+      try {
+        setEventLoading(true);
+        const unitKerjaId = localStorage.getItem('id') || '4';
+        const response = await fetch(`/api/kegiatan/${unitKerjaId}`);
+        if (response.ok) {
+          const apiEvents = await response.json();
+          // Transform API data to ReportData[]
+          const transformed = apiEvents.map((ev: ApiKegiatan) => ({
+            id: ev.id,
+            date: new Date(ev.date),
+            initiative: ev.title,
+            status: ev.status || 'Scheduled',
+            impact: ev.impact || 80,
+            smarter_score: ev.smarter_score || 80,
+            better_score: ev.better_score || 80,
+            category: ev.type || 'Event',
+            description: ev.description || '',
+            location: ev.location || '-',
+            assignments: Array.isArray(ev.assignments) ? ev.assignments : [],
+            duration: ev.time || '-',
+          }));
+          setEventData(transformed);
+        } else {
+          setEventData([]);
+        }
+      } catch {
+        setEventData([]);
+      } finally {
+        setEventLoading(false);
+      }
+    };
+    fetchEventData();
   }, []);
 
   // Helper function to determine department
@@ -308,7 +265,7 @@ export default function ReportView() {
   };
 
   // Filter data berdasarkan status dan kategori
-  const filteredData = reportData.filter((item) => {
+  const filteredData = eventData.filter((item) => {
     const statusMatch = filter === "all" || item.status.toLowerCase().replace(/\s+/g, '_') === filter;
     const categoryMatch = selectedCategory === "all" || item.category === selectedCategory;
     return statusMatch && categoryMatch;
@@ -404,7 +361,7 @@ export default function ReportView() {
             </div>
           </CardHeader>
           <CardContent>
-            <p className="text-3xl font-bold mb-1">{reportData.length}</p>
+            <p className="text-3xl font-bold mb-1">{eventData.length}</p>
             <p className="text-blue-200 text-sm">Proyek aktif</p>
           </CardContent>
         </Card>
@@ -418,7 +375,7 @@ export default function ReportView() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold mb-1">
-              {reportData.filter((item) => item.status === "Selesai").length}
+              {eventData.filter((item) => item.status === "Selesai").length}
             </p>
             <p className="text-green-200 text-sm">Berhasil diselesaikan</p>
           </CardContent>
@@ -433,10 +390,10 @@ export default function ReportView() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold mb-1">
-              {Math.round(
-                reportData.reduce((acc, item) => acc + item.impact, 0) /
-                  reportData.length
-              )}%
+              {eventData.length > 0 ? Math.round(
+                eventData.reduce((acc, item) => acc + item.impact, 0) /
+                eventData.length
+              ) : 0}%
             </p>
             <p className="text-purple-200 text-sm">Tingkat dampak</p>
           </CardContent>
@@ -451,10 +408,10 @@ export default function ReportView() {
           </CardHeader>
           <CardContent>
             <p className="text-3xl font-bold mb-1">
-              {Math.round(
-                reportData.reduce((acc, item) => acc + (item.smarter_score + item.better_score) / 2, 0) /
-                  reportData.length
-              )}%
+              {eventData.length > 0 ? Math.round(
+                eventData.reduce((acc, item) => acc + (item.smarter_score + item.better_score) / 2, 0) /
+                eventData.length
+              ) : 0}%
             </p>
             <p className="text-orange-200 text-sm">SMARTER + BETTER</p>
           </CardContent>
@@ -475,7 +432,7 @@ export default function ReportView() {
               </div>
             </div>
             <Badge variant="secondary" className="bg-blue-100 text-blue-800">
-              {searchedData.length} dari {reportData.length} inisiatif
+              {searchedData.length} dari {eventData.length} inisiatif
             </Badge>
           </div>
         </CardHeader>
@@ -495,7 +452,20 @@ export default function ReportView() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {searchedData.length > 0 ? (
+                {eventLoading ? (
+                  <TableRow>
+                    <TableCell colSpan={7} className="text-center py-12">
+                      <div className="flex flex-col items-center space-y-4">
+                        <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+                          <BarChart3 className="w-8 h-8 text-gray-400" />
+                        </div>
+                        <div className="space-y-2">
+                          <h3 className="text-lg font-medium text-gray-700">Memuat data laporan...</h3>
+                        </div>
+                      </div>
+                    </TableCell>
+                  </TableRow>
+                ) : searchedData.length > 0 ? (
                   searchedData.map((item) => {
                     const statusStyle = getStatusStyle(item.status);
                     const impactLevel = getImpactLevel(item.impact);

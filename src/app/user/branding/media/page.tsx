@@ -154,6 +154,18 @@ export default function PublikasiPage() {
     }
   )
 
+  // SWR hook for group summary data
+  const { 
+    data: groupData, 
+    error: groupError,
+    isLoading: groupLoading 
+  } = useSWR('/api/publikasi/groupby', fetcher, {
+    refreshInterval: 60000,
+    revalidateOnFocus: true,
+    revalidateOnReconnect: true,
+    dedupingInterval: 10000,
+  })
+
   // Transform data
   const data = React.useMemo(() => {
     if (!rawData) return []
@@ -169,6 +181,25 @@ export default function PublikasiPage() {
       views: item.views,
     }))
   }, [rawData, userUnit])
+
+  // Get top 3 units data from groupby API
+  interface UnitType {
+    unit_kerja: string;
+    jumlah_publikasi: number;
+    unit_kerja_id: number;
+  }
+  const topUnits = React.useMemo(() => {
+    if (!groupData || !Array.isArray(groupData.units)) return [];
+    return (groupData.units as UnitType[]).sort((a, b) => b.jumlah_publikasi - a.jumlah_publikasi).slice(0, 3);
+  }, [groupData])
+
+  // Function to handle unit click (simplified for user page)
+  const handleUnitClick = (unitName: string) => {
+    toast.info(`Unit Champion: ${unitName.replace(/_/g, ' ')}`, {
+      description: 'Unit ini memiliki publikasi media terbanyak!',
+      duration: 4000,
+    })
+  }
 
   // Submit new publikasi to API
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -848,6 +879,121 @@ const handleDelete = async (id: number, judul: string) => {
         ))}
       </div>
 
+      {/* Champions Card Section */}
+      <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+        <div className="flex items-center justify-between mb-6">
+          <div>
+            <h2 className="text-xl font-bold text-gray-800 flex items-center">
+              <span className="mr-2">🏆</span>
+              Top 3 Unit Kerja Terbaik
+            </h2>
+            <p className="text-gray-600 text-sm mt-1">Ranking unit kerja berdasarkan jumlah publikasi media</p>
+          </div>
+          {groupData && (
+            <div className="text-right">
+              <p className="text-sm text-gray-500">Total Publikasi Seluruh Unit</p>
+              <p className="text-2xl font-bold text-blue-600">{groupData.total_publikasi?.toLocaleString()}</p>
+            </div>
+          )}
+        </div>
+
+        {groupLoading ? (
+          <div className="flex items-center justify-center py-8">
+            <Loader2 className="w-6 h-6 animate-spin text-blue-600 mr-2" />
+            <span className="text-gray-600">Memuat data ranking...</span>
+          </div>
+        ) : groupError ? (
+          <div className="text-center py-8 text-red-600">
+            <AlertCircle className="w-8 h-8 mx-auto mb-2" />
+            <p>Gagal memuat data ranking</p>
+          </div>
+        ) : topUnits.length > 0 ? (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            {topUnits.map((unit: UnitType, index: number) => {
+              const medals = ['🥇', '🥈', '🥉']
+              const colors = ['yellow', 'gray', 'orange']
+              const bgGradients = [
+                'from-yellow-50 to-yellow-100',
+                'from-gray-50 to-gray-100', 
+                'from-orange-50 to-orange-100'
+              ]
+              const borderColors = [
+                'border-yellow-300',
+                'border-gray-300',
+                'border-orange-300'
+              ]
+              
+              return (
+                <div
+                  key={unit.unit_kerja_id}
+                  onClick={() => handleUnitClick(unit.unit_kerja)}
+                  className={`bg-gradient-to-br ${bgGradients[index]} rounded-lg p-4 border-2 ${borderColors[index]} hover:shadow-lg transition-all duration-300 cursor-pointer hover:scale-105 group`}
+                >
+                  <div className="text-center">
+                    <div className="text-4xl mb-3 group-hover:scale-110 transition-transform">{medals[index]}</div>
+                    <h3 className="font-bold text-gray-800 mb-1 text-lg">
+                      Peringkat {index + 1}
+                    </h3>
+                    <p className="text-sm text-gray-700 mb-3 leading-tight">
+                      {unit.unit_kerja.replace(/_/g, ' ')}
+                    </p>
+                    <div className={`inline-flex items-center px-4 py-2 rounded-full bg-${colors[index]}-200 text-${colors[index]}-800 text-sm font-bold mb-3`}>
+                      📊 {unit.jumlah_publikasi} publikasi
+                    </div>
+                    
+                    {/* Progress Bar */}
+                    <div className="w-full bg-gray-200 rounded-full h-2 mb-2">
+                      <div 
+                        className={`bg-${colors[index]}-500 h-2 rounded-full transition-all duration-500`}
+                        style={{ 
+                          width: `${topUnits.length > 0 ? (unit.jumlah_publikasi / topUnits[0].jumlah_publikasi) * 100 : 0}%` 
+                        }}
+                      ></div>
+                    </div>
+                    <p className="text-xs text-gray-500">
+                      {topUnits.length > 0 ? ((unit.jumlah_publikasi / topUnits[0].jumlah_publikasi) * 100).toFixed(1) : 0}% dari terbaik
+                    </p>
+                    
+                    {/* Click indicator */}
+                    <div className="mt-3">
+                      <span className="text-xs text-gray-500 group-hover:text-gray-700 transition-colors">
+                        👆 Klik untuk info
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+        ) : (
+          <div className="text-center text-gray-500 py-8">
+            <p>Belum ada data ranking unit kerja</p>
+          </div>
+        )}
+
+        {/* Additional Stats */}
+        {groupData && topUnits.length > 0 && (
+          <div className="mt-6 p-4 bg-gray-50 rounded-lg">
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+              <div>
+                <p className="text-sm text-gray-600">Unit Terbaik</p>
+                <p className="font-bold text-yellow-600">{topUnits[0].unit_kerja.replace(/_/g, ' ')}</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Total Publikasi Terbaik</p>
+                <p className="font-bold text-blue-600">{topUnits[0].jumlah_publikasi} publikasi</p>
+              </div>
+              <div>
+                <p className="text-sm text-gray-600">Dominasi</p>
+                <p className="font-bold text-green-600">
+                  {((topUnits[0].jumlah_publikasi / groupData.total_publikasi) * 100).toFixed(1)}%
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+      </div>
+
       {/* Charts Section */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         <div className="bg-white rounded-xl shadow-lg p-6">
@@ -929,7 +1075,7 @@ const handleDelete = async (id: number, judul: string) => {
           <div className="flex justify-between items-center">
             <div>
               <h2 className="text-xl font-bold">Detail Publikasi & Media</h2>
-              <p className="text-blue-100 text-sm">Daftar lengkap konten yang telah dipublikasi</p>
+              <p className="text-blue-100 text-sm">Daftar lengkap konten yang telah dipublikasikan</p>
             </div>
             {data.length > 0 && (
               <div className="text-right">

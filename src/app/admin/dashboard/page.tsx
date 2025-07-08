@@ -28,9 +28,21 @@ import {
   Brain,
   Target
 } from 'lucide-react'
-import TodaySchedulePreview from '@/components/TodaySchedulePreview'
 
 const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6']
+
+interface Kegiatan {
+  id: number
+  title: string
+  date: string
+  location: string
+  time: string
+  type: string
+  priority: string
+  attendees: number
+  description: string
+  unit_kerja: string
+}
 
 const summaryData = [
   { 
@@ -213,7 +225,9 @@ export default function RingkasanMakartiPage() {
     total_sisa: 125000000,
     unit_kerja_penginput: []
   })
+  const [kegiatanData, setKegiatanData] = useState<Kegiatan[]>([])
   const [loading, setLoading] = useState(true)
+  const [kegiatanLoading, setKegiatanLoading] = useState(true)
 
   useEffect(() => {
     const fetchSerapanData = async () => {
@@ -233,7 +247,28 @@ export default function RingkasanMakartiPage() {
       }
     }
 
+    const fetchKegiatanData = async () => {
+      try {
+        const response = await fetch('/api/kegiatan')
+        const data = await response.json()
+        
+        // Filter for today's events
+        const today = new Date().toISOString().split('T')[0]
+        const todayEvents = data.filter((event: Kegiatan) => {
+          const eventDate = new Date(event.date).toISOString().split('T')[0]
+          return eventDate === today
+        })
+        
+        setKegiatanData(todayEvents)
+        setKegiatanLoading(false)
+      } catch (error) {
+        console.error('Error fetching kegiatan data:', error)
+        setKegiatanLoading(false)
+      }
+    }
+
     fetchSerapanData()
+    fetchKegiatanData()
   }, [])
 
   return (
@@ -608,7 +643,73 @@ export default function RingkasanMakartiPage() {
 
         {/* Today's Schedule Preview */}
         <div className="bg-white rounded-xl shadow-lg lg:col-span-2">
-          <TodaySchedulePreview />
+          <div className="p-6">
+            <h2 className="text-xl font-bold mb-4 text-gray-800">Jadwal Hari Ini</h2>
+            {kegiatanLoading ? (
+              <div className="h-[200px] flex items-center justify-center">
+                <div className="text-gray-500">Loading jadwal...</div>
+              </div>
+            ) : kegiatanData.length === 0 ? (
+              <div className="h-[200px] flex items-center justify-center">
+                <div className="text-center text-gray-500">
+                  <p className="text-lg mb-2">📅</p>
+                  <p>Tidak ada kegiatan hari ini</p>
+                </div>
+              </div>
+            ) : (
+              <div className="space-y-4 max-h-[400px] overflow-y-auto">
+                {kegiatanData.map((kegiatan: Kegiatan) => (
+                  <div key={kegiatan.id} className="border-l-4 border-blue-500 bg-blue-50 p-4 rounded-r-lg hover:shadow-md transition-shadow">
+                    <div className="flex items-start justify-between mb-2">
+                      <h3 className="font-semibold text-gray-800 text-sm">{kegiatan.title}</h3>
+                      <span className={`px-2 py-1 rounded-full text-xs font-medium ${
+                        kegiatan.priority === 'high' ? 'bg-red-100 text-red-800' :
+                        kegiatan.priority === 'medium' ? 'bg-yellow-100 text-yellow-800' :
+                        'bg-green-100 text-green-800'
+                      }`}>
+                        {kegiatan.priority}
+                      </span>
+                    </div>
+                    
+                    <div className="space-y-1 text-xs text-gray-600">
+                      <div className="flex items-center">
+                        <span className="w-4 h-4 mr-2">🕐</span>
+                        <span>{kegiatan.time}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="w-4 h-4 mr-2">📍</span>
+                        <span>{kegiatan.location}</span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="w-4 h-4 mr-2">👥</span>
+                        <span>{kegiatan.attendees} peserta</span>
+                      </div>
+                      <div className="flex items-center">
+                        <span className="w-4 h-4 mr-2">🏢</span>
+                        <span className="font-medium text-blue-600">{kegiatan.unit_kerja}</span>
+                      </div>
+                    </div>
+                    
+                    {kegiatan.description && (
+                      <div className="mt-2 p-2 bg-white rounded text-xs text-gray-700">
+                        {kegiatan.description}
+                      </div>
+                    )}
+                    
+                    <div className="mt-2 flex items-center justify-between">
+                      <span className={`text-xs px-2 py-1 rounded ${
+                        kegiatan.type === 'meeting' ? 'bg-blue-100 text-blue-800' :
+                        kegiatan.type === 'workshop' ? 'bg-purple-100 text-purple-800' :
+                        'bg-gray-100 text-gray-800'
+                      }`}>
+                        {kegiatan.type}
+                      </span>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
 
         {/* BSB Highlights - Compact */}

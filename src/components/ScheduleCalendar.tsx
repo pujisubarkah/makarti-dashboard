@@ -588,38 +588,8 @@ export default function ScheduleCalendar() {
                 <Clock className="w-5 h-5" />
                 Kegiatan pada {format(date || new Date(), "EEEE, dd MMMM yyyy")}
               </CardTitle>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={fetchEvents}
-                className="text-white border-white hover:bg-white hover:text-teal-600"
-                disabled={loading}
-              >
-                {loading ? "Loading..." : "Refresh"}
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => {
-                  // Test dengan unit kerja ID 6 (dari contoh data Anda)
-                  localStorage.setItem('id', '6');
-                  fetchEvents();
-                }}
-                className="text-white border-white hover:bg-white hover:text-teal-600 ml-2"
-              >
-                Test ID 6
-              </Button>
-              <Button 
-                variant="outline" 
-                size="sm" 
-                onClick={() => {
-                  // Set tanggal ke 8 Juli 2025 untuk melihat event
-                  setDate(new Date('2025-07-08'));
-                }}
-                className="text-white border-white hover:bg-white hover:text-teal-600 ml-2"
-              >
-                Go to 8 Juli
-              </Button>
+
+          
             </div>
           </CardHeader>
           <CardContent className="p-6">

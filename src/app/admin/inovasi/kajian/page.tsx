@@ -12,6 +12,7 @@ import {
 } from 'recharts'
 import { AlertTriangle, X, BookOpen, Search, ChevronUp, ChevronDown, FileText, Users, Target } from 'lucide-react'
 
+
 interface KajianData {
   id: number
   created_at: string
@@ -26,16 +27,33 @@ interface KajianData {
   } | null
 }
 
+// Daftar jenis produk yang diharapkan (urutkan sesuai kebutuhan)
+const JENIS_PRODUK_LIST = [
+  'Policy Brief',
+  'Policy Paper',
+  'Telaah Kebijakan',
+  'Evaluasi Kebijakan',
+  'Laporan',
+  'Buku',
+  'Pedoman Teknis',
+  'Produk Hukum',
+  'Artikel Jurnal',
+  'Lainnya',
+];
+
 // Get unique values for filters
-const getUniqueJenis = (data: KajianData[]) => {
-  const jenis = data.map(item => item.jenis).filter((j): j is string => Boolean(j))
-  return [...new Set(jenis)].sort()
-}
 
 const getUniqueStatus = (data: KajianData[]) => {
   const status = data.map(item => item.status).filter((s): s is string => Boolean(s))
   return [...new Set(status)].sort()
 }
+
+// Filter jenis produk yang ada di data
+const getJenisProdukOptions = (data: KajianData[]) => {
+  const jenisSet = new Set(data.map(item => item.jenis).filter((j): j is string => Boolean(j)));
+  // Hanya tampilkan yang ada di JENIS_PRODUK_LIST dan urutkan sesuai array
+  return JENIS_PRODUK_LIST.filter(jenis => jenisSet.has(jenis));
+};
 
 export default function KajianPage() {
   const [dataKajian, setDataKajian] = useState<KajianData[]>([])
@@ -49,6 +67,111 @@ export default function KajianPage() {
     key: keyof KajianData | 'users.unit_kerja' | null
     direction: 'asc' | 'desc'
   }>({ key: null, direction: 'asc' })
+
+  // Filter and sort functions
+  const filteredAndSortedData = () => {
+    const filtered = dataKajian.filter(item => {
+      // Search filter
+      const matchesSearch = (item.users?.unit_kerja?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+        (item.judul?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+        (item.jenis?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
+        (item.status?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
+      
+      // Jenis filter
+      const matchesJenis = jenisFilter === 'all' || item.jenis === jenisFilter
+      
+      // Status filter
+      const matchesStatus = statusFilter === 'all' || item.status === statusFilter
+      
+      return matchesSearch && matchesJenis && matchesStatus
+    })
+
+    if (sortConfig.key) {
+      filtered.sort((a, b) => {
+        let aValue: string | number | Date
+        let bValue: string | number | Date
+
+        if (sortConfig.key === 'users.unit_kerja') {
+          aValue = a.users?.unit_kerja || ''
+          bValue = b.users?.unit_kerja || ''
+        } else {
+          const key = sortConfig.key as keyof KajianData
+          aValue = a[key] as string | number
+          bValue = b[key] as string | number
+        }
+
+        // Handle different data types
+        if (sortConfig.key === 'created_at') {
+          aValue = new Date(aValue as string)
+          bValue = new Date(bValue as string)
+        } else if (typeof aValue === 'string' && typeof bValue === 'string') {
+          aValue = aValue.toLowerCase()
+          bValue = bValue.toLowerCase()
+        }
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1
+        }
+        return 0
+      })
+    }
+
+    return filtered
+  }
+
+  // Pagination state
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(10);
+  const totalItems = filteredAndSortedData().length;
+  const totalPages = Math.max(1, Math.ceil(totalItems / itemsPerPage));
+  const paginatedData = filteredAndSortedData().slice((currentPage - 1) * itemsPerPage, currentPage * itemsPerPage);
+
+  // Handle page change
+  const goToPage = (page: number) => {
+    if (page < 1 || page > totalPages) return;
+    setCurrentPage(page);
+  };
+
+  // Reset to page 1 if filters/search change
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, jenisFilter, statusFilter, itemsPerPage]);
+
+  // Pagination rendering helpers
+  const renderPageNumbers = () => {
+    const pageNumbers = [];
+    const maxPageButtons = 5;
+    let startPage = Math.max(1, currentPage - 2);
+    const endPage = Math.min(totalPages, startPage + maxPageButtons - 1);
+    if (endPage - startPage < maxPageButtons - 1) {
+      startPage = Math.max(1, endPage - maxPageButtons + 1);
+    }
+    if (startPage > 1) {
+      pageNumbers.push(
+        <button key={1} onClick={() => goToPage(1)} className={`px-3 py-1 rounded-lg mx-1 ${currentPage === 1 ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-blue-100'}`}>1</button>
+      );
+      if (startPage > 2) {
+        pageNumbers.push(<span key="start-ellipsis" className="mx-1">...</span>);
+      }
+    }
+    for (let i = startPage; i <= endPage; i++) {
+      pageNumbers.push(
+        <button key={i} onClick={() => goToPage(i)} className={`px-3 py-1 rounded-lg mx-1 ${currentPage === i ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-blue-100'}`}>{i}</button>
+      );
+    }
+    if (endPage < totalPages) {
+      if (endPage < totalPages - 1) {
+        pageNumbers.push(<span key="end-ellipsis" className="mx-1">...</span>);
+      }
+      pageNumbers.push(
+        <button key={totalPages} onClick={() => goToPage(totalPages)} className={`px-3 py-1 rounded-lg mx-1 ${currentPage === totalPages ? 'bg-blue-600 text-white' : 'bg-gray-100 text-gray-700 hover:bg-blue-100'}`}>{totalPages}</button>
+      );
+    }
+    return pageNumbers;
+  }
 
   useEffect(() => {
     const fetchKajianData = async () => {
@@ -150,59 +273,6 @@ export default function KajianPage() {
       }
     }
   }, [dataKajian, loading, error, getTop3UnitsWithMostKajian])
-  // Filter and sort functions
-  const filteredAndSortedData = () => {
-    const filtered = dataKajian.filter(item => {
-      // Search filter
-      const matchesSearch = (item.users?.unit_kerja?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
-        (item.judul?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
-        (item.jenis?.toLowerCase().includes(searchTerm.toLowerCase()) || false) ||
-        (item.status?.toLowerCase().includes(searchTerm.toLowerCase()) || false)
-      
-      // Jenis filter
-      const matchesJenis = jenisFilter === 'all' || item.jenis === jenisFilter
-      
-      // Status filter
-      const matchesStatus = statusFilter === 'all' || item.status === statusFilter
-      
-      return matchesSearch && matchesJenis && matchesStatus
-    })
-
-    if (sortConfig.key) {
-      filtered.sort((a, b) => {
-        let aValue: string | number | Date
-        let bValue: string | number | Date
-
-        if (sortConfig.key === 'users.unit_kerja') {
-          aValue = a.users?.unit_kerja || ''
-          bValue = b.users?.unit_kerja || ''
-        } else {
-          const key = sortConfig.key as keyof KajianData
-          aValue = a[key] as string | number
-          bValue = b[key] as string | number
-        }
-
-        // Handle different data types
-        if (sortConfig.key === 'created_at') {
-          aValue = new Date(aValue as string)
-          bValue = new Date(bValue as string)
-        } else if (typeof aValue === 'string' && typeof bValue === 'string') {
-          aValue = aValue.toLowerCase()
-          bValue = bValue.toLowerCase()
-        }
-
-        if (aValue < bValue) {
-          return sortConfig.direction === 'asc' ? -1 : 1
-        }
-        if (aValue > bValue) {
-          return sortConfig.direction === 'asc' ? 1 : -1
-        }
-        return 0
-      })
-    }
-
-    return filtered
-  }
 
   const handleSort = (key: keyof KajianData | 'users.unit_kerja') => {
     setSortConfig(prevConfig => ({
@@ -515,7 +585,7 @@ export default function KajianPage() {
               {/* Jenis Filter */}
               <div className="flex-1 min-w-48">
                 <label className="block text-sm font-medium text-gray-700 mb-2">
-                  Filter Jenis Kajian
+                  Filter Jenis Produk
                 </label>
                 <select
                   value={jenisFilter}
@@ -523,7 +593,7 @@ export default function KajianPage() {
                   className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all duration-300 bg-white shadow-sm"
                 >
                   <option value="all">Semua Jenis</option>
-                  {getUniqueJenis(dataKajian).map((jenis) => (
+                  {getJenisProdukOptions(dataKajian).map((jenis) => (
                     <option key={jenis} value={jenis}>
                       {jenis}
                     </option>
@@ -634,7 +704,7 @@ export default function KajianPage() {
               </tr>
             </thead>
             <tbody className="bg-white divide-y divide-gray-200">
-              {filteredAndSortedData().map((kajian) => (
+              {paginatedData.map((kajian) => (
                 <tr key={kajian.id} className="hover:bg-gray-50 transition-colors">
                   <td className="px-6 py-4">
                     <div className="font-medium text-gray-900">
@@ -694,6 +764,49 @@ export default function KajianPage() {
               <Target className="w-12 h-12 text-gray-300 mx-auto mb-4" />
               <p className="text-lg font-medium mb-2">Tidak ada data yang sesuai</p>
               <p className="text-sm">Coba gunakan kata kunci pencarian yang berbeda</p>
+            </div>
+          )}
+          {/* Manual Pagination */}
+          {totalPages > 1 && (
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4 py-6 px-2 border-t mt-4">
+              {/* Info text */}
+              <div className="text-sm text-gray-700">
+                Menampilkan {totalItems === 0 ? 0 : ((currentPage - 1) * itemsPerPage + 1)} sampai {Math.min(currentPage * itemsPerPage, totalItems)} dari {totalItems} hasil
+              </div>
+              {/* Items per page dropdown */}
+              <div className="flex items-center gap-2">
+                <span className="text-sm text-gray-600">Tampilkan</span>
+                <select
+                  value={itemsPerPage}
+                  onChange={e => setItemsPerPage(Number(e.target.value))}
+                  className="border border-gray-300 rounded-lg px-2 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white"
+                >
+                  {[5, 10, 25, 50].map(opt => (
+                    <option key={opt} value={opt}>{opt}</option>
+                  ))}
+                </select>
+                <span className="text-sm text-gray-600">per halaman</span>
+              </div>
+              {/* Pagination controls */}
+              <div className="flex items-center justify-center">
+                <button
+                  onClick={() => goToPage(currentPage - 1)}
+                  disabled={currentPage === 1}
+                  className={`px-3 py-1 rounded-lg mx-1 ${currentPage === 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-100 text-gray-700 hover:bg-blue-100'}`}
+                  aria-label="Sebelumnya"
+                >
+                  &laquo;
+                </button>
+                {renderPageNumbers()}
+                <button
+                  onClick={() => goToPage(currentPage + 1)}
+                  disabled={currentPage === totalPages}
+                  className={`px-3 py-1 rounded-lg mx-1 ${currentPage === totalPages ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-gray-100 text-gray-700 hover:bg-blue-100'}`}
+                  aria-label="Berikutnya"
+                >
+                  &raquo;
+                </button>
+              </div>
             </div>
           )}
         </div>

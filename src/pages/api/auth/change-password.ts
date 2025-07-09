@@ -78,7 +78,6 @@ export default async function handler(
         id: true,
         username: true,
         password: true,
-        name: true,
         role: true
       }
     })

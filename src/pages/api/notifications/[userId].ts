@@ -42,7 +42,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         users: {
           select: {
             id: true,
-            name: true,
             role: true
           }
         }
@@ -56,7 +55,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const formattedNotifications = notifications.map(notif => ({
       id: notif.id,
       sender_id: notif.sender_id,
-      sender_name: notif.users?.name || 'System',
       sender_role: notif.users?.role === '1' ? 'admin' : 'user',
       message: notif.message,
       type: notif.type,

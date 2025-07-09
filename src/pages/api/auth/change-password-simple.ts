@@ -71,7 +71,6 @@ export default async function handler(
         id: true,
         username: true,
         password: true,
-        name: true,
         role: true
       }
     })
@@ -130,7 +129,6 @@ export default async function handler(
       message: 'Password berhasil diubah',
       data: {
         username: user.username,
-        name: user.name,
         changedAt: new Date().toISOString()
       }
     })

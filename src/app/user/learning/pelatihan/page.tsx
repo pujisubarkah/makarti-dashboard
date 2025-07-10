@@ -409,8 +409,8 @@ export default function PelatihanPage() {
   }, [data, searchTerm, sortConfig])
 
   // Update statistics to use filtered data
-  const filteredTotalPelatihan = filteredAndSortedData.length
-  const filteredTotalJam = filteredAndSortedData.reduce((sum, item) => sum + item.jam, 0)
+  //const filteredTotalPelatihan = filteredAndSortedData.length
+  //const filteredTotalJam = filteredAndSortedData.reduce((sum, item) => sum + item.jam, 0)
 
   // Remove Total Peserta card and add Persentase Input Data card
   const summaryCards = [

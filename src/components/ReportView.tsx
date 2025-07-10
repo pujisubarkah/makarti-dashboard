@@ -3,7 +3,6 @@
 import { useState, useEffect } from "react";
 import {
   Card,
-  CardContent,
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
@@ -16,19 +15,44 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { Calendar, Download, Filter, TrendingUp, Target, CheckCircle2, Clock, BarChart3, Award, Users, MapPin } from "lucide-react";
+import { Calendar, Download, Filter, Target, CheckCircle2, Clock, BarChart3, Users, MapPin } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { toast } from "sonner";
 import { Badge } from "@/components/ui/badge";
+import * as XLSX from "xlsx";
 
 // TypeScript interfaces
 interface ApiEmployee {
   id: number;
   nama: string;
   jabatan: string;
+}
+
+interface ApiKegiatan {
+  id: number;
+  date: string;
+  title: string;
+  status?: string;
+  impact?: number;
+  smarter_score?: number;
+  better_score?: number;
+  type?: string;
+  description?: string;
+  location?: string;
+  assignments?: EventAssignment[];
+  time?: string;
+}
+
+// Tambahkan tipe assignment dari API
+interface ApiAssignment {
+  id: number;
+  event_id: number;
+  employee_id: number;
+  role_id: string;
+  confirmed: boolean;
 }
 
 interface TeamMember {
@@ -58,21 +82,6 @@ interface ReportData {
   location: string;
   assignments: EventAssignment[];
   duration: string;
-}
-
-interface ApiKegiatan {
-  id: number;
-  date: string;
-  title: string;
-  status?: string;
-  impact?: number;
-  smarter_score?: number;
-  better_score?: number;
-  type?: string;
-  description?: string;
-  location?: string;
-  assignments?: EventAssignment[];
-  time?: string;
 }
 
 // Sample team members data (matching DailyScheduleWithAvatars)
@@ -143,6 +152,8 @@ export default function ReportView() {
   // Fetch event data from API
   const [eventData, setEventData] = useState<ReportData[]>([]);
   const [eventLoading, setEventLoading] = useState(true);
+  // Tambahkan state untuk assignments
+  const [assignments, setAssignments] = useState<ApiAssignment[]>([]);
 
   // Load team data from API (same as other components)
   useEffect(() => {
@@ -205,6 +216,40 @@ export default function ReportView() {
     fetchEventData();
   }, []);
 
+  // Fetch assignments dari API agar sinkron dengan ManageTeam
+  useEffect(() => {
+    const fetchAssignments = async () => {
+      try {
+        const response = await fetch('/api/assignment');
+        if (response.ok) {
+          const data = await response.json();
+          setAssignments(data);
+        } else {
+          setAssignments([]);
+        }
+      } catch {
+        setAssignments([]);
+      }
+    };
+    fetchAssignments();
+  }, []);
+
+  // Mapping assignment ke eventData setelah fetch assignments dan eventData
+  useEffect(() => {
+    if (eventData.length === 0 || assignments.length === 0) return;
+    setEventData(prev => prev.map(ev => {
+      // Ambil assignment yang event_id-nya sama
+      const eventAssignments = assignments.filter((a: ApiAssignment) => a.event_id === ev.id);
+      // Mapping ke format lama jika perlu
+      const mappedAssignments = eventAssignments.map((a: ApiAssignment) => ({
+        memberId: a.employee_id,
+        role: a.role_id, // role_id, bisa di-mapping ke nama role jika ingin
+        confirmed: a.confirmed
+      }));
+      return { ...ev, assignments: mappedAssignments };
+    }));
+  }, [assignments, eventData.length]);
+
   // Helper function to determine department
   const getDepartmentFromJabatan = (jabatan: string): string => {
     if (jabatan.includes("Direktur")) return "Direksi";
@@ -257,13 +302,6 @@ export default function ReportView() {
     }
   };
 
-  // Get impact level styling
-  const getImpactLevel = (impact: number) => {
-    if (impact >= 80) return { level: "Tinggi", color: "text-green-600", bg: "bg-green-100" };
-    if (impact >= 60) return { level: "Sedang", color: "text-yellow-600", bg: "bg-yellow-100" };
-    return { level: "Rendah", color: "text-red-600", bg: "bg-red-100" };
-  };
-
   // Filter data berdasarkan status dan kategori
   const filteredData = eventData.filter((item) => {
     const statusMatch = filter === "all" || item.status.toLowerCase().replace(/\s+/g, '_') === filter;
@@ -278,9 +316,42 @@ export default function ReportView() {
     item.location.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  // Handler untuk download laporan
+  // Helper function to get role name (optional, if you want to map role_id to readable name)
+  const getRoleName = (roleId: string) => {
+    // You can map roleId to role name here if needed
+    // Example: if (roleId === "1") return "Koordinator";
+    return roleId;
+  };
+
+  // Handler untuk download laporan (Excel)
   const handleDownload = () => {
-    toast("Berhasil! Laporan berhasil diunduh.");
+    // Siapkan data untuk diekspor sesuai searchedData (yang tampil di tabel)
+    const exportData = searchedData.map((item) => {
+      // Gabungkan anggota tim terlibat menjadi string
+      const teamList = item.assignments.map((a) => {
+        const member = getMemberById(a.memberId);
+        const name = member ? member.name : `ID:${a.memberId}`;
+        const role = getRoleName(a.role);
+        const confirmed = a.confirmed ? "✔" : "✖";
+        return `${name} (${role}, ${confirmed})`;
+      }).join(", ");
+      return {
+        Tanggal: item.date.toLocaleDateString("id-ID", { day: "2-digit", month: "short", year: "numeric" }),
+        Inisiatif: item.initiative,
+        Deskripsi: item.description,
+        Lokasi: item.location,
+        Durasi: item.duration,
+        Status: item.status,
+        "Tim Terlibat": teamList,
+      };
+    });
+    // Buat worksheet dan workbook
+    const ws = XLSX.utils.json_to_sheet(exportData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Laporan Inisiatif");
+    // Download file Excel
+    XLSX.writeFile(wb, `Laporan_Inisiatif_${new Date().toISOString().slice(0,10)}.xlsx`);
+    toast("Berhasil! Laporan berhasil diunduh sebagai Excel.");
   };
 
   return (
@@ -351,73 +422,6 @@ export default function ReportView() {
         </div>
       </div>
 
-      {/* Enhanced Performance Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
-        <Card className="bg-gradient-to-br from-blue-500 to-blue-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-blue-100 text-sm font-medium">Total Inisiatif</CardTitle>
-              <BarChart3 className="w-6 h-6 text-blue-200" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold mb-1">{eventData.length}</p>
-            <p className="text-blue-200 text-sm">Proyek aktif</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-green-500 to-green-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-green-100 text-sm font-medium">Inisiatif Selesai</CardTitle>
-              <CheckCircle2 className="w-6 h-6 text-green-200" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold mb-1">
-              {eventData.filter((item) => item.status === "Selesai").length}
-            </p>
-            <p className="text-green-200 text-sm">Berhasil diselesaikan</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-purple-500 to-purple-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-purple-100 text-sm font-medium">Rata-rata Dampak</CardTitle>
-              <TrendingUp className="w-6 h-6 text-purple-200" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold mb-1">
-              {eventData.length > 0 ? Math.round(
-                eventData.reduce((acc, item) => acc + item.impact, 0) /
-                eventData.length
-              ) : 0}%
-            </p>
-            <p className="text-purple-200 text-sm">Tingkat dampak</p>
-          </CardContent>
-        </Card>
-
-        <Card className="bg-gradient-to-br from-orange-500 to-orange-600 text-white border-0 shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105">
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="text-orange-100 text-sm font-medium">Skor Rata-rata</CardTitle>
-              <Award className="w-6 h-6 text-orange-200" />
-            </div>
-          </CardHeader>
-          <CardContent>
-            <p className="text-3xl font-bold mb-1">
-              {eventData.length > 0 ? Math.round(
-                eventData.reduce((acc, item) => acc + (item.smarter_score + item.better_score) / 2, 0) /
-                eventData.length
-              ) : 0}%
-            </p>
-            <p className="text-orange-200 text-sm">SMARTER + BETTER</p>
-          </CardContent>
-        </Card>
-      </div>
-
       {/* Enhanced Report Table */}
       <Card className="shadow-lg border-0 bg-white">
         <CardHeader className="bg-gradient-to-r from-gray-50 to-gray-100 border-b border-gray-200">
@@ -446,15 +450,12 @@ export default function ReportView() {
                   <TableHead className="text-gray-700 font-semibold">Inisiatif & Detail</TableHead>
                   <TableHead className="text-gray-700 font-semibold">Status</TableHead>
                   <TableHead className="text-gray-700 font-semibold">Tim Terlibat</TableHead>
-                  <TableHead className="text-gray-700 font-semibold">Dampak</TableHead>
-                  <TableHead className="text-gray-700 font-semibold">Skor</TableHead>
-                  <TableHead className="text-gray-700 font-semibold">Aksi</TableHead>
                 </TableRow>
               </TableHeader>
               <TableBody>
                 {eventLoading ? (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12">
+                    <TableCell colSpan={4} className="text-center py-12">
                       <div className="flex flex-col items-center space-y-4">
                         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
                           <BarChart3 className="w-8 h-8 text-gray-400" />
@@ -468,7 +469,6 @@ export default function ReportView() {
                 ) : searchedData.length > 0 ? (
                   searchedData.map((item) => {
                     const statusStyle = getStatusStyle(item.status);
-                    const impactLevel = getImpactLevel(item.impact);
                     
                     return (
                       <TableRow 
@@ -548,55 +548,12 @@ export default function ReportView() {
                             </div>
                           </div>
                         </TableCell>
-                        
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <div className="flex-1">
-                              <div className="flex items-center justify-between mb-1">
-                                <span className="text-sm font-semibold text-gray-700">{item.impact}%</span>
-                                <span className={`text-xs px-2 py-1 rounded-full ${impactLevel.bg} ${impactLevel.color} font-medium`}>
-                                  {impactLevel.level}
-                                </span>
-                              </div>
-                              <div className="w-full bg-gray-200 rounded-full h-2">
-                                <div 
-                                  className="bg-gradient-to-r from-green-400 to-green-600 h-2 rounded-full transition-all duration-500"
-                                  style={{ width: `${item.impact}%` }}
-                                />
-                              </div>
-                            </div>
-                          </div>
-                        </TableCell>
-                        
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm font-semibold text-purple-600">{item.smarter_score}%</span>
-                            <div className="w-16 bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="bg-gradient-to-r from-purple-400 to-purple-600 h-2 rounded-full transition-all duration-500"
-                                style={{ width: `${item.smarter_score}%` }}
-                              />
-                            </div>
-                          </div>
-                        </TableCell>
-                        
-                        <TableCell>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-sm font-semibold text-blue-600">{item.better_score}%</span>
-                            <div className="w-16 bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="bg-gradient-to-r from-blue-400 to-blue-600 h-2 rounded-full transition-all duration-500"
-                                style={{ width: `${item.better_score}%` }}
-                              />
-                            </div>
-                          </div>
-                        </TableCell>
                       </TableRow>
                     );
                   })
                 ) : (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center py-12">
+                    <TableCell colSpan={4} className="text-center py-12">
                       <div className="flex flex-col items-center space-y-4">
                         <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
                           <BarChart3 className="w-8 h-8 text-gray-400" />

@@ -40,6 +40,15 @@ interface ProcessedData {
   tanggal: string
 }
 
+// Tambahkan tipe untuk persen input unit
+interface PersenInputUnit {
+  unit_kerja: string
+  total_pegawai: number
+  jumlah_yang_input: number
+  belum_input: number
+  persentase_input: string
+}
+
 const COLORS = ['#60a5fa', '#34d399', '#facc15', '#f472b6', '#8b5cf6', '#06b6d4']
 
 export default function PelatihanPage() {
@@ -61,7 +70,7 @@ export default function PelatihanPage() {
   const [showChampionAlert, setShowChampionAlert] = useState(false)
 
   // Tambah state untuk data persentase input per unit
-  const [persenInputUnits, setPersenInputUnits] = useState<any[]>([])
+  const [persenInputUnits, setPersenInputUnits] = useState<PersenInputUnit[]>([])
   const [loadingPersenInput, setLoadingPersenInput] = useState(true)
   const [errorPersenInput, setErrorPersenInput] = useState<string | null>(null)
 
@@ -87,11 +96,11 @@ export default function PelatihanPage() {
         setLoadingPersenInput(true)
         const res = await fetch('/api/pelatihan_pegawai/perPegawai')
         if (!res.ok) throw new Error('Gagal fetch data persentase input')
-        const data = await res.json()
+        const data: PersenInputUnit[] = await res.json()
         // Urutkan berdasarkan persentase_input (desc)
         const sorted = [...data].sort((a, b) => parseFloat(b.persentase_input) - parseFloat(a.persentase_input))
         setPersenInputUnits(sorted)
-      } catch (err) {
+      } catch (_) {
         setErrorPersenInput('Gagal memuat data persentase input')
       } finally {
         setLoadingPersenInput(false)

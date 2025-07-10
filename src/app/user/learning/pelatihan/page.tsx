@@ -363,15 +363,15 @@ export default function PelatihanPage() {
       : <ArrowDown className="w-4 h-4 ml-1 text-blue-600" />
   }  // Filter and sort data
   const filteredAndSortedData = React.useMemo(() => {
-    let filteredData = data.filter(item =>
+    const filteredData = data.filter(item =>
       item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
       item.judul.toLowerCase().includes(searchTerm.toLowerCase())
     )
 
     if (sortConfig.key) {
-      filteredData.sort((a, b) => {
-        let aValue: any
-        let bValue: any
+      return filteredData.sort((a, b) => {
+        let aValue: string | number | Date
+        let bValue: string | number | Date
 
         if (sortConfig.key === 'nama') {
           aValue = a.nama
@@ -379,11 +379,20 @@ export default function PelatihanPage() {
         } else if (sortConfig.key === 'tanggal') {
           aValue = new Date(a.tanggal)
           bValue = new Date(b.tanggal)
+        } else if (sortConfig.key === 'judul') {
+          aValue = a.judul
+          bValue = b.judul
+        } else if (sortConfig.key === 'jam') {
+          aValue = a.jam
+          bValue = b.jam
+        } else if (sortConfig.key === 'sertifikat') {
+          aValue = a.sertifikat || ''
+          bValue = b.sertifikat || ''
         } else {
-          // For other keys that exist in ProcessedData
+          // For other keys (id, pegawai_id, id_pegawai)
           const key = sortConfig.key as keyof ProcessedData
-          aValue = a[key]
-          bValue = b[key]
+          aValue = String(a[key] || '')
+          bValue = String(b[key] || '')
         }
 
         if (aValue < bValue) {
@@ -402,7 +411,6 @@ export default function PelatihanPage() {
   // Update statistics to use filtered data
   const filteredTotalPelatihan = filteredAndSortedData.length
   const filteredTotalJam = filteredAndSortedData.reduce((sum, item) => sum + item.jam, 0)
-  const filteredRataRataJam = filteredTotalPelatihan > 0 ? Math.round(filteredTotalJam / filteredTotalPelatihan) : 0
 
   // Remove Total Peserta card and add Persentase Input Data card
   const summaryCards = [

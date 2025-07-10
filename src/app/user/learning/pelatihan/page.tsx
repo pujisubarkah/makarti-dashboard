@@ -1,5 +1,5 @@
 "use client"
-import { useState, useEffect, useRef } from "react"
+import React, { useState, useEffect, useRef } from "react"
 import { toast } from "sonner"
 import {
   Dialog,
@@ -35,7 +35,11 @@ import {
   Cloud,
   Target,
   Edit,
-  Trash2
+  Trash2,
+  Search,
+  ArrowUpDown,
+  ArrowUp,
+  ArrowDown
 } from "lucide-react"
 import {
   BarChart,
@@ -190,11 +194,20 @@ export default function PelatihanPage() {
     tanggal: '',
     sertifikat: ''
   })
-  
-  // State untuk modal champion pegawai
+    // State untuk modal champion pegawai
   const [showChampionModal, setShowChampionModal] = useState(false)
   const [championData, setChampionData] = useState<PegawaiSummary | null>(null)
   const [championShown, setChampionShown] = useState(false)
+
+  // State untuk search dan sorting
+  const [searchTerm, setSearchTerm] = useState('')
+  const [sortConfig, setSortConfig] = useState<{
+    key: keyof ProcessedData | 'nama' | null;
+    direction: 'asc' | 'desc';
+  }>({
+    key: 'tanggal',
+    direction: 'desc'
+  })
 
   // State for rekapUnit summary
   const [rekapUnit, setRekapUnit] = useState<{
@@ -331,6 +344,65 @@ export default function PelatihanPage() {
       return getMonthNumber(monthA) - getMonthNumber(monthB)
     })
     .map(([month, count]) => ({ month, pelatihan: count }))
+
+  // Sorting and filtering functions
+  const handleSort = (key: keyof ProcessedData | 'nama') => {
+    let direction: 'asc' | 'desc' = 'asc'
+    if (sortConfig.key === key && sortConfig.direction === 'asc') {
+      direction = 'desc'
+    }
+    setSortConfig({ key, direction })
+  }
+
+  const getSortIcon = (columnKey: keyof ProcessedData | 'nama') => {
+    if (sortConfig.key !== columnKey) {
+      return <ArrowUpDown className="w-4 h-4 ml-1 text-gray-400" />
+    }
+    return sortConfig.direction === 'asc' 
+      ? <ArrowUp className="w-4 h-4 ml-1 text-blue-600" />
+      : <ArrowDown className="w-4 h-4 ml-1 text-blue-600" />
+  }  // Filter and sort data
+  const filteredAndSortedData = React.useMemo(() => {
+    let filteredData = data.filter(item =>
+      item.nama.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      item.judul.toLowerCase().includes(searchTerm.toLowerCase())
+    )
+
+    if (sortConfig.key) {
+      filteredData.sort((a, b) => {
+        let aValue: any
+        let bValue: any
+
+        if (sortConfig.key === 'nama') {
+          aValue = a.nama
+          bValue = b.nama
+        } else if (sortConfig.key === 'tanggal') {
+          aValue = new Date(a.tanggal)
+          bValue = new Date(b.tanggal)
+        } else {
+          // For other keys that exist in ProcessedData
+          const key = sortConfig.key as keyof ProcessedData
+          aValue = a[key]
+          bValue = b[key]
+        }
+
+        if (aValue < bValue) {
+          return sortConfig.direction === 'asc' ? -1 : 1
+        }
+        if (aValue > bValue) {
+          return sortConfig.direction === 'asc' ? 1 : -1
+        }
+        return 0
+      })
+    }
+
+    return filteredData
+  }, [data, searchTerm, sortConfig])
+
+  // Update statistics to use filtered data
+  const filteredTotalPelatihan = filteredAndSortedData.length
+  const filteredTotalJam = filteredAndSortedData.reduce((sum, item) => sum + item.jam, 0)
+  const filteredRataRataJam = filteredTotalPelatihan > 0 ? Math.round(filteredTotalJam / filteredTotalPelatihan) : 0
 
   // Remove Total Peserta card and add Persentase Input Data card
   const summaryCards = [
@@ -777,33 +849,83 @@ export default function PelatihanPage() {
                 )}
               </div>
             </div>
-          </div>
-
-          {/* Enhanced Table */}
+          </div>          {/* Enhanced Table */}
           <div className="bg-white rounded-xl shadow-lg overflow-hidden">
             <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
               <h2 className="text-xl font-bold">Data Pengembangan Kompetensi Pegawai</h2>
               <p className="text-blue-100 text-sm">Monitoring pelatihan dan pengembangan SDM</p>
             </div>
+            
+            {/* Search Input */}
+            <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
+              <div className="relative max-w-md">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                <Input
+                  type="text"
+                  placeholder="Cari nama pegawai atau judul pelatihan..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                />
+              </div>
+              {searchTerm && (
+                <div className="mt-2 text-sm text-gray-600">
+                  Menampilkan {filteredAndSortedData.length} dari {data.length} data
+                </div>
+              )}
+            </div>
+
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>                  <TableRow className="bg-gray-50">
+                <TableHeader>
+                  <TableRow className="bg-gray-50">
                     <TableHead>No</TableHead>
-                    <TableHead>Nama Pegawai</TableHead>
-                    <TableHead>Judul Pelatihan</TableHead>
-                    <TableHead className="text-center">Jam</TableHead>
-                    <TableHead>Tanggal</TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => handleSort('nama')}
+                    >
+                      <div className="flex items-center">
+                        Nama Pegawai
+                        {getSortIcon('nama')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => handleSort('judul')}
+                    >
+                      <div className="flex items-center">
+                        Judul Pelatihan
+                        {getSortIcon('judul')}
+                      </div>                    </TableHead>
+                    <TableHead 
+                      className="text-center cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => handleSort('jam')}
+                    >
+                      <div className="flex items-center justify-center">
+                        Jam
+                        {getSortIcon('jam')}
+                      </div>
+                    </TableHead>
+                    <TableHead 
+                      className="cursor-pointer hover:bg-gray-100 transition-colors"
+                      onClick={() => handleSort('tanggal')}
+                    >
+                      <div className="flex items-center">
+                        Tanggal
+                        {getSortIcon('tanggal')}
+                      </div>
+                    </TableHead>
                     <TableHead className="text-center">Status</TableHead>
                     <TableHead>Sertifikat</TableHead>
                     <TableHead className="text-center">Aksi</TableHead>
                   </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {data.map((item, index) => (
-                    <TableRow key={item.id} className="hover:bg-blue-50">
-                      <TableCell>{index + 1}</TableCell>
-                      <TableCell className="font-medium">{item.nama}</TableCell>
-                      <TableCell>{item.judul}</TableCell>
+                </TableHeader>                <TableBody>
+                  {filteredAndSortedData.length > 0 ? (
+                    filteredAndSortedData.map((item, index) => (
+                      <TableRow key={item.id} className="hover:bg-blue-50">
+                        <TableCell>{index + 1}</TableCell>
+                        <TableCell className="font-medium">{item.nama}</TableCell>
+                        <TableCell>{item.judul}</TableCell>
                       <TableCell className="text-center">
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
                           <Clock className="w-3 h-3 mr-1" /> {item.jam} jam
@@ -838,9 +960,26 @@ export default function PelatihanPage() {
                             <Trash2 className="w-4 h-4" />
                           </Button>
                         </div>
+                      </TableCell>                    </TableRow>
+                  ))
+                  ) : (
+                    <TableRow>
+                      <TableCell colSpan={8} className="text-center py-8">
+                        <div className="flex flex-col items-center justify-center text-gray-500">
+                          <Search className="w-12 h-12 mb-2 text-gray-300" />
+                          <p className="text-lg font-medium">
+                            {searchTerm ? 'Tidak ada data yang sesuai' : 'Belum ada data pelatihan'}
+                          </p>
+                          <p className="text-sm">
+                            {searchTerm 
+                              ? `Coba kata kunci lain atau hapus filter pencarian` 
+                              : 'Tambahkan data pelatihan pertama Anda'
+                            }
+                          </p>
+                        </div>
                       </TableCell>
                     </TableRow>
-                  ))}
+                  )}
                 </TableBody>
               </Table>
             </div>

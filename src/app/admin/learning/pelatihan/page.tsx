@@ -60,6 +60,11 @@ export default function PelatihanPage() {
   const [selectedUnitForModal, setSelectedUnitForModal] = useState<string | null>(null)
   const [showChampionAlert, setShowChampionAlert] = useState(false)
 
+  // Tambah state untuk data persentase input per unit
+  const [persenInputUnits, setPersenInputUnits] = useState<any[]>([])
+  const [loadingPersenInput, setLoadingPersenInput] = useState(true)
+  const [errorPersenInput, setErrorPersenInput] = useState<string | null>(null)
+
   useEffect(() => {
     fetchPelatihanData()
   }, [])
@@ -74,6 +79,26 @@ export default function PelatihanPage() {
       return () => clearTimeout(timer)
     }
   }, [loading, error, dataPelatihan.length])
+
+  // Fetch data persentase input per unit
+  useEffect(() => {
+    const fetchPersenInput = async () => {
+      try {
+        setLoadingPersenInput(true)
+        const res = await fetch('/api/pelatihan_pegawai/perPegawai')
+        if (!res.ok) throw new Error('Gagal fetch data persentase input')
+        const data = await res.json()
+        // Urutkan berdasarkan persentase_input (desc)
+        const sorted = [...data].sort((a, b) => parseFloat(b.persentase_input) - parseFloat(a.persentase_input))
+        setPersenInputUnits(sorted)
+      } catch (err) {
+        setErrorPersenInput('Gagal memuat data persentase input')
+      } finally {
+        setLoadingPersenInput(false)
+      }
+    }
+    fetchPersenInput()
+  }, [])
 
   const fetchPelatihanData = async () => {
     try {
@@ -545,6 +570,42 @@ export default function PelatihanPage() {
           </div>
         </div>
       )}
+
+      {/* Persentase Penginputan Bangkom Terbaik */}
+      <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
+        <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
+          <span className="mr-2">📥</span>
+          Unit dengan Persentase Penginputan Pelatihan Bangkom Terbaik
+        </h2>
+        {loadingPersenInput ? (
+          <div className="text-blue-500">Loading...</div>
+        ) : errorPersenInput ? (
+          <div className="text-red-500">{errorPersenInput}</div>
+        ) : (
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {persenInputUnits.slice(0, 3).map((unit, idx) => (
+              <div key={unit.unit_kerja} className="bg-gradient-to-br from-green-100 to-blue-100 rounded-xl p-4 shadow group hover:scale-105 transition-all border-l-4 border-blue-400">
+                <div className="flex items-center justify-between mb-2">
+                  <div>
+                    <p className="text-sm font-semibold text-blue-800 mb-1">{unit.unit_kerja}</p>
+                    <p className="text-2xl font-bold text-green-600">{unit.persentase_input}</p>
+                    <p className="text-xs text-gray-600">{unit.jumlah_yang_input} dari {unit.total_pegawai} pegawai</p>
+                  </div>
+                  <div className="bg-blue-200 p-2 rounded-full">
+                    <span className="text-xl">{idx === 0 ? '🥇' : idx === 1 ? '🥈' : '🥉'}</span>
+                  </div>
+                </div>
+                <div className="w-full bg-gray-200 rounded-full h-2 mt-2">
+                  <div
+                    className="bg-gradient-to-r from-blue-400 to-green-400 h-2 rounded-full transition-all duration-500"
+                    style={{ width: unit.persentase_input }}
+                  ></div>
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
 
       {/* Learning Statistics */}
       <div className="bg-white rounded-xl shadow-lg p-6 mb-8">

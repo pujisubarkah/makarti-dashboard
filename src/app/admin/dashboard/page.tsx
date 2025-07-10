@@ -273,6 +273,34 @@ export default function RingkasanMakartiPage() {
         const publikasiResponse = await fetch('/api/publikasi/rekapan')
         const publikasiData: PublikasiResponse = await publikasiResponse.json()
 
+        // Fetch kegiatan for kunjungan instansi
+        const kegiatanResponse = await fetch('/api/kegiatan')
+        const kegiatanAll: Kegiatan[] = await kegiatanResponse.json()
+        const kunjunganEvents = kegiatanAll.filter((event: Kegiatan) => event.type?.toLowerCase().includes('kunjungan'))
+        const uniqueMitra = new Set(kunjunganEvents.map((e: Kegiatan) => e.unit_kerja))
+        const mitraCount = uniqueMitra.size
+
+        // Fetch pelatihan summary for accurate training hours
+        let avgTrainingPercent = 0
+        try {
+          const pelatihanSummaryResponse = await fetch('/api/pelatihan_pegawai/summary')
+          const pelatihanSummary = await pelatihanSummaryResponse.json()
+          // pelatihanSummary is array of { nama, unit_kerja, total_jam, rata_rata_jam, jumlah_pelatihan }
+          const totalJam = pelatihanSummary.reduce((sum: number, p: any) => sum + (p.total_jam || 0), 0)
+          const employeeCount = pelatihanSummary.length
+          const targetJam = 20
+          avgTrainingPercent = employeeCount > 0 ? Math.min(100, Math.round((totalJam / (employeeCount * targetJam)) * 100)) : 0
+        } catch (err) {
+          // fallback: use pelatihan events from kegiatanAll
+          const pelatihanEvents = kegiatanAll.filter((event: any) => event.type?.toLowerCase().includes('pelatihan') || event.type?.toLowerCase().includes('training'))
+          const employeeResponse = await fetch('/api/employee')
+          const employees: any[] = await employeeResponse.json()
+          const employeeCount = employees.length
+          const targetJam = 20
+          let totalTrainingHours = pelatihanEvents.length * 2
+          avgTrainingPercent = employeeCount > 0 ? Math.min(100, Math.round((totalTrainingHours / (employeeCount * targetJam)) * 100)) : 0
+        }
+
         const currentMonth = new Date().toLocaleString('en-US', { month: 'long' })
         const currentYear = new Date().getFullYear()
         const lastMonth = new Date(currentYear, new Date().getMonth() - 1).toLocaleString('en-US', { month: 'long' })
@@ -297,7 +325,7 @@ export default function RingkasanMakartiPage() {
           lastPublikasiMonth?.count || 0
         )
 
-        // Update summary data with real values
+        // Update summary data with real values, including mitra networking and pelatihan
         const updatedSummaryData = [
           {
             ...summaryData[0],
@@ -311,7 +339,20 @@ export default function RingkasanMakartiPage() {
             change: publikasiChange.change,
             changeType: publikasiChange.type
           },
-          ...summaryData.slice(2) // Keep the other two cards as static for now
+          {
+            ...summaryData[2],
+            value: mitraCount,
+            title: 'Mitra yang menjadi networking LAN',
+            change: '',
+            changeType: 'same'
+          },
+          {
+            ...summaryData[3],
+            value: avgTrainingPercent,
+            title: 'Rata-rata Jam Pelatihan Pegawai',
+            change: '',
+            changeType: 'same'
+          }
         ]
 
         setDynamicSummaryData(updatedSummaryData)

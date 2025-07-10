@@ -463,6 +463,11 @@ const handleDelete = async (id: number, judul: string) => {
   }))
 
   // Summary cards
+  // Hitung IKU Publikasi
+  // Rumus: 0.5 * (engagement/0.6) + 0.5 * (Jumlah Publikasi/5)
+  const engagementValue = typeof avgEngagement === 'string' ? parseFloat(avgEngagement) : avgEngagement;
+  const ikuPublikasi = 0.5 * (engagementValue / 0.6) + 0.5 * (totalPublikasi / 5);
+
   const summaryCards = [
     {
       title: "Total Publikasi",
@@ -516,6 +521,19 @@ const handleDelete = async (id: number, judul: string) => {
       change: '+8%',
       description: 'Rata-rata IG, TikTok & YouTube'
     },
+    {
+      title: "IKU Publikasi",
+      value: ikuPublikasi.toFixed(2) + '%',
+      icon: <BarChart3 className="w-6 h-6" />,
+      color: 'indigo',
+      bgGradient: 'from-indigo-500 to-indigo-600',
+      bgLight: 'bg-indigo-100',
+      textColor: 'text-indigo-600',
+      textDark: 'text-indigo-800',
+      borderColor: 'border-indigo-500',
+      change: '',
+      description: 'IKU = 0.5*(Engagement/0.6) + 0.5*(Publikasi/5)'
+    }
   ]
 
   // Pagination calculations

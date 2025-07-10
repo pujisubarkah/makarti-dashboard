@@ -28,7 +28,6 @@ import {
 } from "@/components/ui/table"
 import { 
   GraduationCap, 
-  Users, 
   Clock, 
   TrendingUp, 
   Award,
@@ -296,7 +295,6 @@ export default function PelatihanPage() {
 
   // Calculate statistics
   const totalPelatihan = data.length
-  const totalPeserta = data.length
   const totalJam = data.reduce((sum, item) => sum + item.jam, 0)
   const rataRataJam = totalPelatihan > 0 ? Math.round(totalJam / totalPelatihan) : 0
   // Data for charts
@@ -434,8 +432,7 @@ export default function PelatihanPage() {
           jam: Number(formData.jam),
           tanggal: formData.tanggal
         })
-      })
-    } else {
+      })    } else {
       // Create new data
       response = await fetch(`/api/pelatihan_pegawai/${unitKerjaId}`, {
         method: 'POST',

@@ -101,6 +101,8 @@ interface WordCloudOptions {
   shrinkToFit?: boolean;
 }
 
+// (Removed duplicate PelatihanPage definition. The correct implementation is below.)
+
 function TrainingWordCloud({ data }: { data: ProcessedData[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
   useEffect(() => {
@@ -191,7 +193,15 @@ export default function PelatihanPage() {
   const [championData, setChampionData] = useState<PegawaiSummary | null>(null)
   const [championShown, setChampionShown] = useState(false)
 
-  // Ensure component is mounted before rendering client-side features
+  // State for rekapUnit summary
+  const [rekapUnit, setRekapUnit] = useState<{
+    persentase_input: number;
+    jumlah_yang_input: number;
+    total_pegawai: number;
+    jumlah_belum_input: number;
+  } | null>(null);
+
+
   useEffect(() => {
     setMounted(true)
   }, [])
@@ -305,6 +315,7 @@ export default function PelatihanPage() {
     })
     .map(([month, count]) => ({ month, pelatihan: count }))
 
+  // Remove Total Peserta card and add Persentase Input Data card
   const summaryCards = [
     {
       title: "Total Pelatihan",
@@ -320,17 +331,22 @@ export default function PelatihanPage() {
       description: 'Kegiatan pelatihan total'
     },
     {
-      title: "Total Peserta",
-      value: totalPeserta,
-      icon: <Users className="w-6 h-6" />,
-      color: 'green',
-      bgGradient: 'from-green-500 to-green-600',
-      bgLight: 'bg-green-100',
-      textColor: 'text-green-600',
-      textDark: 'text-green-800',
-      borderColor: 'border-green-500',
-      change: '+15%',
-      description: 'Pegawai yang mengikuti'
+      // Persentase Input Data card (replace Total Peserta)
+      title: 'Persentase Pegawai yang mengikuti bangkom pada unit kerja ini',
+      value: rekapUnit ? `${rekapUnit.persentase_input}%` : '-',
+      icon: <BarChart3 className="w-6 h-6" />,
+      color: 'indigo',
+      bgGradient: 'from-indigo-500 to-indigo-600',
+      bgLight: 'bg-indigo-100',
+      textColor: 'text-indigo-600',
+      textDark: 'text-indigo-800',
+      borderColor: 'border-indigo-500',
+      change: '',
+      description: rekapUnit
+        ? (rekapUnit.persentase_input === 0
+            ? 'Belum Ada yang menginput Jam Pelatihan pada unit ini'
+            : `${rekapUnit.jumlah_yang_input} dari ${rekapUnit.total_pegawai} pegawai sudah input, ${rekapUnit.jumlah_belum_input} belum input`)
+        : 'Memuat data...'
     },
     {
       title: "Total Jam",
@@ -450,6 +466,19 @@ export default function PelatihanPage() {
     setLoading(false)
   }
 }
+
+  // Fetch rekapUnit summary from API
+  useEffect(() => {
+    if (mounted && typeof window !== 'undefined') {
+      const id = localStorage.getItem('id');
+      if (id) {
+        fetch(`/api/pelatihan_pegawai/${id}/input`)
+          .then(res => res.ok ? res.json() : Promise.reject('Gagal fetch summary'))
+          .then(data => setRekapUnit(data))
+          .catch(() => setRekapUnit(null));
+      }
+    }
+  }, [mounted])
 
   return (
     <div className="p-6 space-y-8 bg-gray-50 min-h-screen">

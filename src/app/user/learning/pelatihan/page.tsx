@@ -623,7 +623,7 @@ export default function PelatihanPage() {
                       value={formData.jam}
                       onChange={handleChange}
                       min="1"
-                      max="24"
+                      max="999"
                       required
                       placeholder="Misal: 6"
                     />

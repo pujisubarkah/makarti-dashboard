@@ -16,6 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           users: {
             select: {
               unit_kerja: true,
+              alias: true,
             }
           }
         },

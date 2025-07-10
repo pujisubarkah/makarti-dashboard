@@ -28,6 +28,7 @@ interface PelatihanData {
   }
   users: {
     unit_kerja: string
+    alias: string
   }
 }
 
@@ -35,6 +36,7 @@ interface ProcessedData {
   id: number
   nama: string
   unit: string
+  alias: string
   judul: string
   jam: number
   tanggal: string
@@ -119,12 +121,12 @@ export default function PelatihanPage() {
       }
 
       const data: PelatihanData[] = await response.json()
-      
-      // Transform API data to match component structure
+        // Transform API data to match component structure
       const processedData: ProcessedData[] = data.map(item => ({
         id: item.id,
         nama: item.pegawai?.nama || 'Unknown',
         unit: item.users?.unit_kerja || 'Unknown Unit',
+        alias: item.users?.alias || 'Unknown',
         judul: item.judul,
         jam: item.jam,
         tanggal: new Date(item.tanggal).toLocaleDateString('id-ID')
@@ -234,19 +236,19 @@ export default function PelatihanPage() {
   const totalJam = dataPelatihan.reduce((sum, item) => sum + item.jam, 0)
   const totalPegawai = new Set(dataPelatihan.map(d => d.nama)).size
   const totalUnit = new Set(dataPelatihan.map(d => d.unit)).size
-
   // Hitung rata-rata jam per unit untuk ranking
   const unitStats = Object.entries(
     dataPelatihan.reduce((acc, item) => {
       if (!acc[item.unit]) {
-        acc[item.unit] = { totalJam: 0, pegawai: new Set() }
+        acc[item.unit] = { totalJam: 0, pegawai: new Set(), alias: item.alias }
       }
       acc[item.unit].totalJam += item.jam
       acc[item.unit].pegawai.add(item.nama)
       return acc
-    }, {} as Record<string, { totalJam: number; pegawai: Set<string> }>)
+    }, {} as Record<string, { totalJam: number; pegawai: Set<string>; alias: string }>)
   ).map(([unit, stats]) => ({
     unit,
+    alias: stats.alias,
     totalJam: stats.totalJam,
     jumlahPegawai: stats.pegawai.size,
     rataJam: stats.totalJam / stats.pegawai.size
@@ -369,23 +371,21 @@ export default function PelatihanPage() {
       textDark: 'text-orange-800',
       borderColor: 'border-orange-500'
     },
-  ]
-
-  // Data untuk grafik
-  const barData = unitStats.map(unit => ({
-    unit: unit.unit,
+  ]  // Data untuk grafik rata-rata jam pelatihan per unit
+  const barDataRataJam = unitStats.map(unit => ({
+    unitKerja: unit.alias,
     rataJam: parseFloat(unit.rataJam.toFixed(1)),
     totalJam: unit.totalJam,
     pegawai: unit.jumlahPegawai
   }))
 
-  // Data untuk pie chart
-  const pieData = Object.entries(
+  // Data untuk bar chart distribusi pelatihan per unit
+  const barDataDistribusi = Object.entries(
     dataPelatihan.reduce((acc, item) => {
-      acc[item.unit] = (acc[item.unit] || 0) + 1
+      acc[item.alias] = (acc[item.alias] || 0) + 1
       return acc
     }, {} as Record<string, number>)
-  ).map(([unit, count]) => ({ name: unit, value: count }))
+  ).map(([alias, count]) => ({ unitKerja: alias, count }))
 
   return (
     <div className="p-6">
@@ -968,9 +968,7 @@ export default function PelatihanPage() {
             </div>
           </div>
         )}
-      </div>
-
-      {/* Enhanced Charts */}
+      </div>      {/* Enhanced Charts */}
       {dataPelatihan.length > 0 && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           <div className="bg-white shadow-lg rounded-xl p-6">
@@ -980,9 +978,9 @@ export default function PelatihanPage() {
             </h2>
             <div className="h-[350px]">
               <ResponsiveContainer>
-                <BarChart data={barData}>
+                <BarChart data={barDataRataJam}>
                   <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                  <XAxis dataKey="unit" tick={{ fontSize: 12 }} />
+                  <XAxis dataKey="unitKerja" tick={{ fontSize: 12 }} />
                   <YAxis 
                     label={{ value: 'Jam', angle: -90, position: 'insideLeft' }} 
                     tick={{ fontSize: 12 }}
@@ -1018,26 +1016,43 @@ export default function PelatihanPage() {
 
           <div className="bg-white shadow-lg rounded-xl p-6">
             <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
-              <span className="mr-2">🥧</span>
+              <span className="mr-2">📊</span>
               Distribusi Pelatihan per Unit
             </h2>
             <div className="h-[350px]">
               <ResponsiveContainer>
-                <PieChart>
-                  <Pie
-                    data={pieData}
-                    dataKey="value"
-                    nameKey="name"
-                    outerRadius={120}
-                    label={({ name, percent }) => `${name}: ${(percent * 100).toFixed(0)}%`}
-                  >
-                    {pieData.map((_, i) => (
-                      <Cell key={i} fill={COLORS[i % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip />
+                <BarChart data={barDataDistribusi}>
+                  <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
+                  <XAxis dataKey="unitKerja" tick={{ fontSize: 12 }} />
+                  <YAxis 
+                    label={{ value: 'Jumlah', angle: -90, position: 'insideLeft' }} 
+                    tick={{ fontSize: 12 }}
+                  />
+                  <Tooltip 
+                    contentStyle={{ 
+                      backgroundColor: '#f8fafc', 
+                      border: '1px solid #e2e8f0',
+                      borderRadius: '8px'
+                    }}
+                    formatter={(value, name) => [
+                      `${value} pelatihan`,
+                      name === 'count' ? 'Jumlah Pelatihan' : name
+                    ]}
+                  />
                   <Legend />
-                </PieChart>
+                  <Bar 
+                    dataKey="count" 
+                    fill="url(#colorGradient2)" 
+                    name="Jumlah Pelatihan"
+                    radius={[4, 4, 0, 0]}
+                  />
+                  <defs>
+                    <linearGradient id="colorGradient2" x1="0" y1="0" x2="0" y2="1">
+                      <stop offset="5%" stopColor="#10b981" stopOpacity={0.8}/>
+                      <stop offset="95%" stopColor="#047857" stopOpacity={0.8}/>
+                    </linearGradient>
+                  </defs>
+                </BarChart>
               </ResponsiveContainer>
             </div>
           </div>

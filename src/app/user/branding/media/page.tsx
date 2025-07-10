@@ -189,8 +189,8 @@ export default function PublikasiPage() {
     unit_kerja_id: number;
   }
   const topUnits = React.useMemo(() => {
-    if (!groupData || !Array.isArray(groupData.units)) return [];
-    return (groupData.units as UnitType[]).sort((a, b) => b.jumlah_publikasi - a.jumlah_publikasi).slice(0, 3);
+    if (!groupData || !Array.isArray(groupData.summary?.top_unit_kerja)) return [];
+    return (groupData.summary.top_unit_kerja as UnitType[]).slice(0, 3);
   }, [groupData])
 
   // Function to handle unit click (simplified for user page)
@@ -1601,7 +1601,7 @@ const handleDelete = async (id: number, judul: string) => {
               </div>
             </div>
           </div>
-        </DialogContent>
+          </DialogContent>
       </Dialog>
     </div>
   )

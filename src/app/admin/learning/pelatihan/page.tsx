@@ -100,7 +100,7 @@ export default function PelatihanPage() {
         // Urutkan berdasarkan persentase_input (desc)
         const sorted = [...data].sort((a, b) => parseFloat(b.persentase_input) - parseFloat(a.persentase_input))
         setPersenInputUnits(sorted)
-      } catch (_) {
+      } catch {
         setErrorPersenInput('Gagal memuat data persentase input')
       } finally {
         setLoadingPersenInput(false)

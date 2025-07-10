@@ -48,7 +48,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       return res.status(200).json(formattedData);
     } else if (req.method === "PUT") {
-      const { pegawai_id, judul, jam, tanggal } = req.body;
+      const { pegawai_id, judul, jam, tanggal, sertifikat } = req.body;
 
       // Validasi data
       if (!judul || !tanggal || !pegawai_id || !jam) {
@@ -61,13 +61,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           judul,
           jam: parseInt(jam.toString()),
           tanggal: new Date(tanggal),
-          sertifikat,
           pegawai_id: parseInt(pegawai_id.toString()),
           unit_kerja_id: unitKerjaId,
+          ...(sertifikat !== undefined && sertifikat !== null && sertifikat !== "" ? { sertifikat } : {}),
         },
         include: {
           pegawai: {
-            select: { id: true, nama: true },
+        select: { id: true, nama: true },
           },
         },
       });

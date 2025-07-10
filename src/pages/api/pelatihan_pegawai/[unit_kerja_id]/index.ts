@@ -49,7 +49,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "unit_kerja_id tidak valid" });
       }
 
-      const { pegawai_id, judul, jam, tanggal } = req.body;
+      const { pegawai_id, judul, jam, tanggal, sertifikat } = req.body;
 
       if (!judul || !tanggal || !pegawai_id || !jam) {
         return res.status(400).json({ error: "Data pelatihan tidak lengkap" });
@@ -60,7 +60,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           judul,
           jam: parseInt(jam),
           tanggal: new Date(tanggal),
-          sertifikat,
+          sertifikat: sertifikat ?? null,
           unit_kerja_id: unitKerjaId,
           pegawai_id: parseInt(pegawai_id),
         },

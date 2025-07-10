@@ -284,20 +284,20 @@ export default function RingkasanMakartiPage() {
         let avgTrainingPercent = 0
         try {
           const pelatihanSummaryResponse = await fetch('/api/pelatihan_pegawai/summary')
-          const pelatihanSummary = await pelatihanSummaryResponse.json()
+          const pelatihanSummary: Array<{ nama: string; unit_kerja: string | null; total_jam: number; rata_rata_jam: number; jumlah_pelatihan: number }> = await pelatihanSummaryResponse.json()
           // pelatihanSummary is array of { nama, unit_kerja, total_jam, rata_rata_jam, jumlah_pelatihan }
-          const totalJam = pelatihanSummary.reduce((sum: number, p: any) => sum + (p.total_jam || 0), 0)
+          const totalJam = pelatihanSummary.reduce((sum, p) => sum + (p.total_jam || 0), 0)
           const employeeCount = pelatihanSummary.length
           const targetJam = 20
           avgTrainingPercent = employeeCount > 0 ? Math.min(100, Math.round((totalJam / (employeeCount * targetJam)) * 100)) : 0
-        } catch (err) {
+        } catch {
           // fallback: use pelatihan events from kegiatanAll
-          const pelatihanEvents = kegiatanAll.filter((event: any) => event.type?.toLowerCase().includes('pelatihan') || event.type?.toLowerCase().includes('training'))
+          const pelatihanEvents = kegiatanAll.filter((event: Kegiatan) => event.type?.toLowerCase().includes('pelatihan') || event.type?.toLowerCase().includes('training'))
           const employeeResponse = await fetch('/api/employee')
-          const employees: any[] = await employeeResponse.json()
+          const employees: unknown[] = await employeeResponse.json()
           const employeeCount = employees.length
           const targetJam = 20
-          let totalTrainingHours = pelatihanEvents.length * 2
+          const totalTrainingHours = pelatihanEvents.length * 2
           avgTrainingPercent = employeeCount > 0 ? Math.min(100, Math.round((totalTrainingHours / (employeeCount * targetJam)) * 100)) : 0
         }
 

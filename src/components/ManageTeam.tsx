@@ -13,14 +13,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useState, useEffect } from "react";
-import { Dialog, DialogTrigger, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { 
   Users, 
-  UserPlus, 
   Search, 
   Calendar,
   Clock,
@@ -32,11 +31,9 @@ import {
   Briefcase,
   Eye,
   Edit,
-  Trash2,
-  MessageSquare,
+  FileText,
   UserCheck,
-  CalendarPlus,
-  FileText
+  CalendarPlus
 } from "lucide-react";
 
 // TypeScript interfaces
@@ -97,17 +94,16 @@ interface TeamMember {
   email: string;
   phone: string;
   department: string;
-  status: string;
   expertise: string[];
   eventHistory: EventHistoryItem[];
   upcomingEvents: UpcomingEvent[];
+  status: "active" | "onleave" | "inactive"; // Added status property
 }
 
 // Enhanced Data Structure with Event Assignment capabilities
 // Default fallback data while loading
 const defaultTeamData: TeamMember[] = [];
 
-// Helper function to transform API data to TeamMember format
 const transformApiToTeamMember = (apiEmployee: ApiEmployee): TeamMember => {
   return {
     id: apiEmployee.id,
@@ -116,11 +112,11 @@ const transformApiToTeamMember = (apiEmployee: ApiEmployee): TeamMember => {
     email: `${apiEmployee.nama.toLowerCase().replace(/[^a-z0-9]/g, '.')}@lan.go.id`,
     phone: "+62 8xx-xxxx-xxxx", // Default phone, bisa diupdate nanti
     department: getDepartmentFromJabatan(apiEmployee.jabatan),
-    status: "active", // Default status
-    expertise: getExpertiseFromJabatan(apiEmployee.jabatan),
+    expertise: [], // No longer using getExpertiseFromJabatan
     eventHistory: [],
-    upcomingEvents: []
-  };
+    upcomingEvents: [],
+  status: "active" // Default status
+};
 };
 
 // Helper function to determine department from jabatan
@@ -129,13 +125,11 @@ const getDepartmentFromJabatan = (jabatan: string): string => {
   return jabatan || "Unit Kerja";
 };
 
-// Helper function to determine expertise from jabatan
-const getExpertiseFromJabatan = (jabatan: string): string[] => {
-  if (jabatan.includes("Direktur")) return ["Leadership", "Management", "Strategic Planning"];
-  if (jabatan.includes("Analis")) return ["Data Analysis", "Policy Research", "Report Writing"];
-  if (jabatan.includes("Pengolah Data")) return ["Data Processing", "Information Management", "Analytics"];
-  if (jabatan.includes("Pengadministrasi")) return ["Document Management", "Office Administration", "Administrative Support"];
-  return ["General Skills"];
+// Helper function to normalize a date to midnight (00:00:00)
+const normalizeToMidnight = (date: Date): Date => {
+  const d = new Date(date);
+  d.setHours(0, 0, 0, 0);
+  return d;
 };
 
 // Helper function to transform API kegiatan to UpcomingEventItem
@@ -193,25 +187,9 @@ const transformApiKegiatanToEvent = (apiKegiatan: ApiKegiatan): UpcomingEventIte
   };
 };
 
-const positions = ["Direktur", "Kepala Unit", "Senior Analis", "Analis", "Pengolah Data", "Pengadministrasi", "Staff"];
-const eventRoles = ["moderator", "presenter", "facilitator", "trainer", "technical_support", "participant", "coordinator"];
-
-// Helper: normalize date to midnight
-const normalizeToMidnight = (date: Date) => {
-  const d = new Date(date);
-  d.setHours(0, 0, 0, 0);
-  return d;
-};
-
 export default function ManageTeam() {
-  const [newMember, setNewMember] = useState({ 
-    name: "", 
-    position: "", 
-    email: "", 
-    phone: "",
-    expertise: ""
-  });
   const [members, setMembers] = useState<TeamMember[]>(defaultTeamData);
+  const [uniquePositions, setUniquePositions] = useState<string[]>([]);
   const [upcomingEvents, setUpcomingEvents] = useState<UpcomingEventItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [eventsLoading, setEventsLoading] = useState(true);
@@ -220,7 +198,24 @@ export default function ManageTeam() {
   const [showEventAssignment, setShowEventAssignment] = useState(false);
   const [selectedMembers, setSelectedMembers] = useState<number[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
-  const [filterStatus, setFilterStatus] = useState("all");
+  const [eventRoles, setEventRoles] = useState<{ id: number; role_name: string }[]>([]);
+  const [eventRolesLoading, setEventRolesLoading] = useState(true);
+
+  // Add state to track selected roles for each member
+  const [selectedRoles, setSelectedRoles] = useState<{ [memberId: number]: string }>({});
+
+  // Add state for assignments fetched from backend
+  const [assignments, setAssignments] = useState<unknown[]>([]);
+  const [assignmentsLoading, setAssignmentsLoading] = useState(true);
+
+  // State for view and edit dialogs
+  const [viewMember, setViewMember] = useState<TeamMember | null>(null);
+  const [editMember, setEditMember] = useState<TeamMember | null>(null);
+  const [showViewDialog, setShowViewDialog] = useState(false);
+  const [showEditDialog, setShowEditDialog] = useState(false);
+
+  // State for event report dialog
+  const [showEventReport, setShowEventReport] = useState(false);
 
   // Fetch team data from API
   useEffect(() => {
@@ -242,9 +237,13 @@ export default function ManageTeam() {
         const transformedMembers = apiEmployees.map(transformApiToTeamMember);
         
         setMembers(transformedMembers);
+
+        // Extract unique positions (jabatan)
+        const positionsSet = new Set(apiEmployees.map(emp => emp.jabatan).filter(Boolean));
+        setUniquePositions(Array.from(positionsSet));
+        
         setError(null);
-      } catch (err) {
-        console.error('Error fetching team data:', err);
+      } catch {
         setError('Gagal memuat data tim. Menggunakan data fallback.');
         // Keep default empty data or show error message
       } finally {
@@ -288,8 +287,7 @@ export default function ManageTeam() {
         });
         
         setUpcomingEvents(futureEvents);
-      } catch (err) {
-        console.error('Error fetching events data:', err);
+      } catch {
         setUpcomingEvents([]);
       } finally {
         setEventsLoading(false);
@@ -299,79 +297,61 @@ export default function ManageTeam() {
     fetchEventsData();
   }, []);
 
-  const handleAddMember = async () => {
-    if (!newMember.name || !newMember.position || !newMember.email) return;
-    
-    const newId = Math.max(...members.map(m => m.id), 0) + 1;
-    const fullNewMember: TeamMember = {
-      ...newMember,
-      id: newId,
-      department: getDepartmentFromJabatan(newMember.position), // Add department property
-      status: "active",
-      expertise: newMember.expertise ? newMember.expertise.split(",").map(s => s.trim()) : [],
-      eventHistory: [],
-      upcomingEvents: []
-    };
-    
-    setMembers([...members, fullNewMember]);
-    setNewMember({ 
-      name: "", 
-      position: "", 
-      email: "", 
-      phone: "",
-      expertise: ""
-    });
-  };
-
-  const handleAssignToEvent = (eventId: number, memberIds: number[], roles: { [key: number]: string }) => {
-    // Update member's upcomingEvents
-    const updatedMembers = members.map((member: TeamMember) => {
-      if (memberIds.includes(member.id)) {
-        const newEvent: UpcomingEvent = {
-          eventId,
-          title: upcomingEvents.find(e => e.id === eventId)?.title || "Unknown Event",
-          role: roles[member.id] || "participant",
-          confirmed: false
-        };
-        return {
-          ...member,
-          upcomingEvents: [...member.upcomingEvents, newEvent]
-        };
+  // Fetch event roles from API
+  useEffect(() => {
+    const fetchEventRoles = async () => {
+      try {
+        setEventRolesLoading(true);
+        const response = await fetch('/api/event_role');
+        if (!response.ok) throw new Error('Failed to fetch event roles');
+        const data = await response.json();
+        setEventRoles(data);
+      } catch {
+        setEventRoles([]);
+      } finally {
+        setEventRolesLoading(false);
       }
-      return member;
-    });
-    setMembers(updatedMembers);
-    alert(`${memberIds.length} anggota tim berhasil ditugaskan ke acara!`);
-  };
+    };
+    fetchEventRoles();
+  }, []);
 
-  const getStatusBadge = (status: string) => {
-    switch (status) {
-      case "active":
-        return <Badge className="bg-green-500 hover:bg-green-600">Aktif</Badge>;
-      case "onleave":
-        return <Badge variant="secondary">Cuti</Badge>;
-      case "inactive":
-        return <Badge variant="outline">Nonaktif</Badge>;
-      default:
-        return <Badge variant="outline">-</Badge>;
-    }
-  };
+  // Fetch assignments from API on mount and after assignment
+  useEffect(() => {
+    const fetchAssignments = async () => {
+      try {
+        setAssignmentsLoading(true);
+        const response = await fetch('/api/assignment');
+        if (!response.ok) throw new Error('Failed to fetch assignments');
+        const data = await response.json();
+        setAssignments(data);
+      } catch {
+        setAssignments([]);
+      } finally {
+        setAssignmentsLoading(false);
+      }
+    };
+    fetchAssignments();
+  }, []);
 
-  const getEventParticipationBadge = (member: TeamMember) => {
-    const totalEvents = member.eventHistory.length + member.upcomingEvents.length;
-    const attendedEvents = member.eventHistory.filter((e: EventHistoryItem) => e.status === "attended").length;
-    
-    if (totalEvents === 0) {
-      return <Badge variant="outline" className="text-xs">Belum Ada Event</Badge>;
-    }
-    
-    const participationRate = attendedEvents / member.eventHistory.length || 0;
-    if (participationRate >= 0.8) {
-      return <Badge className="bg-green-500 text-xs">Aktif ({totalEvents} events)</Badge>;
-    } else if (participationRate >= 0.5) {
-      return <Badge className="bg-yellow-500 text-xs">Sedang ({totalEvents} events)</Badge>;
-    } else {
-      return <Badge variant="secondary" className="text-xs">Rendah ({totalEvents} events)</Badge>;
+  // Function to handle posting assignments and refreshing state
+  const handleAssignAndRefresh = async (assignmentsToPost: unknown[]) => {
+    try {
+      // Post assignments to backend
+      const response = await fetch('/api/assignment', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(assignmentsToPost),
+      });
+      if (!response.ok) throw new Error('Failed to assign team members');
+      // Refresh assignments
+      const assignmentsRes = await fetch('/api/assignment');
+      if (assignmentsRes.ok) {
+        const data = await assignmentsRes.json();
+        setAssignments(data);
+      }
+      setShowEventAssignment(false);
+    } catch {
+      alert('Gagal melakukan assignment tim.');
     }
   };
 
@@ -380,9 +360,7 @@ export default function ManageTeam() {
     const matchesSearch = member.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          member.position.toLowerCase().includes(searchQuery.toLowerCase()) ||
                          member.email.toLowerCase().includes(searchQuery.toLowerCase());
-    const matchesStatus = filterStatus === "all" || member.status === filterStatus;
-    
-    return matchesSearch && matchesStatus;
+    return matchesSearch;
   });
 
   return (
@@ -456,8 +434,8 @@ export default function ManageTeam() {
                   });
                   setUpcomingEvents(futureEvents);
                 }
-              } catch (err) {
-                console.error('Error refreshing events:', err);
+              } catch {
+                console.error('Error refreshing events');
               } finally {
                 setEventsLoading(false);
               }
@@ -468,78 +446,10 @@ export default function ManageTeam() {
             <Calendar className="w-4 h-4" />
             {eventsLoading ? 'Memuat...' : 'Refresh Events'}
           </Button>
-          <Button variant="outline" className="flex items-center gap-2">
+          <Button variant="outline" className="flex items-center gap-2" onClick={() => setShowEventReport(true)}>
             <FileText className="w-4 h-4" />
             Laporan Event
           </Button>
-          <Dialog>
-            <DialogTrigger asChild>
-              <Button className="flex items-center gap-2">
-                <UserPlus className="w-4 h-4" />
-                Tambah Pegawai
-              </Button>
-            </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
-                <DialogTitle>Tambah Anggota Tim Baru</DialogTitle>
-              </DialogHeader>
-              <div className="space-y-4 py-4">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Nama Lengkap</Label>
-                    <Input 
-                      value={newMember.name} 
-                      onChange={(e) => setNewMember({...newMember, name: e.target.value})} 
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Jabatan</Label>
-                    <Select value={newMember.position} onValueChange={(value) => setNewMember({...newMember, position: value})}>
-                      <SelectTrigger>
-                        <SelectValue placeholder="Pilih jabatan" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {positions.map(pos => (
-                          <SelectItem key={pos} value={pos}>{pos}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label>Email</Label>
-                    <Input 
-                      type="email" 
-                      value={newMember.email} 
-                      onChange={(e) => setNewMember({...newMember, email: e.target.value})} 
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label>Telepon</Label>
-                    <Input 
-                      value={newMember.phone} 
-                      onChange={(e) => setNewMember({...newMember, phone: e.target.value})} 
-                    />
-                  </div>
-                </div>
-                
-                <div className="space-y-2">
-                  <Label>Keahlian (pisahkan dengan koma)</Label>
-                  <Input 
-                    value={newMember.expertise} 
-                    onChange={(e) => setNewMember({...newMember, expertise: e.target.value})} 
-                    placeholder="contoh: Leadership, Management, Data Analysis"
-                  />
-                </div>
-                
-                <Button onClick={handleAddMember} className="w-full mt-4">
-                  Tambah Anggota Tim
-                </Button>
-              </div>
-            </DialogContent>
-          </Dialog>
         </div>
       </div>
 
@@ -625,7 +535,7 @@ export default function ManageTeam() {
               />
             </div>
             
-            <Select value={filterStatus} onValueChange={setFilterStatus}>
+            <Select value="all">
               <SelectTrigger className="w-full lg:w-48">
                 <SelectValue placeholder="Filter Status" />
               </SelectTrigger>
@@ -663,9 +573,7 @@ export default function ManageTeam() {
               <TableRow>
                 <TableHead>Pegawai</TableHead>
                 <TableHead>Kontak</TableHead>
-                <TableHead>Status</TableHead>
                 <TableHead>Event Mendatang</TableHead>
-                <TableHead>Partisipasi</TableHead>
                 <TableHead className="text-right">Aksi</TableHead>
               </TableRow>
             </TableHeader>
@@ -708,30 +616,28 @@ export default function ManageTeam() {
                   </TableCell>
                   
                   <TableCell>
-                    {getStatusBadge(member.status)}
-                  </TableCell>
-                  
-                  <TableCell>
                     <div className="space-y-1">
-                      {member.upcomingEvents.length > 0 ? (
-                        member.upcomingEvents.map((event: UpcomingEvent, idx: number) => (
-                          <div key={idx} className="text-xs">
-                            <Badge variant="outline" className="text-xs">
-                              {event.title}
-                            </Badge>
-                            <div className="text-gray-500 mt-1">
-                              Role: {event.role}
-                            </div>
-                          </div>
-                        ))
+                      {assignmentsLoading ? (
+                        <span className="text-xs text-gray-400">Memuat assignment...</span>
                       ) : (
-                        <span className="text-xs text-gray-400">Tidak ada assignment</span>
+                        (assignments as Array<{ employee_id: number; event_id: number; role_id: number }>).filter(a => a.employee_id === member.id).length > 0 ? (
+                          (assignments as Array<{ employee_id: number; event_id: number; role_id: number }>).
+                            filter(a => a.employee_id === member.id).
+                            map((a, idx: number) => (
+                            <div key={idx} className="text-xs">
+                              <Badge variant="outline" className="text-xs">
+                                {upcomingEvents.find(e => e.id === a.event_id)?.title || `Event #${a.event_id}`}
+                              </Badge>
+                              <div className="text-gray-500 mt-1">
+                                Role: {eventRoles.find(r => r.id === a.role_id)?.role_name || a.role_id}
+                              </div>
+                            </div>
+                          ))
+                        ) : (
+                          <span className="text-xs text-gray-400">Tidak ada assignment</span>
+                        )
                       )}
                     </div>
-                  </TableCell>
-                  
-                  <TableCell>
-                    {getEventParticipationBadge(member)}
                   </TableCell>
                   
                   <TableCell className="text-right">
@@ -740,29 +646,17 @@ export default function ManageTeam() {
                         variant="ghost" 
                         size="sm"
                         className="hover:bg-blue-50"
+                        onClick={() => { setViewMember(member); setShowViewDialog(true); }}
                       >
                         <Eye className="w-4 h-4" />
                       </Button>
                       <Button 
                         variant="ghost" 
                         size="sm"
-                        className="hover:bg-green-50"
-                      >
-                        <MessageSquare className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
                         className="hover:bg-yellow-50"
+                        onClick={() => { setEditMember(member); setShowEditDialog(true); }}
                       >
                         <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button 
-                        variant="ghost" 
-                        size="sm"
-                        className="hover:bg-red-50 text-red-600"
-                      >
-                        <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
                   </TableCell>
@@ -914,16 +808,25 @@ export default function ManageTeam() {
                           </div>
                         </div>
                         {selectedMembers.includes(member.id) && (
-                          <Select defaultValue="participant">
+                          <Select
+                            value={selectedRoles[member.id] || eventRoles[0]?.role_name || ""}
+                            onValueChange={(value) => setSelectedRoles({ ...selectedRoles, [member.id]: value })}
+                          >
                             <SelectTrigger className="w-32">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
-                              {eventRoles.map(role => (
-                                <SelectItem key={role} value={role}>
-                                  {role.charAt(0).toUpperCase() + role.slice(1).replace('_', ' ')}
-                                </SelectItem>
-                              ))}
+                              {eventRolesLoading ? (
+                                <SelectItem value="" disabled>Memuat role...</SelectItem>
+                              ) : eventRoles.length === 0 ? (
+                                <SelectItem value="" disabled>Tidak ada role</SelectItem>
+                              ) : (
+                                eventRoles.map(role => (
+                                  <SelectItem key={role.id} value={role.role_name}>
+                                    {role.role_name.charAt(0).toUpperCase() + role.role_name.slice(1).replace('_', ' ')}
+                                  </SelectItem>
+                                ))
+                              )}
                             </SelectContent>
                           </Select>
                         )}
@@ -941,21 +844,175 @@ export default function ManageTeam() {
                     <Button variant="outline" onClick={() => setShowEventAssignment(false)}>
                       Batal
                     </Button>
-                    <Button 
-                      onClick={() => {
-                        handleAssignToEvent(selectedEvent.id, selectedMembers, {});
-                        setShowEventAssignment(false);
-                        setSelectedMembers([]);
-                        setSelectedEvent(null);
-                      }}
-                      disabled={selectedMembers.length === 0}
-                    >
-                      Assign Tim ({selectedMembers.length})
-                    </Button>
+                    <Button
+  onClick={async () => {
+    const assignmentsToPost = selectedMembers.map(memberId => {
+      const roleName = selectedRoles[memberId] || eventRoles[0]?.role_name;
+      const roleObj = eventRoles.find(r => r.role_name === roleName);
+      return {
+        event_id: selectedEvent.id,
+        employee_id: memberId,
+        role_id: roleObj?.id,
+        confirmed: false
+      };
+    });
+    await handleAssignAndRefresh(assignmentsToPost);
+  }}
+  disabled={selectedMembers.length === 0 || selectedMembers.some(id => !selectedRoles[id])}
+>
+  Assign Tim ({selectedMembers.length})
+</Button>
                   </div>
                 </div>
               </>
             )}
+          </div>
+        </DialogContent>
+      </Dialog>
+
+      {/* View Member Dialog */}
+      <Dialog open={showViewDialog} onOpenChange={setShowViewDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Detail Pegawai</DialogTitle>
+          </DialogHeader>
+          {viewMember && (
+            <div className="space-y-2">
+              <div className="flex items-center gap-3">
+                <Avatar className="h-12 w-12">
+                  <AvatarImage src={`https://i.pravatar.cc/150?img=${viewMember.id}`} />
+                  <AvatarFallback>{viewMember.name.slice(0,2).toUpperCase()}</AvatarFallback>
+                </Avatar>
+                <div>
+                  <div className="font-bold text-lg">{viewMember.name}</div>
+                  <div className="text-sm text-gray-500">{viewMember.position}</div>
+                  <div className="text-xs text-blue-600">{viewMember.expertise.join(", ")}</div>
+                </div>
+              </div>
+              <div className="text-sm mt-2">
+                <div><b>Email:</b> {viewMember.email}</div>
+                <div><b>Telepon:</b> {viewMember.phone}</div>
+                <div><b>Jabatan:</b> {viewMember.department}</div>
+              </div>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Member Dialog */}
+      <Dialog open={showEditDialog} onOpenChange={setShowEditDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Data Pegawai</DialogTitle>
+          </DialogHeader>
+          {editMember && (
+            <div className="space-y-4 py-4">
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Nama Lengkap</Label>
+                  <Input 
+                    value={editMember.name} 
+                    onChange={e => setEditMember({ ...editMember, name: e.target.value })} 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Jabatan</Label>
+                  <Select value={editMember.position} onValueChange={value => setEditMember({ ...editMember, position: value })}>
+                    <SelectTrigger>
+                      <SelectValue placeholder="Pilih jabatan" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {uniquePositions.map(pos => (
+                        <SelectItem key={pos} value={pos}>{pos}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label>Email</Label>
+                  <Input 
+                    type="email" 
+                    value={editMember.email} 
+                    onChange={e => setEditMember({ ...editMember, email: e.target.value })} 
+                  />
+                </div>
+                <div className="space-y-2">
+                  <Label>Telepon</Label>
+                  <Input 
+                    value={editMember.phone} 
+                    onChange={e => setEditMember({ ...editMember, phone: e.target.value })} 
+                  />
+                </div>
+              </div>
+              <Button className="w-full mt-4" onClick={() => {
+                setMembers(members.map(m => m.id === editMember.id ? editMember : m));
+                setShowEditDialog(false);
+              }}>
+                Simpan Perubahan
+              </Button>
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Event Report Dialog */}
+      <Dialog open={showEventReport} onOpenChange={setShowEventReport}>
+        <DialogContent className="max-w-3xl">
+          <DialogHeader>
+            <DialogTitle>Laporan Event & Assignment</DialogTitle>
+          </DialogHeader>
+          <div className="overflow-x-auto max-h-[70vh]">
+            <Table>
+              <TableHeader>
+                <TableRow>
+                  <TableHead>Event</TableHead>
+                  <TableHead>Tanggal</TableHead>
+                  <TableHead>Lokasi</TableHead>
+                  <TableHead>Jenis</TableHead>
+                  <TableHead>Tim & Role</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {upcomingEvents.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={5} className="text-center text-gray-400">Tidak ada event</TableCell>
+                  </TableRow>
+                ) : (
+                  upcomingEvents.map(event => {
+                    // Ambil assignment untuk event ini
+                    const eventAssignments = (assignments as Array<{ employee_id: number; event_id: number; role_id: number }>).
+                      filter(a => a.event_id === event.id);
+                    return (
+                      <TableRow key={event.id}>
+                        <TableCell>{event.title}</TableCell>
+                        <TableCell>{new Date(event.date).toLocaleDateString('id-ID')}</TableCell>
+                        <TableCell>{event.location}</TableCell>
+                        <TableCell>{event.type}</TableCell>
+                        <TableCell>
+                          {eventAssignments.length === 0 ? (
+                            <span className="text-xs text-gray-400">Belum ada assignment</span>
+                          ) : (
+                            <ul className="text-xs space-y-1">
+                              {eventAssignments.map((a, idx) => {
+                                const member = members.find(m => m.id === a.employee_id);
+                                const role = eventRoles.find(r => r.id === a.role_id)?.role_name || a.role_id;
+                                return (
+                                  <li key={idx}>
+                                    <span className="font-medium">{member?.name || a.employee_id}</span> <span className="text-gray-500">({member?.position})</span> - <span className="text-blue-600">{role}</span>
+                                  </li>
+                                );
+                              })}
+                            </ul>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })
+                )}
+              </TableBody>
+            </Table>
           </div>
         </DialogContent>
       </Dialog>

@@ -53,6 +53,7 @@ interface PenyelenggaraanItem {
   namaKegiatan: string
   tanggal: string
   jumlahPeserta: number
+  daftar_hadir?: string | null
   jenis_bangkom_non_pelatihan?: {
     jenis_bangkom: string
   }
@@ -84,12 +85,12 @@ export default function PenyelenggaraanBangkomPage() {
   const [filterJenis, setFilterJenis] = useState<string>('all') 
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage, setItemsPerPage] = useState(5)
-
   const [formData, setFormData] = useState({
     namaKegiatan: '',
     tanggal: '',
     jenis_bangkom_id: '',
-    jumlahPeserta: ''
+    jumlahPeserta: '',
+    daftar_hadir: ''
   })
 
   // All useEffect hooks - keep them together after useState
@@ -283,9 +284,7 @@ export default function PenyelenggaraanBangkomPage() {
           const unitKerjaId = localStorage.getItem("id")
           if (!unitKerjaId) {
             throw new Error("Unit kerja ID tidak ditemukan")
-          }
-
-          const response = await fetch(`/api/penyelenggaraan/${unitKerjaId}`, {
+          }          const response = await fetch(`/api/penyelenggaraan/${unitKerjaId}`, {
             method: 'POST',
             headers: {
               'Content-Type': 'application/json',
@@ -295,6 +294,7 @@ export default function PenyelenggaraanBangkomPage() {
               tanggal: formData.tanggal,
               jenis_bangkom_id: parseInt(formData.jenis_bangkom_id),
               jumlahPeserta: parseInt(formData.jumlahPeserta),
+              daftar_hadir: formData.daftar_hadir || null,
             }),
           })
 
@@ -313,13 +313,12 @@ export default function PenyelenggaraanBangkomPage() {
               const refreshedData = await refreshResponse.json()
               setData(refreshedData)
             }
-          }
-
-          setFormData({
+          }          setFormData({
             namaKegiatan: '',
             tanggal: '',
             jenis_bangkom_id: '',
-            jumlahPeserta: ''
+            jumlahPeserta: '',
+            daftar_hadir: ''
           })
           setShowModal(false)
 
@@ -339,6 +338,7 @@ export default function PenyelenggaraanBangkomPage() {
       error: (err) => `Error: ${err.message || 'Terjadi kesalahan saat menyimpan data'}`,
     })
   }
+  
   const handleEdit = (item: PenyelenggaraanItem) => {
     setEditingItem(item)
     
@@ -350,7 +350,8 @@ export default function PenyelenggaraanBangkomPage() {
       tanggal: formattedDate,
       jenis_bangkom_id: item.jenis_bangkom_non_pelatihan ? 
         options.find(opt => opt.jenis_bangkom === item.jenis_bangkom_non_pelatihan?.jenis_bangkom)?.id.toString() || '' : '',
-      jumlahPeserta: item.jumlahPeserta.toString()
+      jumlahPeserta: item.jumlahPeserta.toString(),
+      daftar_hadir: item.daftar_hadir || ''
     })
     setShowEditModal(true)
   }
@@ -407,13 +408,12 @@ export default function PenyelenggaraanBangkomPage() {
           const unitKerjaId = localStorage.getItem("id")
           if (!unitKerjaId) {
             throw new Error("Unit kerja ID tidak ditemukan")
-          }
-
-          const requestData = {
+          }          const requestData = {
             namaKegiatan: formData.namaKegiatan,
             tanggal: formData.tanggal,
             jenis_bangkom_id: parseInt(formData.jenis_bangkom_id),
             jumlahPeserta: parseInt(formData.jumlahPeserta),
+            daftar_hadir: formData.daftar_hadir || null
           }
 
           console.log('Sending PUT request with data:', requestData)
@@ -438,13 +438,14 @@ export default function PenyelenggaraanBangkomPage() {
           
           setData(prev => prev.map(item => 
             item.id === editingItem.id ? updatedItem : item
-          ))
-
+          ));
+          
           setFormData({
             namaKegiatan: '',
             tanggal: '',
             jenis_bangkom_id: '',
-            jumlahPeserta: ''
+            jumlahPeserta: '',
+            daftar_hadir: ''
           })
           setEditingItem(null)
           setShowEditModal(false)
@@ -598,9 +599,7 @@ export default function PenyelenggaraanBangkomPage() {
                     ))}
                   </SelectContent>
                 </Select>
-              </div>
-
-              {/* Jumlah Peserta */}
+              </div>              {/* Jumlah Peserta */}
               <div className="space-y-1">
                 <Label htmlFor="jumlahPeserta">Jumlah Peserta</Label>
                 <Input
@@ -614,6 +613,22 @@ export default function PenyelenggaraanBangkomPage() {
                   disabled={isSubmitting}
                   placeholder="Contoh: 30"
                 />
+              </div>
+
+              {/* Link Daftar Hadir */}
+              <div className="space-y-1">
+                <Label htmlFor="daftar_hadir">Link Daftar Hadir</Label>
+                <Input
+                  id="daftar_hadir"
+                  name="daftar_hadir"
+                  value={formData.daftar_hadir}
+                  onChange={handleChange}
+                  disabled={isSubmitting}
+                  placeholder="https://docs.google.com/spreadsheets/d/xxx"
+                />
+                <p className="text-xs text-gray-500 mt-1">
+                  Masukkan link ke dokumen daftar hadir (opsional)
+                </p>
               </div>
 
               {/* Submit & Cancel Buttons */}
@@ -833,13 +848,13 @@ export default function PenyelenggaraanBangkomPage() {
         
         <div className="overflow-x-auto">
           <Table>
-            <TableHeader>
-              <TableRow className="bg-gray-50">
+            <TableHeader>              <TableRow className="bg-gray-50">
                 <TableHead className="font-medium">No</TableHead>
                 <TableHead className="font-medium">Nama Kegiatan</TableHead>
                 <TableHead className="font-medium">Tanggal</TableHead>
                 <TableHead className="font-medium">Jenis Bangkom</TableHead>
                 <TableHead className="text-right font-medium">Jumlah Peserta</TableHead>
+                <TableHead className="font-medium">Daftar Hadir</TableHead>
                 <TableHead className="text-center font-medium">Aksi</TableHead>
               </TableRow>
             </TableHeader>
@@ -863,8 +878,7 @@ export default function PenyelenggaraanBangkomPage() {
                       <Award className="w-3 h-3 mr-1" />
                       {item.jenis_bangkom_non_pelatihan?.jenis_bangkom ?? "Tidak diketahui"}
                     </span>
-                  </TableCell>
-                  <TableCell className="text-right">
+                  </TableCell>                  <TableCell className="text-right">
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                       item.jumlahPeserta >= 100 ? 'bg-green-100 text-green-800' :
                       item.jumlahPeserta >= 50 ? 'bg-blue-100 text-blue-800' :
@@ -873,6 +887,21 @@ export default function PenyelenggaraanBangkomPage() {
                       <Users className="w-3 h-3 mr-1" />
                       {item.jumlahPeserta}
                     </span>
+                  </TableCell>
+                  <TableCell>
+                    {item.daftar_hadir ? (
+                      <a 
+                        href={item.daftar_hadir} 
+                        target="_blank" 
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center text-blue-600 hover:text-blue-800 hover:underline"
+                      >
+                        <Users className="w-3 h-3 mr-1" />
+                        Lihat
+                      </a>
+                    ) : (
+                      <span className="text-gray-400 text-sm">Tidak tersedia</span>
+                    )}
                   </TableCell>
                   <TableCell className="text-center">
                     <div className="flex items-center justify-center gap-2">
@@ -1059,9 +1088,7 @@ export default function PenyelenggaraanBangkomPage() {
                   ))}
                 </SelectContent>
               </Select>
-            </div>
-
-            <div className="space-y-1">
+            </div>            <div className="space-y-1">
               <Label htmlFor="editJumlahPeserta">Jumlah Peserta</Label>
               <Input
                 id="editJumlahPeserta"
@@ -1076,17 +1103,33 @@ export default function PenyelenggaraanBangkomPage() {
               />
             </div>
 
+            <div className="space-y-1">
+              <Label htmlFor="editDaftarHadir">Link Daftar Hadir</Label>
+              <Input
+                id="editDaftarHadir"
+                name="daftar_hadir"
+                value={formData.daftar_hadir}
+                onChange={handleChange}
+                disabled={isEditing}
+                placeholder="https://docs.google.com/spreadsheets/d/xxx"
+              />
+              <p className="text-xs text-gray-500 mt-1">
+                Masukkan link ke dokumen daftar hadir (opsional)
+              </p>
+            </div>
+
             <div className="flex justify-end gap-3 pt-2">
               <Button
                 variant="outline"
                 onClick={() => {
                   setShowEditModal(false)
-                  setEditingItem(null)
+                  setEditingItem(null);
                   setFormData({
                     namaKegiatan: '',
                     tanggal: '',
                     jenis_bangkom_id: '',
-                    jumlahPeserta: ''
+                    jumlahPeserta: '',
+                    daftar_hadir: ''
                   })
                 }}
                 type="button"

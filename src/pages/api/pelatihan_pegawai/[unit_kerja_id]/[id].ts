@@ -39,6 +39,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         judul: pelatihan.judul,
         jam: pelatihan.jam,
         tanggal: pelatihan.tanggal.toISOString().split("T")[0],
+        sertifikat: pelatihan.sertifikat,
         pegawai: {
           id: pelatihan.pegawai.id,
           nama: pelatihan.pegawai.nama,
@@ -60,6 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           judul,
           jam: parseInt(jam.toString()),
           tanggal: new Date(tanggal),
+          sertifikat,
           pegawai_id: parseInt(pegawai_id.toString()),
           unit_kerja_id: unitKerjaId,
         },
@@ -78,6 +80,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         judul: updated.judul,
         jam: updated.jam,
         tanggal: updated.tanggal.toISOString().split("T")[0],
+        sertifikat: updated.sertifikat,
         pegawai: {
           id: updated.pegawai.id,
           nama: updated.pegawai.nama,

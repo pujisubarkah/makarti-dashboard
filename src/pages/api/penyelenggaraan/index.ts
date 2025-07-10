@@ -11,6 +11,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           tanggal: true,
           jumlahPeserta: true,
           unit_kerja_id: true,
+          daftar_hadir: true,
           jenis_bangkom_non_pelatihan: {
             select: {
               jenis_bangkom: true, // hanya ambil string "jenis_bangkom"
@@ -34,6 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         jenis_bangkom_id,
         jumlahPeserta,
         unit_kerja_id,
+        daftar_hadir, // jika ada
       } = req.body;
 
       const created = await prisma.penyelenggaraan.create({
@@ -43,6 +45,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           jenis_bangkom_id,
           jumlahPeserta,
           unit_kerja_id: unit_kerja_id ?? null,
+          daftar_hadir: daftar_hadir ?? null, // jika ada
         },
       });
 

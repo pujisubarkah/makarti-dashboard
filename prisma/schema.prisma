@@ -245,6 +245,7 @@ model pelatihan {
   judul         String
   jam           Int
   tanggal       DateTime
+  sertifikat    String?  @db.VarChar
   pegawai       pegawai  @relation(fields: [pegawai_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Pelatihan_pegawai_id_fkey")
   users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Pelatihan_unit_kerja_id_fkey")
 
@@ -258,6 +259,7 @@ model penyelenggaraan {
   jenis_bangkom_id            Int
   jumlahPeserta               Int
   unit_kerja_id               Int?
+  daftar_hadir                String?                     @db.VarChar
   jenis_bangkom_non_pelatihan jenis_bangkom_non_pelatihan @relation(fields: [jenis_bangkom_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Penyelenggaraan_jenis_bangkom_id_fkey")
   users                       users?                      @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Penyelenggaraan_unit_kerja_id_fkey")
 

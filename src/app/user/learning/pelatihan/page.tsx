@@ -54,6 +54,7 @@ interface PelatihanItem {
   judul: string
   jam: number
   tanggal: string
+  sertifikat: string | null
   pegawai: {
     id: number
     nama: string
@@ -68,6 +69,7 @@ interface ProcessedData {
   judul: string
   jam: number
   tanggal: string
+  sertifikat: string | null
 }
 
 interface Employee {
@@ -180,11 +182,13 @@ export default function PelatihanPage() {
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
   const [mounted, setMounted] = useState(false)
+  
   const [formData, setFormData] = useState({
     id_pegawai: null as string | null,
     judul: '',
     jam: 0,
-    tanggal: ''
+    tanggal: '',
+    sertifikat: ''
   })
   
   // State untuk modal champion pegawai
@@ -255,15 +259,15 @@ export default function PelatihanPage() {
       const response = await fetch(`/api/pelatihan_pegawai/${id}`)
       if (!response.ok) throw new Error('Failed to fetch pelatihan data')
       const apiData: PelatihanItem[] = await response.json()
-      
-      const processedData: ProcessedData[] = apiData.map(item => ({
+        const processedData: ProcessedData[] = apiData.map(item => ({
         id_pegawai: item.pegawai?.id?.toString() ?? '', 
         id: item.id,
         pegawai_id: item.pegawai_id,
         nama: item.pegawai?.nama || 'Unknown',
         judul: item.judul,
         jam: item.jam,
-        tanggal: new Date(item.tanggal).toISOString().split('T')[0] // Format yyyy-mm-dd for input
+        tanggal: new Date(item.tanggal).toISOString().split('T')[0], // Format yyyy-mm-dd for input
+        sertifikat: item.sertifikat
       }))
       setData(processedData)
     } catch (err) {      console.error('Error fetching pelatihan data:', err)
@@ -304,12 +308,27 @@ export default function PelatihanPage() {
     acc[monthYear] = (acc[monthYear] || 0) + 1
     return acc
   }, {} as Record<string, number>)
+  // Helper function to convert Indonesian month abbreviation to month number
+  const getMonthNumber = (monthStr: string): number => {
+    const monthMap: Record<string, number> = {
+      'Jan': 0, 'Feb': 1, 'Mar': 2, 'Apr': 3, 'Mei': 4, 'Jun': 5,
+      'Jul': 6, 'Agt': 7, 'Sep': 8, 'Okt': 9, 'Nov': 10, 'Des': 11
+    }
+    return monthMap[monthStr] || 0
+  }
 
   const barData = Object.entries(monthlyData)
     .sort(([a], [b]) => {
-      const dateA = new Date(a.split(' ').reverse().join(' '))
-      const dateB = new Date(b.split(' ').reverse().join(' '))
-      return dateA.getTime() - dateB.getTime()
+      // Extract month and year from strings like "Jan 2025"
+      const [monthA, yearA] = a.split(' ')
+      const [monthB, yearB] = b.split(' ')
+      
+      // Compare years first
+      const yearDiff = parseInt(yearA) - parseInt(yearB)
+      if (yearDiff !== 0) return yearDiff
+      
+      // If years are the same, compare months
+      return getMonthNumber(monthA) - getMonthNumber(monthB)
     })
     .map(([month, count]) => ({ month, pelatihan: count }))
 
@@ -378,12 +397,14 @@ export default function PelatihanPage() {
     const { name, value } = e.target
     setFormData(prev => ({ ...prev, [name]: value }))
   }
+  
   const handleEdit = (item: ProcessedData) => {
     setFormData({
       id_pegawai: item.pegawai_id.toString(),
       judul: item.judul,
       jam: item.jam,
-      tanggal: item.tanggal
+      tanggal: item.tanggal,
+      sertifikat: item.sertifikat || ''
     })
     setEditingId(item.id)
     setShowModal(true)
@@ -422,7 +443,7 @@ export default function PelatihanPage() {
 
     let response
     if (editingId) {
-      // Update data
+      // Update data      
       response = await fetch(`/api/pelatihan_pegawai/${unitKerjaId}/${editingId}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -430,9 +451,10 @@ export default function PelatihanPage() {
           pegawai_id: Number(formData.id_pegawai), // langsung gunakan ID pegawai
           judul: formData.judul,
           jam: Number(formData.jam),
-          tanggal: formData.tanggal
+          tanggal: formData.tanggal,
+          sertifikat: formData.sertifikat || null
         })
-      })    } else {
+      })} else {
       // Create new data
       response = await fetch(`/api/pelatihan_pegawai/${unitKerjaId}`, {
         method: 'POST',
@@ -441,7 +463,8 @@ export default function PelatihanPage() {
           pegawai_id: Number(formData.id_pegawai), // langsung gunakan ID pegawai
           judul: formData.judul,
           jam: Number(formData.jam),
-          tanggal: formData.tanggal
+          tanggal: formData.tanggal,
+          sertifikat: formData.sertifikat || null
         })
       })
     }
@@ -451,9 +474,7 @@ export default function PelatihanPage() {
     const id = localStorage.getItem('id')
     if (id) {
       await fetchPelatihanData(parseInt(id))
-    }
-
-    setFormData({ id_pegawai: null, judul: '', jam: 0, tanggal: '' })
+    }    setFormData({ id_pegawai: null, judul: '', jam: 0, tanggal: '', sertifikat: '' })
     setEditingId(null)
     setShowModal(false)
     toast.success(editingId ? 'Data berhasil diperbarui!' : 'Data berhasil disimpan!')
@@ -528,13 +549,11 @@ export default function PelatihanPage() {
             <div>
               <h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard Pengembangan Kompetensi</h1>
               <p className="text-blue-600">Kelola dan monitor kegiatan pelatihan pegawai</p>
-            </div>
-
-            <Dialog open={showModal} onOpenChange={(open) => {
+            </div>            <Dialog open={showModal} onOpenChange={(open) => {
               setShowModal(open)
               if (!open) {
                 setEditingId(null)
-                setFormData({ id_pegawai: null, judul: '', jam: 0, tanggal: '' })
+                setFormData({ id_pegawai: null, judul: '', jam: 0, tanggal: '', sertifikat: '' })
               }
             }}>
               <DialogTrigger asChild>
@@ -621,6 +640,21 @@ export default function PelatihanPage() {
                       onChange={handleChange}
                       required
                     />
+                  </div>
+
+                  {/* Link Sertifikat */}
+                  <div className="space-y-1">
+                    <Label htmlFor="sertifikat">Link Sertifikat</Label>
+                    <Input
+                      id="sertifikat"
+                      name="sertifikat"
+                      value={formData.sertifikat}
+                      onChange={handleChange}
+                      placeholder="https://drive.google.com/file/d/XXXXXXXXXXXXX/view?usp=sharing"
+                    />
+                    <p className="text-xs text-gray-500 mt-1">
+                      Masukkan link ke sertifikat pelatihan (opsional)
+                    </p>
                   </div>
 
                   {/* Tombol Submit & Batal */}
@@ -753,14 +787,14 @@ export default function PelatihanPage() {
             </div>
             <div className="overflow-x-auto">
               <Table>
-                <TableHeader>
-                  <TableRow className="bg-gray-50">
+                <TableHeader>                  <TableRow className="bg-gray-50">
                     <TableHead>No</TableHead>
                     <TableHead>Nama Pegawai</TableHead>
                     <TableHead>Judul Pelatihan</TableHead>
                     <TableHead className="text-center">Jam</TableHead>
                     <TableHead>Tanggal</TableHead>
                     <TableHead className="text-center">Status</TableHead>
+                    <TableHead>Sertifikat</TableHead>
                     <TableHead className="text-center">Aksi</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -775,11 +809,25 @@ export default function PelatihanPage() {
                           <Clock className="w-3 h-3 mr-1" /> {item.jam} jam
                         </span>
                       </TableCell>
-                      <TableCell>{new Date(item.tanggal).toLocaleDateString('id-ID')}</TableCell>
-                      <TableCell className="text-center">
+                      <TableCell>{new Date(item.tanggal).toLocaleDateString('id-ID')}</TableCell>                      <TableCell className="text-center">
                         <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
                           <Award className="w-3 h-3 mr-1" /> Selesai
                         </span>
+                      </TableCell>
+                      <TableCell>
+                        {item.sertifikat ? (
+                          <a 
+                            href={item.sertifikat} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center text-blue-600 hover:text-blue-800 hover:underline"
+                          >
+                            <GraduationCap className="w-3 h-3 mr-1" />
+                            Lihat
+                          </a>
+                        ) : (
+                          <span className="text-gray-400 text-sm">Tidak tersedia</span>
+                        )}
                       </TableCell>
                       <TableCell className="text-center">
                         <div className="flex justify-center gap-2">
@@ -812,11 +860,11 @@ export default function PelatihanPage() {
           <div className="relative bg-gradient-to-br from-yellow-400 via-yellow-500 to-orange-500 rounded-2xl shadow-2xl overflow-hidden">
             {/* Floating Animation Elements */}
             <div className="absolute inset-0 overflow-hidden">
-              <div className="absolute top-0 left-0 w-20 h-20 bg-white bg-opacity-20 rounded-full animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }}></div>
-              <div className="absolute top-1/4 right-0 w-16 h-16 bg-white bg-opacity-15 rounded-full animate-ping" style={{ animationDelay: '1s', animationDuration: '4s' }}></div>
-              <div className="absolute bottom-0 left-1/4 w-12 h-12 bg-white bg-opacity-25 rounded-full animate-pulse" style={{ animationDelay: '2s' }}></div>
-              <div className="absolute top-3/4 right-1/4 w-8 h-8 bg-white bg-opacity-30 rounded-full animate-bounce" style={{ animationDelay: '0.5s', animationDuration: '2.5s' }}></div>
-              <div className="absolute top-1/2 left-0 w-6 h-6 bg-white bg-opacity-20 rounded-full animate-ping" style={{ animationDelay: '1.5s' }}></div>
+              <div className="absolute top-0 left-0 w-20 h-20 bg-white bg-opacity-20 rounded-full mb-4 animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }}></div>
+              <div className="absolute top-1/4 right-0 w-16 h-16 bg-white bg-opacity-15 rounded-full mb-4 animate-ping" style={{ animationDelay: '1s', animationDuration: '4s' }}></div>
+              <div className="absolute bottom-0 left-1/4 w-12 h-12 bg-white bg-opacity-25 rounded-full mb-4 animate-pulse" style={{ animationDelay: '2s' }}></div>
+              <div className="absolute top-3/4 right-1/4 w-8 h-8 bg-white bg-opacity-30 rounded-full mb-4 animate-bounce" style={{ animationDelay: '0.5s', animationDuration: '2.5s' }}></div>
+              <div className="absolute top-1/2 left-0 w-6 h-6 bg-white bg-opacity-20 rounded-full mb-4 animate-ping" style={{ animationDelay: '1.5s' }}></div>
             </div>
 
             {/* Sparkle Effects */}

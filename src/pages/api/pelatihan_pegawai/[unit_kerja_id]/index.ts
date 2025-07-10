@@ -29,6 +29,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         judul: item.judul,
         jam: item.jam,
         tanggal: item.tanggal.toISOString().split("T")[0], // Format YYYY-MM-DD
+        sertifikat: item.sertifikat,
         pegawai: {
           id: item.pegawai.id,
           nama: item.pegawai.nama,
@@ -59,6 +60,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           judul,
           jam: parseInt(jam),
           tanggal: new Date(tanggal),
+          sertifikat,
           unit_kerja_id: unitKerjaId,
           pegawai_id: parseInt(pegawai_id),
         },
@@ -72,6 +74,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         judul: pelatihanBaru.judul,
         jam: pelatihanBaru.jam,
         tanggal: pelatihanBaru.tanggal.toISOString().split("T")[0],
+        sertifikat: pelatihanBaru.sertifikat,
         pegawai: {
           id: pelatihanBaru.pegawai_id,
           nama: (await prisma.pegawai.findUnique({

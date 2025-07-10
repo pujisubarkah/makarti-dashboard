@@ -50,6 +50,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         jenis_bangkom_id,
         jumlahPeserta,
         unit_kerja_id: bodyUnitKerjaId,
+        daftar_hadir, // jika ada
       } = req.body;
 
       // Validasi data
@@ -94,6 +95,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           jenis_bangkom_id: parsedJenisBangkomId,
           jumlahPeserta: parsedJumlahPeserta,
           unit_kerja_id: bodyUnitKerjaId ?? unitId,
+          daftar_hadir: daftar_hadir ?? null, // jika ada
         },
         include: {
           jenis_bangkom_non_pelatihan: {

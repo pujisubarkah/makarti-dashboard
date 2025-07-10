@@ -23,12 +23,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
 
     if (!user || !user.password) {
+      console.log(`Login gagal: Pengguna '${username}' tidak ditemukan atau belum memiliki password`);
       return res.status(401).json({ error: 'Pengguna tidak ditemukan atau belum memiliki password.' });
     }
 
     const isMatch = await bcrypt.compare(password, user.password);
 
     if (!isMatch) {
+      console.log(`Login gagal: Password salah untuk pengguna '${username}'`);
       return res.status(401).json({ error: 'Password salah!' });
     }
 

@@ -76,13 +76,6 @@ export default function ScheduleCalendar() {
 
   // Load events from API
   useEffect(() => {
-    // Debug localStorage
-    console.log('=== USEEFFECT DEBUG ===');
-    console.log('All localStorage keys:', Object.keys(localStorage));
-    console.log('localStorage id:', localStorage.getItem('id'));
-    console.log('localStorage username:', localStorage.getItem('username'));
-    console.log('localStorage role:', localStorage.getItem('role'));
-    
     // Delay untuk memastikan localStorage sudah terisi
     const timer = setTimeout(() => {
       fetchEvents();
@@ -95,15 +88,12 @@ export default function ScheduleCalendar() {
     try {
       setLoading(true); // Set loading state
       const unitKerjaId = localStorage.getItem('id');
-      console.log('Unit Kerja ID from localStorage:', unitKerjaId);
       
       if (!unitKerjaId) {
-        console.error('Unit kerja ID tidak ditemukan di localStorage');
         toast.error('Unit kerja ID tidak ditemukan. Silakan login ulang.');
         return;
       }
 
-      console.log('Fetching events from:', `/api/kegiatan/${unitKerjaId}`);
       const response = await fetch(`/api/kegiatan/${unitKerjaId}`, {
         method: 'GET',
         headers: {
@@ -111,43 +101,30 @@ export default function ScheduleCalendar() {
         },
       });
       
-      console.log('Response status:', response.status);
-      console.log('Response ok:', response.ok);
-      
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       
       const data = await response.json();
-      console.log('Response data:', data);
-      console.log('Response data type:', typeof data);
-      console.log('Is response array?', Array.isArray(data));
 
       // Handle both response formats: array directly or {success, data} object
       let events = [];
       if (Array.isArray(data)) {
         // Direct array response
         events = data;
-        console.log('Using direct array response:', events);
       } else if (data.success && data.data) {
         // Structured response with success flag
         events = data.data;
-        console.log('Using structured response:', events);
       } else if (data && !data.success) {
-        // Error response
-        console.error('API returned error:', data.message);
         toast.error(data.message || 'Gagal memuat kegiatan dari server');
         return;
       }
 
-      console.log('Final events to set:', events);
       setEvents(events || []);
       
       if (events && events.length > 0) {
         toast.success(`Berhasil memuat ${events.length} kegiatan`);
-        console.log('First event sample:', events[0]);
       } else {
-        console.log('No events found for unit_kerja_id:', unitKerjaId);
         toast.info('Tidak ada kegiatan ditemukan');
       }
     } catch {
@@ -173,13 +150,9 @@ export default function ScheduleCalendar() {
       body: JSON.stringify(formData)
     });
 
-    // Debug: Lihat status respons
-    console.log("Response status:", response.status);
-    
     if (!response.ok) {
       // Jika respon tidak OK, coba baca sebagai teks untuk debugging
       const errorText = await response.text();
-      console.error("Error response (text):", errorText);
 
       // Coba parse sebagai JSON jika memungkinkan
       let errorMessage = "Gagal menambahkan kegiatan";
@@ -196,7 +169,6 @@ export default function ScheduleCalendar() {
 
     // Parsing JSON hanya jika response.ok
     const data = await response.json();
-    console.log("Success response:", data);
 
     // Jika API mengembalikan pesan sukses meskipun success: false
     if (data.success === false && /berhasil/i.test(data.message)) {
@@ -210,8 +182,7 @@ export default function ScheduleCalendar() {
       toast.error(data.message || 'Gagal menambahkan kegiatan');
     }
 
-  } catch (error) {
-    console.error("Error creating event:", error);
+  } catch {
     toast.error("Terjadi kesalahan saat menambahkan kegiatan");
   }
 };
@@ -224,7 +195,6 @@ export default function ScheduleCalendar() {
         return;
       }
 
-      console.log('Updating event:', editingEvent.id, 'for unit:', unitKerjaId);
       const response = await fetch(`/api/kegiatan/${unitKerjaId}/${editingEvent.id}`, {
         method: 'PUT',
         headers: { 'Content-Type': 'application/json' },
@@ -242,8 +212,7 @@ export default function ScheduleCalendar() {
       } else {
         toast.error(data.message || 'Gagal memperbarui kegiatan');
       }
-    } catch (error) {
-      console.error('Error updating event:', error);
+    } catch {
       toast.error('Gagal memperbarui kegiatan');
     }
   };
@@ -261,7 +230,6 @@ export default function ScheduleCalendar() {
         return;
       }
 
-      console.log('Deleting event:', eventId, 'for unit:', unitKerjaId);
       const response = await fetch(`/api/kegiatan/${unitKerjaId}/${eventId}`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' }
@@ -275,8 +243,7 @@ export default function ScheduleCalendar() {
       } else {
         toast.error(data.message || 'Gagal menghapus kegiatan');
       }
-    } catch (error) {
-      console.error('Error deleting event:', error);
+    } catch {
       toast.error('Gagal menghapus kegiatan');
     }
   };
@@ -317,20 +284,8 @@ export default function ScheduleCalendar() {
     const selectedDate = date?.toDateString();
     const eventDateString = eventDate.toDateString();
     
-    console.log('Filtering event:', {
-      eventTitle: event.title,
-      eventDate: event.date,
-      eventDateString,
-      selectedDate,
-      matches: eventDateString === selectedDate
-    });
-    
     return eventDateString === selectedDate;
   });
-
-  console.log('Final filtered events:', filteredEvents);
-  console.log('Total events:', events.length);
-  console.log('Filtered events count:', filteredEvents.length);
 
   // Function to get event type styling
   const getEventTypeStyle = (type: string, priority: string): { bg: string; border: string; icon: string; color: string } => {

@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { pbkdf2Sync, randomBytes, timingSafeEqual } from 'crypto'
+import bcrypt from 'bcryptjs';
 import { PrismaClient } from '@prisma/client'
 
 const prisma = new PrismaClient()
@@ -10,22 +10,15 @@ interface ChangePasswordRequest {
   userId: number // We'll get this from the request body or session
 }
 
-// Simple password hashing using PBKDF2
+// Hash password using bcrypt
 function hashPassword(password: string): string {
-  const salt = randomBytes(32).toString('hex')
-  const hash = pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex')
-  return `${salt}:${hash}`
+  const salt = bcrypt.genSaltSync(10);
+  return bcrypt.hashSync(password, salt);
 }
 
-// Verify password against hash
+// Verify password using bcrypt
 function verifyPassword(password: string, hashedPassword: string): boolean {
-  try {
-    const [salt, hash] = hashedPassword.split(':')
-    const hashToVerify = pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex')
-    return timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(hashToVerify, 'hex'))
-  } catch {
-    return false
-  }
+  return bcrypt.compareSync(password, hashedPassword);
 }
 
 export default async function handler(
@@ -40,10 +33,12 @@ export default async function handler(
   }
 
   try {
+    console.log('Received body:', req.body);
     const { currentPassword, newPassword, userId }: ChangePasswordRequest = req.body
 
     // Validate input
     if (!currentPassword || !newPassword || !userId) {
+      console.log('Validation failed: missing fields', { currentPassword, newPassword, userId });
       return res.status(400).json({ 
         success: false, 
         message: 'Password lama, password baru, dan user ID wajib diisi' 
@@ -52,6 +47,7 @@ export default async function handler(
 
     // Password strength validation
     if (newPassword.length < 8) {
+      console.log('Validation failed: password too short');
       return res.status(400).json({ 
         success: false, 
         message: 'Password baru minimal 8 karakter' 
@@ -65,6 +61,7 @@ export default async function handler(
     const hasSpecialChar = /[!@#$%^&*(),.?":{}|<>]/.test(newPassword)
 
     if (!hasUpperCase || !hasLowerCase || !hasNumbers || !hasSpecialChar) {
+      console.log('Validation failed: password complexity', { hasUpperCase, hasLowerCase, hasNumbers, hasSpecialChar });
       return res.status(400).json({ 
         success: false, 
         message: 'Password harus mengandung huruf besar, huruf kecil, angka, dan karakter khusus' 
@@ -83,6 +80,7 @@ export default async function handler(
     })
 
     if (!user) {
+      console.log('Validation failed: user not found', { userId });
       return res.status(404).json({ 
         success: false, 
         message: 'User tidak ditemukan' 
@@ -90,6 +88,7 @@ export default async function handler(
     }
 
     if (!user.password) {
+      console.log('Validation failed: user has no password');
       return res.status(400).json({ 
         success: false, 
         message: 'Password tidak tersedia dalam sistem' 
@@ -99,6 +98,7 @@ export default async function handler(
     // Verify current password
     const isCurrentPasswordValid = verifyPassword(currentPassword, user.password)
     if (!isCurrentPasswordValid) {
+      console.log('Validation failed: current password incorrect');
       return res.status(400).json({ 
         success: false, 
         message: 'Password lama tidak sesuai' 
@@ -108,6 +108,7 @@ export default async function handler(
     // Check if new password is same as current password
     const isSamePassword = verifyPassword(newPassword, user.password)
     if (isSamePassword) {
+      console.log('Validation failed: new password same as current');
       return res.status(400).json({ 
         success: false, 
         message: 'Password baru tidak boleh sama dengan password lama' 

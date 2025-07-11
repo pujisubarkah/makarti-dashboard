@@ -156,6 +156,9 @@ export default function NetworkingPage() {
   const inProgress = data.filter(item => item.status === 'In Progress').length
   const selesai = data.filter(item => item.status === 'Selesai').length
   const direncanakan = data.filter(item => item.status === 'Direncanakan').length
+  const mouDitandatangani = data.filter(item => item.status === 'MoU Ditandatangani').length
+  // Followup Rate: (Jumlah MoU Ditandatangani + Jumlah Selesai) / total kegiatan * 100
+  const followupRate = totalKegiatan > 0 ? ((mouDitandatangani + selesai) / totalKegiatan) * 100 : 0
 
   // Data for charts
   const statusCount = data.reduce((acc, item) => {
@@ -289,6 +292,19 @@ export default function NetworkingPage() {
       borderColor: 'border-indigo-500',
       change: '+8%',
       description: 'Dalam perencanaan'
+    },
+    {
+      title: "Followup Rate",
+      value: `${followupRate.toFixed(1)}%`,
+      icon: <CheckCircle className="w-6 h-6 text-purple-500" />,
+      color: 'purple',
+      bgGradient: 'from-purple-500 to-purple-600',
+      bgLight: 'bg-purple-100',
+      textColor: 'text-purple-600',
+      textDark: 'text-purple-800',
+      borderColor: 'border-purple-500',
+      change: '',
+      description: 'Persentase followup (MoU + Selesai)'
     },
   ]
 
@@ -692,7 +708,19 @@ export default function NetworkingPage() {
                   <div 
                     className={`bg-gradient-to-r ${card.bgGradient} h-2 rounded-full transition-all duration-500`}
                     style={{ 
-                      width: `${Math.min((card.value / Math.max(...summaryCards.map(c => c.value))) * 100, 100)}%` 
+                      width: `${Math.min(
+                        (typeof card.value === "number"
+                          ? card.value
+                          : parseFloat(String(card.value))) /
+                          Math.max(
+                            ...summaryCards.map(c =>
+                              typeof c.value === "number"
+                                ? c.value
+                                : parseFloat(String(c.value))
+                            )
+                          ) * 100,
+                        100
+                      )}%`
                     }}
                   ></div>
                 </div>

@@ -23,6 +23,7 @@ import {
 } from "@/components/ui/table"
 import {
   Users,
+  X,
   Calendar,
   TrendingUp,
   GraduationCap,
@@ -617,7 +618,7 @@ export default function PenyelenggaraanBangkomPage() {
 
               {/* Link Daftar Hadir */}
               <div className="space-y-1">
-                <Label htmlFor="daftar_hadir">Link Daftar Hadir</Label>
+                <Label htmlFor="daftar_hadir">Link Daftar Hadir (opsional)</Label>
                 <Input
                   id="daftar_hadir"
                   name="daftar_hadir"
@@ -627,7 +628,7 @@ export default function PenyelenggaraanBangkomPage() {
                   placeholder="https://docs.google.com/spreadsheets/d/xxx"
                 />
                 <p className="text-xs text-gray-500 mt-1">
-                  Masukkan link ke dokumen daftar hadir (opsional)
+                  Masukkan link ke dokumen daftar hadir jika ada (opsional)
                 </p>
               </div>
 
@@ -878,7 +879,8 @@ export default function PenyelenggaraanBangkomPage() {
                       <Award className="w-3 h-3 mr-1" />
                       {item.jenis_bangkom_non_pelatihan?.jenis_bangkom ?? "Tidak diketahui"}
                     </span>
-                  </TableCell>                  <TableCell className="text-right">
+                  </TableCell>                  
+                  <TableCell className="text-right">
                     <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
                       item.jumlahPeserta >= 100 ? 'bg-green-100 text-green-800' :
                       item.jumlahPeserta >= 50 ? 'bg-blue-100 text-blue-800' :
@@ -888,7 +890,7 @@ export default function PenyelenggaraanBangkomPage() {
                       {item.jumlahPeserta}
                     </span>
                   </TableCell>
-                  <TableCell>
+                  <TableCell className="text-center">
                     {item.daftar_hadir ? (
                       <a 
                         href={item.daftar_hadir} 
@@ -900,7 +902,9 @@ export default function PenyelenggaraanBangkomPage() {
                         Lihat
                       </a>
                     ) : (
-                      <span className="text-gray-400 text-sm">Tidak tersedia</span>
+                      <span className="inline-flex items-center bg-red-100 text-red-600 hover:text-red-800 text-sm">
+                        <X className="w-3 h-3 mr-1" />
+                      </span>
                     )}
                   </TableCell>
                   <TableCell className="text-center">
@@ -1104,7 +1108,7 @@ export default function PenyelenggaraanBangkomPage() {
             </div>
 
             <div className="space-y-1">
-              <Label htmlFor="editDaftarHadir">Link Daftar Hadir</Label>
+              <Label htmlFor="editDaftarHadir">Link Daftar Hadir (opsional)</Label>
               <Input
                 id="editDaftarHadir"
                 name="daftar_hadir"

@@ -724,7 +724,7 @@ export default function PelatihanPage() {
 
                   {/* Link Sertifikat */}
                   <div className="space-y-1">
-                    <Label htmlFor="sertifikat">Link Sertifikat</Label>
+                    <Label htmlFor="sertifikat">Link Sertifikat (opsional)</Label>
                     <Input
                       id="sertifikat"
                       name="sertifikat"
@@ -733,7 +733,7 @@ export default function PelatihanPage() {
                       placeholder="https://drive.google.com/file/d/XXXXXXXXXXXXX/view?usp=sharing"
                     />
                     <p className="text-xs text-gray-500 mt-1">
-                      Masukkan link ke sertifikat pelatihan (opsional)
+                      Masukkan link ke sertifikat pelatihan jika ada (opsional)
                     </p>
                   </div>
 

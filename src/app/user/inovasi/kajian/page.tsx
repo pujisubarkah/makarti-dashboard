@@ -119,6 +119,34 @@ export default function KajianPage() {
     kajian: count,
   }))
 
+function hitungSkorEfektivitas(status: string): number {
+  switch (status?.toLowerCase()) {
+    case "selesai":
+      return 100
+    case "review":
+      return 80
+    case "revisi":
+      return 60
+    case "draft":
+      return 40
+    case "ditunda":
+      return 20
+    default:
+      return 0
+  }
+}
+
+
+const totalSkor = data.reduce((acc, item) => acc + hitungSkorEfektivitas(item.status || ''), 0)
+const rataEfektivitas = data.length > 0 ? totalSkor / data.length : 0
+
+let kategoriEfektivitas = ''
+if (rataEfektivitas >= 85) kategoriEfektivitas = 'Sangat Efektif'
+else if (rataEfektivitas >= 70) kategoriEfektivitas = 'Efektif'
+else if (rataEfektivitas >= 50) kategoriEfektivitas = 'Cukup Efektif'
+else kategoriEfektivitas = 'Kurang Efektif'
+
+
   // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
@@ -126,6 +154,7 @@ export default function KajianPage() {
   const totalPages = Math.ceil(data.length / itemsPerPage)
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber)
+
 
   const summaryCards = [
     {
@@ -180,6 +209,20 @@ export default function KajianPage() {
       change: '-5%',
       description: 'Jenis laporan'
     },
+    {
+  title: "KajianMeter",
+  value: `${rataEfektivitas.toFixed(1)}%`,
+  icon: <PieChartIcon className="w-6 h-6" />,
+  color: 'indigo',
+  bgGradient: 'from-indigo-500 to-indigo-600',
+  bgLight: 'bg-indigo-100',
+  textColor: 'text-indigo-600',
+  textDark: 'text-indigo-800',
+  borderColor: 'border-indigo-500',
+  change: kategoriEfektivitas,
+  description: "Efektivitas produk kebijakan"
+}
+
   ]
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {

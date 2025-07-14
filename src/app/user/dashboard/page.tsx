@@ -70,11 +70,11 @@ const activityData = [
 
 export default function UnitKerjaDashboard() {
     const [unitData, setUnitData] = useState<UnitKerjaData | null>(null);
-    const [biggerData, setBiggerData] = useState<BiggerData[]>([]);
+    const [scoreData, setScoreData] = useState<any>(null);
     const [loading, setLoading] = useState(true);
-    const [biggerLoading, setBiggerLoading] = useState(true);
+    const [scoreLoading, setScoreLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
-    const [biggerError, setBiggerError] = useState<string | null>(null);
+    const [scoreError, setScoreError] = useState<string | null>(null);
     const [showCalendar, setShowCalendar] = useState(false);
     const [showManageTeam, setShowManageTeam] = useState(false);
     const [showReportView, setShowReportView] = useState(false);
@@ -143,58 +143,35 @@ export default function UnitKerjaDashboard() {
         }
     }, []);
 
-    // Fetch data BIGGER berdasarkan unit_kerja_id
+    // Fetch scores (BIGGER, SMARTER, BETTER) berdasarkan unit_kerja_id
     useEffect(() => {
-        const fetchBiggerData = async () => {
+        const fetchScoreData = async () => {
             try {
-                setBiggerLoading(true);
-                setBiggerError(null);
-                
-                // Ambil unit_kerja_id dari localStorage
+                setScoreLoading(true);
+                setScoreError(null);
                 const userUnitId = localStorage.getItem("id");
-                
                 if (!userUnitId) {
                     throw new Error("Unit kerja ID tidak ditemukan di localStorage.");
                 }
-
-                // Validasi ID harus berupa angka
                 const unitId = parseInt(userUnitId);
                 if (isNaN(unitId)) {
                     throw new Error("Unit kerja ID tidak valid.");
                 }
-
-                console.log('Fetching BIGGER data for unit_kerja_id:', unitId);
-
-                // Fetch data BIGGER dari API
-                const response = await fetch(`/api/bigger/${unitId}`);
-                
+                const response = await fetch(`/api/scores/${unitId}`);
                 if (!response.ok) {
-                    if (response.status === 404) {
-                        console.log('No BIGGER data found for this unit');
-                        setBiggerData([]);
-                        return;
-                    } else {
-                        throw new Error(`HTTP error! status: ${response.status}`);
-                    }
+                    throw new Error(`HTTP error! status: ${response.status}`);
                 }
-                
-                const biggerResponse: BiggerData[] = await response.json();
-                console.log('BIGGER data received:', biggerResponse);
-                
-                setBiggerData(biggerResponse);
-                
+                const scoreResponse = await response.json();
+                setScoreData(scoreResponse);
             } catch (err) {
-                console.error('Error fetching BIGGER data:', err);
-                setBiggerError(err instanceof Error ? err.message : 'Terjadi kesalahan saat memuat data BIGGER');
-                setBiggerData([]); // Set empty array on error
+                setScoreError(err instanceof Error ? err.message : 'Terjadi kesalahan saat memuat data skor');
+                setScoreData(null);
             } finally {
-                setBiggerLoading(false);
+                setScoreLoading(false);
             }
         };
-
-        // Fetch BIGGER data hanya setelah unitData berhasil dimuat
         if (typeof window !== 'undefined' && unitData && !loading) {
-            fetchBiggerData();
+            fetchScoreData();
         }
     }, [unitData, loading]);
 
@@ -278,92 +255,56 @@ export default function UnitKerjaDashboard() {
         },
     ];
 
-    // Helper function untuk menghitung metrics dari BIGGER data
-    const calculateBiggerMetrics = () => {
-        if (!biggerData || biggerData.length === 0) {
-            return {
-                dampakLuas: 0,
-                kolaborasi: 0,
-                penerima_manfaat: 0,
-                jangkauan_wilayah: 0,
-                total_skor: 0,
-                trend: 0
-            };
-        }
-
-        // Ambil data terbaru (sudah diurutkan berdasarkan tahun desc dari API)
-        const latestData = biggerData[0];
-        
-        // Hitung trend jika ada data sebelumnya
-        let trend = 0;
-        if (biggerData.length > 1) {
-            const previousData = biggerData[1];
-            trend = ((latestData.total_skor - previousData.total_skor) / previousData.total_skor) * 100;
-        }
-
-        return {
-            dampakLuas: latestData.dampak_luas || 0,
-            kolaborasi: latestData.kolaborasi || 0,
-            penerima_manfaat: latestData.penerima_manfaat || 0,
-            jangkauan_wilayah: latestData.jangkauan_wilayah || 0,
-            total_skor: latestData.total_skor || 0,
-            trend: Math.round(trend)
-        };
+    // Helper function untuk mengambil skor dari scoreData
+    const getScore = (type: 'bigger' | 'smarter' | 'better') => {
+        if (!scoreData || !scoreData[type]) return 0;
+        const key = type + '_score';
+        return parseFloat(scoreData[type][key]) || 0;
     };
 
-    const biggerMetrics = calculateBiggerMetrics();
-
-    // Progress data dengan BIGGER score dari API
+    // Progress data dengan skor dari API
     const biggerBetterSmarterProgress = [
-        { 
-            name: 'BIGGER', 
-            value: biggerLoading ? 0 : biggerMetrics.total_skor || 0, 
+        {
+            name: 'BIGGER',
+            value: scoreLoading ? 0 : getScore('bigger'),
             fill: '#3b82f6',
             description: 'Dampak & Jangkauan'
         },
-        { 
-            name: 'SMARTER', 
-            value: 75, 
+        {
+            name: 'SMARTER',
+            value: scoreLoading ? 0 : getScore('smarter'),
             fill: '#8b5cf6',
             description: 'Teknologi & Inovasi'
         },
-        { 
-            name: 'BETTER', 
-            value: 92, 
+        {
+            name: 'BETTER',
+            value: scoreLoading ? 0 : getScore('better'),
             fill: '#10b981',
             description: 'Kualitas & Efisiensi'
         },
     ];
 
-    // Bigger Smarter Better Cards (urutan diubah) - BIGGER card menggunakan data real
+    // Bigger Smarter Better Cards - fetch from scoreData
     const biggerBetterSmarterCards = [
         {
             title: "BIGGER",
             subtitle: "Dampak & Jangkauan",
             metrics: [
-                { 
-                    label: "Dampak Luas", 
-                    value: biggerLoading ? "Loading..." : 
-                           biggerError ? "Error" : 
-                           biggerData.length > 0 ? `${biggerMetrics.dampakLuas}%` : "Tidak ada data"
+                {
+                    label: "Branding Engagement",
+                    value: scoreLoading ? "Loading..." : scoreError ? "Error" : scoreData?.bigger?.branding_engagement_score ? `${scoreData.bigger.branding_engagement_score}%` : "Tidak ada data"
                 },
-                { 
-                    label: "Kolaborasi Eksternal", 
-                    value: biggerLoading ? "Loading..." : 
-                           biggerError ? "Error" : 
-                           biggerData.length > 0 ? `${biggerMetrics.kolaborasi}` : "Tidak ada data"
+                {
+                    label: "Branding Publikasi",
+                    value: scoreLoading ? "Loading..." : scoreError ? "Error" : scoreData?.bigger?.branding_publikasi_score ? `${scoreData.bigger.branding_publikasi_score}%` : "Tidak ada data"
                 },
-                { 
-                    label: "Penerima Manfaat", 
-                    value: biggerLoading ? "Loading..." : 
-                           biggerError ? "Error" : 
-                           biggerData.length > 0 ? `${biggerMetrics.penerima_manfaat.toLocaleString()} orang` : "Tidak ada data"
+                {
+                    label: "Networking Kerjasama",
+                    value: scoreLoading ? "Loading..." : scoreError ? "Error" : scoreData?.bigger?.networking_kerjasama_score ? `${scoreData.bigger.networking_kerjasama_score}%` : "Tidak ada data"
                 },
-                { 
-                    label: "Jangkauan Wilayah", 
-                    value: biggerLoading ? "Loading..." : 
-                           biggerError ? "Error" : 
-                           biggerData.length > 0 && biggerMetrics.jangkauan_wilayah > 0 ? `${biggerMetrics.jangkauan_wilayah} unit` : "Tidak ada data"
+                {
+                    label: "Networking Koordinasi",
+                    value: scoreLoading ? "Loading..." : scoreError ? "Error" : scoreData?.bigger?.networking_koordinasi_score ? `${scoreData.bigger.networking_koordinasi_score}%` : "Tidak ada data"
                 }
             ],
             icon: <Rocket className="w-8 h-8" />,
@@ -372,19 +313,30 @@ export default function UnitKerjaDashboard() {
             bgLight: 'bg-blue-50',
             textColor: 'text-blue-600',
             borderColor: 'border-blue-500',
-            overallScore: biggerLoading ? 0 : biggerMetrics.total_skor,
-            trend: biggerLoading ? undefined : biggerMetrics.trend,
-            isLoading: biggerLoading,
-            error: biggerError
+            overallScore: scoreLoading ? 0 : getScore('bigger'),
+            isLoading: scoreLoading,
+            error: scoreError
         },
         {
             title: "SMARTER",
             subtitle: "Teknologi & Inovasi",
             metrics: [
-                { label: "Otomatisasi", value: "65%" },
-                { label: "Digitalisasi", value: "82%" },
-                { label: "Data Analytics", value: "70%" },
-                { label: "AI Implementation", value: "35%" }
+                {
+                    label: "Learning Pelatihan",
+                    value: scoreLoading ? "Loading..." : scoreError ? "Error" : scoreData?.smarter?.learning_pelatihan_score ? `${scoreData.smarter.learning_pelatihan_score}%` : "Tidak ada data"
+                },
+                {
+                    label: "Learning Penyelenggaraan",
+                    value: scoreLoading ? "Loading..." : scoreError ? "Error" : scoreData?.smarter?.learning_penyelenggaraan_score ? `${scoreData.smarter.learning_penyelenggaraan_score}%` : "Tidak ada data"
+                },
+                {
+                    label: "Inovasi Kinerja",
+                    value: scoreLoading ? "Loading..." : scoreError ? "Error" : scoreData?.smarter?.inovasi_kinerja_score ? `${scoreData.smarter.inovasi_kinerja_score}%` : "Tidak ada data"
+                },
+                {
+                    label: "Inovasi Kajian",
+                    value: scoreLoading ? "Loading..." : scoreError ? "Error" : scoreData?.smarter?.inovasi_kajian_score ? `${scoreData.smarter.inovasi_kajian_score}%` : "Tidak ada data"
+                }
             ],
             icon: <Brain className="w-8 h-8" />,
             color: 'purple',
@@ -392,16 +344,19 @@ export default function UnitKerjaDashboard() {
             bgLight: 'bg-purple-50',
             textColor: 'text-purple-600',
             borderColor: 'border-purple-500',
-            overallScore: 75
+            overallScore: scoreLoading ? 0 : getScore('smarter'),
+            isLoading: scoreLoading,
+            error: scoreError
         },
         {
             title: "BETTER",
             subtitle: "Kualitas & Efisiensi",
+            description: "Skor Better merupakan keseluruhan dari SKP Transformasional yaitu Inovasi, Branding, Networking dan Learning.",
             metrics: [
-                { label: "Efisiensi Proses", value: "+78%" },
-                { label: "Kualitas Layanan", value: "92/100" },
-                { label: "Kepuasan Pengguna", value: "88%" },
-                { label: "Pengurangan Waktu", value: "45%" }
+                {
+                    label: "Skor Better",
+                    value: scoreLoading ? "Loading..." : scoreError ? "Error" : scoreData?.better?.better_score ? `${scoreData.better.better_score}%` : "Tidak ada data"
+                }
             ],
             icon: <Star className="w-8 h-8" />,
             color: 'green',
@@ -409,7 +364,9 @@ export default function UnitKerjaDashboard() {
             bgLight: 'bg-green-50',
             textColor: 'text-green-600',
             borderColor: 'border-green-500',
-            overallScore: 92
+            overallScore: scoreLoading ? 0 : getScore('better'),
+            isLoading: scoreLoading,
+            error: scoreError
         },
     ];
 
@@ -625,6 +582,9 @@ export default function UnitKerjaDashboard() {
                                             {card.title}
                                         </h3>
                                         <p className="text-sm text-gray-600">{card.subtitle}</p>
+                                        {card.description && (
+                                            <p className="text-xs text-gray-500 mt-1">{card.description}</p>
+                                        )}
                                         {/* Show data status for BIGGER card */}
                                         {card.title === 'BIGGER' && (
                                             <div className="mt-1">
@@ -637,16 +597,6 @@ export default function UnitKerjaDashboard() {
                                                 {card.error && (
                                                     <span className="text-xs text-red-500">
                                                         ⚠️ {card.error}
-                                                    </span>
-                                                )}
-                                                {!card.isLoading && !card.error && biggerData.length > 0 && (
-                                                    <span className="text-xs text-green-600">
-                                                        ✓ Data terbaru: {new Date(biggerData[0].created_at).toLocaleDateString('id-ID')}
-                                                    </span>
-                                                )}
-                                                {!card.isLoading && !card.error && biggerData.length === 0 && (
-                                                    <span className="text-xs text-gray-500">
-                                                        ℹ️ Belum ada data
                                                     </span>
                                                 )}
                                             </div>
@@ -668,15 +618,7 @@ export default function UnitKerjaDashboard() {
                                                 {card.isLoading ? '...' : `${card.overallScore}%`}
                                             </span>
                                             {/* Show trend for BIGGER card */}
-                                            {card.title === 'BIGGER' && !card.isLoading && !card.error && card.trend !== undefined && card.trend !== 0 && (
-                                                <span className={`text-xs px-2 py-1 rounded-full ${
-                                                    card.trend > 0 
-                                                        ? 'bg-green-100 text-green-700' 
-                                                        : 'bg-red-100 text-red-700'
-                                                }`}>
-                                                    {card.trend > 0 ? '+' : ''}{card.trend}%
-                                                </span>
-                                            )}
+                                            {/* Removed trend indicator due to missing 'trend' property */}
                                         </div>
                                     </div>
                                     <div className="w-full bg-gray-200 rounded-full h-3">

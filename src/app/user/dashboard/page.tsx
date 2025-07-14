@@ -57,9 +57,29 @@ const activityData = [
   { bulan: 'Apr', bigger: 85, smarter: 75, better: 92 },
 ]
 
+export interface ScoreData {
+  bigger?: {
+    branding_engagement_score?: number;
+    branding_publikasi_score?: number;
+    networking_kerjasama_score?: number;
+    networking_koordinasi_score?: number;
+    bigger_score?: number;
+  };
+  smarter?: {
+    learning_pelatihan_score?: number;
+    learning_penyelenggaraan_score?: number;
+    inovasi_kinerja_score?: number;
+    inovasi_kajian_score?: number;
+    smarter_score?: number;
+  };
+  better?: {
+    better_score?: number;
+  };
+}
+
 export default function UnitKerjaDashboard() {
     const [unitData, setUnitData] = useState<UnitKerjaData | null>(null);
-    const [scoreData, setScoreData] = useState<Record<string, any> | null>(null);
+    const [scoreData, setScoreData] = useState<ScoreData | null>(null);
     const [loading, setLoading] = useState(true);
     const [scoreLoading, setScoreLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);
@@ -247,8 +267,16 @@ export default function UnitKerjaDashboard() {
     // Helper function untuk mengambil skor dari scoreData
     const getScore = (type: 'bigger' | 'smarter' | 'better') => {
         if (!scoreData || !scoreData[type]) return 0;
-        const key = type + '_score';
-        return parseFloat(scoreData[type][key]) || 0;
+        if (type === 'bigger') {
+            return scoreData.bigger?.bigger_score ?? 0;
+        }
+        if (type === 'smarter') {
+            return scoreData.smarter?.smarter_score ?? 0;
+        }
+        if (type === 'better') {
+            return scoreData.better?.better_score ?? 0;
+        }
+        return 0;
     };
 
     // Progress data dengan skor dari API

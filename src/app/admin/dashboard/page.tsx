@@ -26,7 +26,7 @@ import {
   Rocket, 
   Star, 
   Brain,
-  Target
+  // Target
 } from 'lucide-react'
 
 const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6']
@@ -136,69 +136,8 @@ const trendData = [
 ]
 
 // Data Bigger Smarter Better yang dicapai melalui 4 pilar MAKARTI
-const biggerSmarterBetterAchievements = [
-  {
-    category: 'BIGGER',
-    subtitle: 'Dampak & Jangkauan',
-    description: 'Dicapai dari Branding dan Networking',
-    contributingPillars: [
-      { pillar: 'Branding', contribution: 0, description: 'Branding Score' },
-      { pillar: 'Networking', contribution: 0, description: 'Networking Score' }
-    ],
-    metrics: [
-      { label: 'Branding', value: '0', unit: '%', progress: 0, source: 'Branding' },
-      { label: 'Networking', value: '0', unit: '%', progress: 0, source: 'Networking' }
-    ],
-    overallScore: '0',
-    icon: <Rocket className="w-6 h-6" />,
-    color: 'blue',
-    bgLight: 'bg-blue-50',
-    textColor: 'text-blue-600',
-    borderColor: 'border-blue-500'
-  },
-  {
-    category: 'SMARTER',
-    subtitle: 'Teknologi & Inovasi',
-    description: 'Dicapai dari Inovasi dan Learning',
-    contributingPillars: [
-      { pillar: 'Inovasi', contribution: 0, description: 'Inovasi Score' },
-      { pillar: 'Learning', contribution: 0, description: 'Learning Score' }
-    ],
-    metrics: [
-      { label: 'Inovasi', value: '0', unit: '%', progress: 0, source: 'Inovasi' },
-      { label: 'Learning', value: '0', unit: '%', progress: 0, source: 'Learning' }
-    ],
-    overallScore: '0',
-    icon: <Brain className="w-6 h-6" />,
-    color: 'purple',
-    bgLight: 'bg-purple-50',
-    textColor: 'text-purple-600',
-    borderColor: 'border-purple-500'
-  },
-  {
-    category: 'BETTER',
-    subtitle: 'Kualitas & Efisiensi',
-    description: 'Dicapai dari Branding, Networking, Inovasi, dan Learning',
-    contributingPillars: [
-      { pillar: 'Branding', contribution: 0, description: 'Branding Score' },
-      { pillar: 'Networking', contribution: 0, description: 'Networking Score' },
-      { pillar: 'Inovasi', contribution: 0, description: 'Inovasi Score' },
-      { pillar: 'Learning', contribution: 0, description: 'Learning Score' }
-    ],
-    metrics: [
-      { label: 'Branding', value: '0', unit: '%', progress: 0, source: 'Branding' },
-      { label: 'Networking', value: '0', unit: '%', progress: 0, source: 'Networking' },
-      { label: 'Inovasi', value: '0', unit: '%', progress: 0, source: 'Inovasi' },
-      { label: 'Learning', value: '0', unit: '%', progress: 0, source: 'Learning' }
-    ],
-    overallScore: '0',
-    icon: <Star className="w-6 h-6" />,
-    color: 'green',
-    bgLight: 'bg-green-50',
-    textColor: 'text-green-600',
-    borderColor: 'border-green-500'
-  }
-]
+// (used in component below)
+// (Removed stray object literals; use the biggerSmarterBetterAchievements array in the component instead)
 
 // Data kontribusi setiap pilar terhadap BSB
 const pillarContributionData = [
@@ -247,7 +186,21 @@ export default function RingkasanMakartiPage() {
   const [dynamicSummaryData, setDynamicSummaryData] = useState(summaryData)
   const [loading, setLoading] = useState(true)
   const [kegiatanLoading, setKegiatanLoading] = useState(true)
-  const [scoreData, setScoreData] = useState<any>(null);
+  // Define a more specific type for scoreData
+  interface ScoreData {
+    average_components?: {
+      branding_score?: number;
+      networking_score?: number;
+      inovasi_score?: number;
+      learning_score?: number;
+    };
+    calculated_summary?: {
+      bigger_score?: number;
+      smarter_score?: number;
+      better_score?: number;
+    };
+  }
+  const [scoreData, setScoreData] = useState<ScoreData | null>(null);
   const [scoreLoading, setScoreLoading] = useState(true);
 
   useEffect(() => {
@@ -356,8 +309,7 @@ export default function RingkasanMakartiPage() {
         ]
 
         setDynamicSummaryData(updatedSummaryData)
-      } catch (error) {
-        console.error('Error fetching summary data:', error)
+      } catch {
         setDynamicSummaryData(summaryData) // Fallback to static data
       }
     }
@@ -373,8 +325,7 @@ export default function RingkasanMakartiPage() {
           { name: 'Sisa', value: Math.round(data.total_sisa / 1000000) },
         ])
         setLoading(false)
-      } catch (error) {
-        console.error('Error fetching serapan data:', error)
+      } catch {
         setLoading(false)
       }
     }
@@ -393,8 +344,7 @@ export default function RingkasanMakartiPage() {
         
         setKegiatanData(todayEvents)
         setKegiatanLoading(false)
-      } catch (error) {
-        console.error('Error fetching kegiatan data:', error)
+      } catch {
         setKegiatanLoading(false)
       }
     }
@@ -404,7 +354,7 @@ export default function RingkasanMakartiPage() {
         const response = await fetch('/api/scores');
         const data = await response.json();
         setScoreData(data);
-      } catch (error) {
+      } catch {
         setScoreData(null);
       } finally {
         setScoreLoading(false);

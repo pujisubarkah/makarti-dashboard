@@ -1,0 +1,25 @@
+name: Refresh Rekap Skor
+
+on:
+  schedule:
+    - cron: '0 0 * * *'  # Jam 07:00 WIB setiap hari
+  workflow_dispatch:      # Bisa dijalankan manual dari GitHub
+
+jobs:
+  refresh-rekap:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout repo
+        uses: actions/checkout@v3
+
+      - name: Install PostgreSQL Client
+        run: sudo apt-get install -y postgresql-client
+
+      - name: Jalankan Query SQL ke Neon
+        env:
+          DATABASE_URL: ${{ secrets.DATABASE_URL }}
+        run: |
+          echo "$DATABASE_URL" | sed 's/^postgres:\/\//postgresql:\/\//' > pgurl.txt
+          export PGURL=$(cat pgurl.txt)
+          psql $PGURL -f scripts/refresh_rekap.sql

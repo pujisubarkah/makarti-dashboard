@@ -83,6 +83,7 @@ model event_schedule {
   @@schema("makarti")
 }
 
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model inovasi {
   id            Int      @id(map: "Inovasi_pkey") @default(autoincrement())
   judul         String
@@ -105,6 +106,7 @@ model jenis_bangkom_non_pelatihan {
   @@schema("makarti")
 }
 
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model kajian {
   id            Int      @id @default(autoincrement())
@@ -118,6 +120,7 @@ model kajian {
   @@schema("makarti")
 }
 
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model koordinasi {
   id            Int      @id(map: "Koordinasi_pkey") @default(autoincrement())
   tanggal       DateTime
@@ -133,6 +136,7 @@ model koordinasi {
   @@schema("makarti")
 }
 
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model networking {
   id            Int      @id(map: "Networking_pkey") @default(autoincrement())
   instansi      String
@@ -238,6 +242,7 @@ model pegawai {
   @@schema("makarti")
 }
 
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model pelatihan {
   id            Int      @id(map: "Pelatihan_pkey") @default(autoincrement())
   pegawai_id    Int
@@ -252,6 +257,7 @@ model pelatihan {
   @@schema("makarti")
 }
 
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model penyelenggaraan {
   id                          Int                         @id(map: "Penyelenggaraan_pkey") @default(autoincrement())
   namaKegiatan                String
@@ -266,6 +272,7 @@ model penyelenggaraan {
   @@schema("makarti")
 }
 
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model produkInovasi {
   id             Int            @id(map: "ProdukInovasi_pkey") @default(autoincrement())
   nama           String
@@ -280,6 +287,7 @@ model produkInovasi {
   @@schema("makarti")
 }
 
+/// This model or at least one of its fields has comments in the database, and requires an additional setup for migrations: Read more: https://pris.ly/d/database-comments
 model publikasi {
   id            Int      @id(map: "Publikasi_pkey") @default(autoincrement())
   judul         String
@@ -291,6 +299,30 @@ model publikasi {
   views         Int?
   createdAt     DateTime @default(now())
   users         users    @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "Publikasi_unit_kerja_id_fkey")
+
+  @@schema("makarti")
+}
+
+model rekap_skor_unit_kerja {
+  id                             Int      @id @default(autoincrement())
+  unit_kerja_id                  Int?
+  learning_pelatihan_score       Decimal? @db.Decimal
+  learning_penyelenggaraan_score Decimal? @db.Decimal
+  total_learning_score           Decimal? @db.Decimal
+  branding_engagement_rate       Decimal? @db.Decimal
+  branding_engagement_score      Decimal? @db.Decimal
+  branding_publikasi_total       BigInt?
+  branding_publikasi_score       Decimal? @db.Decimal
+  branding_score                 Decimal? @db.Decimal
+  networking_kerjasama_score     Decimal? @db.Decimal
+  networking_koordinasi_score    Decimal? @db.Decimal
+  networking_score               Decimal? @db.Decimal
+  inovasi_kinerja_score          Decimal? @db.Decimal
+  inovasi_kajian_score           Decimal? @db.Decimal
+  inovasi_score                  Decimal? @db.Decimal
+  bigger_score                   Decimal? @db.Decimal
+  smarter_score                  Decimal? @db.Decimal
+  better_score                   Decimal? @db.Decimal
 
   @@schema("makarti")
 }

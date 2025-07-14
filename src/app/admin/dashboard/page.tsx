@@ -140,18 +140,16 @@ const biggerSmarterBetterAchievements = [
   {
     category: 'BIGGER',
     subtitle: 'Dampak & Jangkauan',
-    description: 'Dicapai melalui Inovasi dan Networking',
+    description: 'Dicapai dari Branding dan Networking',
     contributingPillars: [
-      { pillar: 'Inovasi', contribution: 70, description: '15 inovasi aktif meningkatkan dampak layanan' },
-      { pillar: 'Networking', contribution: 65, description: '8 kunjungan instansi memperluas jangkauan' }
+      { pillar: 'Branding', contribution: 0, description: 'Branding Score' },
+      { pillar: 'Networking', contribution: 0, description: 'Networking Score' }
     ],
     metrics: [
-      { label: 'Penerima Manfaat', value: '12,500', unit: 'orang', progress: 85, source: 'Inovasi & Networking' },
-      { label: 'Jangkauan Wilayah', value: '45', unit: 'unit', progress: 90, source: 'Networking' },
-      { label: 'Kolaborasi Eksternal', value: '28', unit: 'instansi', progress: 80, source: 'Networking' },
-      { label: 'Dampak Sistemik', value: '75', unit: '%', progress: 75, source: 'Inovasi' }
+      { label: 'Branding', value: '0', unit: '%', progress: 0, source: 'Branding' },
+      { label: 'Networking', value: '0', unit: '%', progress: 0, source: 'Networking' }
     ],
-    overallScore: 82,
+    overallScore: '0',
     icon: <Rocket className="w-6 h-6" />,
     color: 'blue',
     bgLight: 'bg-blue-50',
@@ -161,18 +159,16 @@ const biggerSmarterBetterAchievements = [
   {
     category: 'SMARTER',
     subtitle: 'Teknologi & Inovasi',
-    description: 'Dicapai melalui Inovasi dan Komunikasi & Branding',
+    description: 'Dicapai dari Inovasi dan Learning',
     contributingPillars: [
-      { pillar: 'Inovasi', contribution: 85, description: 'Inovasi teknologi mendorong transformasi digital' },
-      { pillar: 'Komunikasi', contribution: 60, description: '42 postingan komunikasi meningkatkan literasi digital' }
+      { pillar: 'Inovasi', contribution: 0, description: 'Inovasi Score' },
+      { pillar: 'Learning', contribution: 0, description: 'Learning Score' }
     ],
     metrics: [
-      { label: 'Digitalisasi', value: '78', unit: '%', progress: 78, source: 'Inovasi' },
-      { label: 'Otomatisasi', value: '65', unit: '%', progress: 65, source: 'Inovasi' },
-      { label: 'Data Analytics', value: '72', unit: '%', progress: 72, source: 'Inovasi' },
-      { label: 'Literasi Digital', value: '68', unit: '%', progress: 68, source: 'Komunikasi & Branding' }
+      { label: 'Inovasi', value: '0', unit: '%', progress: 0, source: 'Inovasi' },
+      { label: 'Learning', value: '0', unit: '%', progress: 0, source: 'Learning' }
     ],
-    overallScore: 71,
+    overallScore: '0',
     icon: <Brain className="w-6 h-6" />,
     color: 'purple',
     bgLight: 'bg-purple-50',
@@ -182,18 +178,20 @@ const biggerSmarterBetterAchievements = [
   {
     category: 'BETTER',
     subtitle: 'Kualitas & Efisiensi',
-    description: 'Dicapai melalui Learning dan Inovasi',
+    description: 'Dicapai dari Branding, Networking, Inovasi, dan Learning',
     contributingPillars: [
-      { pillar: 'Learning', contribution: 80, description: '10 kegiatan pembelajaran meningkatkan kualitas SDM' },
-      { pillar: 'Inovasi', contribution: 75, description: 'Inovasi mengoptimalkan proses kerja' }
+      { pillar: 'Branding', contribution: 0, description: 'Branding Score' },
+      { pillar: 'Networking', contribution: 0, description: 'Networking Score' },
+      { pillar: 'Inovasi', contribution: 0, description: 'Inovasi Score' },
+      { pillar: 'Learning', contribution: 0, description: 'Learning Score' }
     ],
     metrics: [
-      { label: 'Kepuasan Layanan', value: '92', unit: '%', progress: 92, source: 'Learning & Inovasi' },
-      { label: 'Efisiensi Proses', value: '85', unit: '%', progress: 85, source: 'Inovasi' },
-      { label: 'Kualitas Output', value: '88', unit: '%', progress: 88, source: 'Learning' },
-      { label: 'Pengurangan Biaya', value: '35', unit: '%', progress: 70, source: 'Inovasi' }
+      { label: 'Branding', value: '0', unit: '%', progress: 0, source: 'Branding' },
+      { label: 'Networking', value: '0', unit: '%', progress: 0, source: 'Networking' },
+      { label: 'Inovasi', value: '0', unit: '%', progress: 0, source: 'Inovasi' },
+      { label: 'Learning', value: '0', unit: '%', progress: 0, source: 'Learning' }
     ],
-    overallScore: 84,
+    overallScore: '0',
     icon: <Star className="w-6 h-6" />,
     color: 'green',
     bgLight: 'bg-green-50',
@@ -249,6 +247,8 @@ export default function RingkasanMakartiPage() {
   const [dynamicSummaryData, setDynamicSummaryData] = useState(summaryData)
   const [loading, setLoading] = useState(true)
   const [kegiatanLoading, setKegiatanLoading] = useState(true)
+  const [scoreData, setScoreData] = useState<any>(null);
+  const [scoreLoading, setScoreLoading] = useState(true);
 
   useEffect(() => {
     const calculateChange = (current: number, previous: number): { change: string; type: 'increase' | 'decrease' | 'same' } => {
@@ -399,10 +399,88 @@ export default function RingkasanMakartiPage() {
       }
     }
 
+    const fetchScores = async () => {
+      try {
+        const response = await fetch('/api/scores');
+        const data = await response.json();
+        setScoreData(data);
+      } catch (error) {
+        setScoreData(null);
+      } finally {
+        setScoreLoading(false);
+      }
+    };
+
     fetchSummaryData()
     fetchSerapanData()
     fetchKegiatanData()
+    fetchScores();
   }, [])
+
+  // Place this before return
+  const biggerSmarterBetterAchievements = [
+    {
+      category: 'BIGGER',
+      subtitle: 'Dampak & Jangkauan',
+      description: 'Dicapai dari Branding dan Networking',
+      contributingPillars: [
+        { pillar: 'Branding', contribution: scoreData?.average_components?.branding_score || 0, description: 'Branding Score' },
+        { pillar: 'Networking', contribution: scoreData?.average_components?.networking_score || 0, description: 'Networking Score' }
+      ],
+      metrics: [
+        { label: 'Branding', value: scoreData?.average_components?.branding_score?.toFixed(2) || '0', unit: '%', progress: Math.round(scoreData?.average_components?.branding_score || 0), source: 'Branding' },
+        { label: 'Networking', value: scoreData?.average_components?.networking_score?.toFixed(2) || '0', unit: '%', progress: Math.round(scoreData?.average_components?.networking_score || 0), source: 'Networking' }
+      ],
+      overallScore: scoreLoading ? '...' : scoreData?.calculated_summary?.bigger_score?.toFixed(2) || '0',
+      icon: <Rocket className="w-6 h-6" />,
+      color: 'blue',
+      bgLight: 'bg-blue-50',
+      textColor: 'text-blue-600',
+      borderColor: 'border-blue-500'
+    },
+    {
+      category: 'SMARTER',
+      subtitle: 'Teknologi & Inovasi',
+      description: 'Dicapai dari Inovasi dan Learning',
+      contributingPillars: [
+        { pillar: 'Inovasi', contribution: scoreData?.average_components?.inovasi_score || 0, description: 'Inovasi Score' },
+        { pillar: 'Learning', contribution: scoreData?.average_components?.learning_score || 0, description: 'Learning Score' }
+      ],
+      metrics: [
+        { label: 'Inovasi', value: scoreData?.average_components?.inovasi_score?.toFixed(2) || '0', unit: '%', progress: Math.round(scoreData?.average_components?.inovasi_score || 0), source: 'Inovasi' },
+        { label: 'Learning', value: scoreData?.average_components?.learning_score?.toFixed(2) || '0', unit: '%', progress: Math.round(scoreData?.average_components?.learning_score || 0), source: 'Learning' }
+      ],
+      overallScore: scoreLoading ? '...' : scoreData?.calculated_summary?.smarter_score?.toFixed(2) || '0',
+      icon: <Brain className="w-6 h-6" />,
+      color: 'purple',
+      bgLight: 'bg-purple-50',
+      textColor: 'text-purple-600',
+      borderColor: 'border-purple-500'
+    },
+    {
+      category: 'BETTER',
+      subtitle: 'Kualitas & Efisiensi',
+      description: 'Dicapai dari Branding, Networking, Inovasi, dan Learning',
+      contributingPillars: [
+        { pillar: 'Branding', contribution: scoreData?.average_components?.branding_score || 0, description: 'Branding Score' },
+        { pillar: 'Networking', contribution: scoreData?.average_components?.networking_score || 0, description: 'Networking Score' },
+        { pillar: 'Inovasi', contribution: scoreData?.average_components?.inovasi_score || 0, description: 'Inovasi Score' },
+        { pillar: 'Learning', contribution: scoreData?.average_components?.learning_score || 0, description: 'Learning Score' }
+      ],
+      metrics: [
+        { label: 'Branding', value: scoreData?.average_components?.branding_score?.toFixed(2) || '0', unit: '%', progress: Math.round(scoreData?.average_components?.branding_score || 0), source: 'Branding' },
+        { label: 'Networking', value: scoreData?.average_components?.networking_score?.toFixed(2) || '0', unit: '%', progress: Math.round(scoreData?.average_components?.networking_score || 0), source: 'Networking' },
+        { label: 'Inovasi', value: scoreData?.average_components?.inovasi_score?.toFixed(2) || '0', unit: '%', progress: Math.round(scoreData?.average_components?.inovasi_score || 0), source: 'Inovasi' },
+        { label: 'Learning', value: scoreData?.average_components?.learning_score?.toFixed(2) || '0', unit: '%', progress: Math.round(scoreData?.average_components?.learning_score || 0), source: 'Learning' }
+      ],
+      overallScore: scoreLoading ? '...' : scoreData?.calculated_summary?.better_score?.toFixed(2) || '0',
+      icon: <Star className="w-6 h-6" />,
+      color: 'green',
+      bgLight: 'bg-green-50',
+      textColor: 'text-green-600',
+      borderColor: 'border-green-500'
+    }
+  ];
 
   return (
     <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
@@ -476,144 +554,76 @@ export default function RingkasanMakartiPage() {
         ))}
       </div>
 
-      {/* Bigger Smarter Better Section */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
-        <div className="flex items-center space-x-3 mb-6">
-          <div className="bg-gradient-to-r from-blue-500 to-purple-600 p-3 rounded-full">
-            <Target className="w-6 h-6 text-white" />
-          </div>
-          <div>
-            <h2 className="text-2xl font-bold text-gray-800">Bigger Smarter Better</h2>
-            <p className="text-gray-600">Dicapai melalui 4 pilar MAKARTI: Inovasi, Komunikasi & Branding, Networking, dan Learning</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {biggerSmarterBetterAchievements.map((achievement) => (
-            <div key={achievement.category} className={`${achievement.bgLight} rounded-xl p-6 border-l-4 ${achievement.borderColor} hover:shadow-lg transition-all duration-300`}>
-              {/* Header */}
-              <div className="flex items-center justify-between mb-4">
-                <div>
-                  <h3 className={`text-2xl font-bold ${achievement.textColor}`}>
-                    {achievement.category}
-                  </h3>
-                  <p className="text-sm text-gray-600">{achievement.subtitle}</p>
-                </div>
-                <div className={`bg-white p-3 rounded-full shadow-md`}>
-                  <div className={achievement.textColor}>
-                    {achievement.icon}
+      {/* Bigger Smarter Better Achievements */}
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {biggerSmarterBetterAchievements.map((achievement, idx) => (
+          <div key={idx} className="bg-white rounded-xl shadow-lg p-6 flex flex-col">
+            <div className="flex items-center mb-4">
+              <div className={`p-3 rounded-full ${achievement.bgLight} mr-4`}>
+                {achievement.icon}
+              </div>
+              <div>
+                <h2 className="text-lg font-bold text-gray-800">{achievement.category}</h2>
+                <p className="text-sm text-gray-500">{achievement.subtitle}</p>
+              </div>
+            </div>
+            <p className="text-gray-700 text-sm mb-4">{achievement.description}</p>
+            <div className="mb-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">Skor Keseluruhan</span>
+                <span className={`text-2xl font-bold ${achievement.textColor}`}>{achievement.overallScore} %</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2.5 mt-1">
+                <div className={`h-2.5 rounded-full transition-all duration-1000 ${
+                  Number(achievement.overallScore) >= 80 ? 'bg-gradient-to-r from-green-500 to-green-600' :
+                  Number(achievement.overallScore) >= 60 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' :
+                  'bg-gradient-to-r from-red-500 to-red-600'
+                }`} style={{ width: `${achievement.overallScore}%` }}></div>
+              </div>
+            </div>
+            {/* Metrics Section */}
+            <div className="space-y-2">
+              {achievement.metrics.map((metric, metricIdx) => (
+                <div key={metricIdx} className="bg-gray-50 rounded-lg p-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-medium text-gray-700">{metric.label}</span>
+                    <span className={`text-sm font-bold ${achievement.textColor}`}>{metric.value} {metric.unit}</span>
+                  </div>
+                  <div className="w-full bg-gray-200 rounded-full h-1 mt-1">
+                    <div className={`h-1 rounded-full transition-all duration-700 ${
+                      metric.progress >= 80 ? 'bg-green-500' :
+                      metric.progress >= 60 ? 'bg-yellow-500' :
+                      'bg-red-500'
+                    }`} style={{ width: `${metric.progress}%` }}></div>
                   </div>
                 </div>
-              </div>
-
-              {/* Contributing Pillars */}
-              <div className="mb-4 p-3 bg-white rounded-lg">
-                <p className="text-xs font-medium text-gray-700 mb-2">{achievement.description}</p>
-                <div className="space-y-2">
-                  {achievement.contributingPillars.map((pillar, idx) => (
-                    <div key={idx} className="flex items-center justify-between">
-                      <span className="text-xs text-gray-600">{pillar.pillar}</span>
-                      <div className="flex items-center space-x-2">
-                        <div className="w-16 bg-gray-200 rounded-full h-1">
-                          <div 
-                            className={`h-1 rounded-full ${achievement.textColor.replace('text-', 'bg-')}`}
-                            style={{ width: `${pillar.contribution}%` }}
-                          ></div>
-                        </div>
-                        <span className={`text-xs font-medium ${achievement.textColor}`}>
-                          {pillar.contribution}%
-                        </span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Overall Score */}
-              <div className="mb-6">
-                <div className="flex items-center justify-between mb-3">
-                  <span className="text-sm font-medium text-gray-700">Overall Score</span>
-                  <span className={`text-3xl font-bold ${achievement.textColor}`}>
-                    {achievement.overallScore}%
-                  </span>
-                </div>
-                <div className="w-full bg-white rounded-full h-3 shadow-inner">
-                  <div 
-                    className={`h-3 rounded-full transition-all duration-1000 ${
-                      achievement.overallScore >= 80 ? 'bg-gradient-to-r from-green-500 to-green-600' :
-                      achievement.overallScore >= 60 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' :
-                      'bg-gradient-to-r from-red-500 to-red-600'
-                    }`}
-                    style={{ width: `${achievement.overallScore}%` }}
-                  ></div>
-                </div>
-              </div>
-
-              {/* Detailed Metrics */}
-              <div className="space-y-3">
-                {achievement.metrics.map((metric, metricIdx) => (
-                  <div key={metricIdx} className="bg-white rounded-lg p-3 shadow-sm">
-                    <div className="flex items-center justify-between mb-1">
-                      <span className="text-xs font-medium text-gray-700">{metric.label}</span>
-                      <span className={`text-sm font-bold ${achievement.textColor}`}>
-                        {metric.value} {metric.unit}
-                      </span>
-                    </div>
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-xs text-gray-500">via {metric.source}</span>
-                    </div>
-                    <div className="w-full bg-gray-200 rounded-full h-1.5">
-                      <div 
-                        className={`h-1.5 rounded-full transition-all duration-700 ${
-                          metric.progress >= 80 ? 'bg-green-500' :
-                          metric.progress >= 60 ? 'bg-yellow-500' :
-                          'bg-red-500'
-                        }`}
-                        style={{ width: `${metric.progress}%` }}
-                      ></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-
-              {/* Status Badge */}
-              <div className="mt-4 text-center">
-                <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                  achievement.overallScore >= 80 ? 'bg-green-100 text-green-800' :
-                  achievement.overallScore >= 60 ? 'bg-yellow-100 text-yellow-800' :
-                  'bg-red-100 text-red-800'
-                }`}>
-                  {achievement.overallScore >= 80 ? '🎯 Excellent' :
-                   achievement.overallScore >= 60 ? '⚡ Good' :
-                   '🔄 Needs Improvement'}
-                </span>
-              </div>
+              ))}
             </div>
-          ))}
+          </div>
+        ))}
+      </div>
+
+      {/* Summary Stats */}
+      <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 text-white">
+          <div className="text-center">
+            <div className="text-2xl font-bold">{scoreLoading ? '...' : scoreData?.calculated_summary?.bigger_score?.toFixed(2) || '0'}%</div>
+            <div className="text-sm opacity-90">BIGGER Score</div>
+            <div className="text-xs opacity-75">via Branding & Networking</div>
+          </div>
         </div>
-
-        {/* Summary Stats */}
-        <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
-          <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 text-white">
-            <div className="text-center">
-              <div className="text-2xl font-bold">82%</div>
-              <div className="text-sm opacity-90">BIGGER Score</div>
-              <div className="text-xs opacity-75">via Inovasi & Networking</div>
-            </div>
+        <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-4 text-white">
+          <div className="text-center">
+            <div className="text-2xl font-bold">{scoreLoading ? '...' : scoreData?.calculated_summary?.smarter_score?.toFixed(2) || '0'}%</div>
+            <div className="text-sm opacity-90">SMARTER Score</div>
+            <div className="text-xs opacity-75">via Inovasi & Learning</div>
           </div>
-          <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-4 text-white">
-            <div className="text-center">
-              <div className="text-2xl font-bold">71%</div>
-              <div className="text-sm opacity-90">SMARTER Score</div>
-              <div className="text-xs opacity-75">via Inovasi & Komunikasi</div>
-            </div>
-          </div>
-          <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 text-white">
-            <div className="text-center">
-              <div className="text-2xl font-bold">84%</div>
-              <div className="text-sm opacity-90">BETTER Score</div>
-              <div className="text-xs opacity-75">via Learning & Inovasi</div>
-            </div>
+        </div>
+        <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 text-white">
+          <div className="text-center">
+            <div className="text-2xl font-bold">{scoreLoading ? '...' : scoreData?.calculated_summary?.better_score?.toFixed(2) || '0'}%</div>
+            <div className="text-sm opacity-90">BETTER Score</div>
+            <div className="text-xs opacity-75">via Branding, Networking, Inovasi & Learning</div>
           </div>
         </div>
       </div>
@@ -860,47 +870,37 @@ export default function RingkasanMakartiPage() {
         <div className="bg-white p-6 rounded-xl shadow-lg lg:col-span-1">
           <h2 className="text-lg font-bold mb-4 text-gray-800">Highlight BSB</h2>
           <div className="space-y-3">
-            <div className="p-3 bg-blue-50 rounded-lg border-l-4 border-blue-500">
-              <div className="flex items-center gap-2 mb-1">
-                <Rocket className="w-4 h-4 text-blue-600" />
-                <h3 className="font-medium text-blue-800 text-sm">BIGGER</h3>
-              </div>
-              <p className="text-xs text-blue-600">Jangkauan 45 unit dengan 12,500 penerima manfaat</p>
-              <div className="mt-2 flex items-center justify-between">
-                <div className="text-2xl font-bold text-blue-600">82%</div>
-                <div className="w-12 bg-blue-200 rounded-full h-2">
-                  <div className="bg-blue-600 h-2 rounded-full" style={{ width: '82%' }}></div>
+            {biggerSmarterBetterAchievements.map((achievement, idx) => (
+              <div key={idx} className={`p-3 rounded-lg border-l-4 ${achievement.borderColor} bg-gray-50`}>
+                <div className="flex items-center gap-2 mb-1">
+                  <span className={achievement.textColor}>{achievement.icon}</span>
+                  <h3 className={`font-medium ${achievement.textColor} text-sm`}>{achievement.category}</h3>
+                </div>
+                <p className={`text-xs ${achievement.textColor}`}>{achievement.subtitle}</p>
+                <div className="mt-2 flex items-center justify-between">
+                  <div className={`text-2xl font-bold ${achievement.textColor}`}>{achievement.overallScore}%</div>
+                  <div className={`w-12 ${achievement.bgLight} rounded-full h-2`}>
+                    <div className={`${achievement.textColor} h-2 rounded-full`} style={{ width: `${achievement.overallScore}%` }}></div>
+                  </div>
+                </div>
+                {/* Metrics for highlight */}
+                <div className="mt-2 space-y-1">
+                  {achievement.metrics.map((metric, metricIdx) => (
+                    <div key={metricIdx} className="flex items-center justify-between text-xs">
+                      <span className="font-medium text-gray-700">{metric.label}</span>
+                      <span className={`font-bold ${achievement.textColor}`}>{metric.value} {metric.unit}</span>
+                      <div className="w-10 bg-gray-200 rounded-full h-1 ml-2">
+                        <div className={`h-1 rounded-full ${
+                          metric.progress >= 80 ? 'bg-green-500' :
+                          metric.progress >= 60 ? 'bg-yellow-500' :
+                          'bg-red-500'
+                        }`} style={{ width: `${metric.progress}%` }}></div>
+                      </div>
+                    </div>
+                  ))}
                 </div>
               </div>
-            </div>
-            
-            <div className="p-3 bg-purple-50 rounded-lg border-l-4 border-purple-500">
-              <div className="flex items-center gap-2 mb-1">
-                <Brain className="w-4 h-4 text-purple-600" />
-                <h3 className="font-medium text-purple-800 text-sm">SMARTER</h3>
-              </div>
-              <p className="text-xs text-purple-600">Digitalisasi 78% dan otomatisasi 65%</p>
-              <div className="mt-2 flex items-center justify-between">
-                <div className="text-2xl font-bold text-purple-600">71%</div>
-                <div className="w-12 bg-purple-200 rounded-full h-2">
-                  <div className="bg-purple-600 h-2 rounded-full" style={{ width: '71%' }}></div>
-                </div>
-              </div>
-            </div>
-            
-            <div className="p-3 bg-green-50 rounded-lg border-l-4 border-green-500">
-              <div className="flex items-center gap-2 mb-1">
-                <Star className="w-4 h-4 text-green-600" />
-                <h3 className="font-medium text-green-800 text-sm">BETTER</h3>
-              </div>
-              <p className="text-xs text-green-600">Kepuasan layanan 92% dan efisiensi 85%</p>
-              <div className="mt-2 flex items-center justify-between">
-                <div className="text-2xl font-bold text-green-600">84%</div>
-                <div className="w-12 bg-green-200 rounded-full h-2">
-                  <div className="bg-green-600 h-2 rounded-full" style={{ width: '84%' }}></div>
-                </div>
-              </div>
-            </div>
+            ))}
           </div>
         </div>
       </div>

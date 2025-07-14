@@ -48,18 +48,7 @@ interface UnitKerjaData {
 }
 
 // Interface untuk data BIGGER dari API
-interface BiggerData {
-  id: string;
-  created_at: string;
-  unit_kerja_id: number;
-  bulan: number;
-  tahun: number;
-  dampak_luas: number;
-  kolaborasi: number;
-  penerima_manfaat: number;
-  jangkauan_wilayah: number | null;
-  total_skor: number;
-}
+
 
 const activityData = [
   { bulan: 'Jan', bigger: 75, smarter: 60, better: 80 },
@@ -70,7 +59,7 @@ const activityData = [
 
 export default function UnitKerjaDashboard() {
     const [unitData, setUnitData] = useState<UnitKerjaData | null>(null);
-    const [scoreData, setScoreData] = useState<any>(null);
+    const [scoreData, setScoreData] = useState<Record<string, any> | null>(null);
     const [loading, setLoading] = useState(true);
     const [scoreLoading, setScoreLoading] = useState(true);
     const [error, setError] = useState<string | null>(null);

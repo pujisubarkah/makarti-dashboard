@@ -465,8 +465,8 @@ const handleDelete = async (id: number, judul: string) => {
   const barData = Object.entries(monthlyData)
     .map(([month, data]) => ({
       month,
-      publikasi: data.count,
-      monthNum: data.monthNum,
+      publikasi: (data as { count: number, monthNum: number }).count,
+      monthNum: (data as { count: number, monthNum: number }).monthNum,
     }))
     .sort((a, b) => a.monthNum - b.monthNum) // Sort by month number chronologically
 

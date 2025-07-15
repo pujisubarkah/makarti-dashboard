@@ -5,7 +5,7 @@ import {
   Building2, 
   User, 
   Users, 
-  TrendingUp, 
+  // TrendingUp, 
   Calendar, 
   Award,
   BarChart3,
@@ -23,9 +23,9 @@ import ManageTeam from "@/components/ManageTeam";
 import ActivityTimeline from "@/components/ActivityTimeline";
 import ReportView from "@/components/ReportView";
 import {
-  XAxis,
-  YAxis,
-  CartesianGrid,
+  // XAxis,
+  // YAxis,
+  // CartesianGrid,
   Tooltip,
   ResponsiveContainer,
   Cell,

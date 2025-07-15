@@ -450,17 +450,25 @@ const handleDelete = async (id: number, judul: string) => {
     name: key,
     value,
   }))
-
-  const monthlyData = data.reduce((acc: Record<string, number>, item: PublikasiItem) => {
-    const month = new Date(item.tanggal).toLocaleDateString('id-ID', { month: 'short' })
-    acc[month] = (acc[month] || 0) + 1
+  const monthlyData = data.reduce((acc: Record<string, { count: number, monthNum: number }>, item: PublikasiItem) => {
+    const date = new Date(item.tanggal)
+    const month = date.toLocaleDateString('id-ID', { month: 'short' })
+    const monthNum = date.getMonth() // 0-11 for sorting
+    
+    if (!acc[month]) {
+      acc[month] = { count: 0, monthNum }
+    }
+    acc[month].count += 1
     return acc
-  }, {} as Record<string, number>)
+  }, {} as Record<string, { count: number, monthNum: number }>)
 
-  const barData = Object.entries(monthlyData).map(([month, count]) => ({
-    month,
-    publikasi: count,
-  }))
+  const barData = Object.entries(monthlyData)
+    .map(([month, data]) => ({
+      month,
+      publikasi: data.count,
+      monthNum: data.monthNum,
+    }))
+    .sort((a, b) => a.monthNum - b.monthNum) // Sort by month number chronologically
 
   // Summary cards
   // Hitung IKU Publikasi

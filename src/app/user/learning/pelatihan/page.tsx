@@ -703,7 +703,7 @@ export default function PelatihanPage() {
                       value={formData.jam}
                       onChange={handleChange}
                       min="1"
-                      max="999"
+                      max="99999"
                       required
                       placeholder="Misal: 6"
                     />

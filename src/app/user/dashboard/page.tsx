@@ -8,9 +8,6 @@ import {
   TrendingUp, 
   Calendar, 
   Award,
-  Target,
-  CheckCircle,
-  Clock,
   BarChart3,
   Activity,
   Zap,
@@ -33,8 +30,6 @@ import {
   ResponsiveContainer,
   Cell,
   Legend,
-  LineChart,
-  Line,
   RadialBarChart,
   RadialBar,
 } from 'recharts'
@@ -49,14 +44,6 @@ interface UnitKerjaData {
 
 // Interface untuk data BIGGER dari API
 
-
-const activityData = [
-  { bulan: 'Jan', bigger: 75, smarter: 60, better: 80 },
-  { bulan: 'Feb', bigger: 78, smarter: 65, better: 85 },
-  { bulan: 'Mar', bigger: 82, smarter: 70, better: 88 },
-  { bulan: 'Apr', bigger: 85, smarter: 75, better: 92 },
-]
-
 export interface ScoreData {
   bigger?: {
     branding_engagement_score?: number;
@@ -64,6 +51,8 @@ export interface ScoreData {
     networking_kerjasama_score?: number;
     networking_koordinasi_score?: number;
     bigger_score?: number;
+    branding_score?: number;
+    networking_score?: number;
   };
   smarter?: {
     learning_pelatihan_score?: number;
@@ -71,9 +60,15 @@ export interface ScoreData {
     inovasi_kinerja_score?: number;
     inovasi_kajian_score?: number;
     smarter_score?: number;
+    learning_score?: number;
+    inovasi_score?: number;
   };
   better?: {
     better_score?: number;
+    learning_score?: number;
+    inovasi_score?: number;
+    branding_score?: number;
+    networking_score?: number;
   };
 }
 
@@ -385,60 +380,63 @@ export default function UnitKerjaDashboard() {
             isLoading: scoreLoading,
             error: scoreError
         },
-    ];
-
+    ];    // Performance cards dengan skor real dari API
     const performanceCards = [
         {
-            title: "Target Bulanan",
-            value: 20,
-            icon: <Target className="w-6 h-6" />,
+            title: "Networking",
+            value: scoreLoading ? "Loading..." : scoreError ? "Error" : scoreData?.bigger?.networking_score ? `${scoreData.bigger.networking_score}%` : "Tidak ada data",
+            icon: <Users className="w-6 h-6" />,
             color: 'blue',
             bgGradient: 'from-blue-500 to-blue-600',
             bgLight: 'bg-blue-100',
             textColor: 'text-blue-600',
             textDark: 'text-blue-800',
             borderColor: 'border-blue-500',
-            progress: 75,
-            change: '+15%'
+            progress: scoreLoading ? 0 : scoreData?.bigger?.networking_score || 0,
+            loading: scoreLoading,
+            error: scoreError
         },
         {
-            title: "Kegiatan Selesai",
-            value: 8,
-            icon: <CheckCircle className="w-6 h-6" />,
+            title: "Branding",
+            value: scoreLoading ? "Loading..." : scoreError ? "Error" : scoreData?.bigger?.branding_score ? `${scoreData.bigger.branding_score}%` : "Tidak ada data",
+            icon: <Award className="w-6 h-6" />,
             color: 'green',
             bgGradient: 'from-green-500 to-green-600',
             bgLight: 'bg-green-100',
             textColor: 'text-green-600',
             textDark: 'text-green-800',
             borderColor: 'border-green-500',
-            progress: 73,
-            change: '+8%'
+            progress: scoreLoading ? 0 : scoreData?.bigger?.branding_score || 0,
+            loading: scoreLoading,
+            error: scoreError
         },
         {
-            title: "Sedang Berlangsung",
-            value: 3,
-            icon: <Clock className="w-6 h-6" />,
-            color: 'yellow',
-            bgGradient: 'from-yellow-500 to-yellow-600',
-            bgLight: 'bg-yellow-100',
-            textColor: 'text-yellow-600',
-            textDark: 'text-yellow-800',
-            borderColor: 'border-yellow-500',
-            progress: 65,
-            change: '+3%'
-        },
-        {
-            title: "Pencapaian Target",
-            value: "75%",
-            icon: <TrendingUp className="w-6 h-6" />,
+            title: "Learning",
+            value: scoreLoading ? "Loading..." : scoreError ? "Error" : scoreData?.smarter?.learning_score ? `${scoreData.smarter.learning_score}%` : "Tidak ada data",
+            icon: <Brain className="w-6 h-6" />,
             color: 'purple',
             bgGradient: 'from-purple-500 to-purple-600',
             bgLight: 'bg-purple-100',
             textColor: 'text-purple-600',
             textDark: 'text-purple-800',
             borderColor: 'border-purple-500',
-            progress: 75,
-            change: '+12%'
+            progress: scoreLoading ? 0 : scoreData?.smarter?.learning_score || 0,
+            loading: scoreLoading,
+            error: scoreError
+        },
+        {
+            title: "Inovasi",
+            value: scoreLoading ? "Loading..." : scoreError ? "Error" : scoreData?.smarter?.inovasi_score ? `${scoreData.smarter.inovasi_score}%` : "Tidak ada data",
+            icon: <Lightbulb className="w-6 h-6" />,
+            color: 'orange',
+            bgGradient: 'from-orange-500 to-orange-600',
+            bgLight: 'bg-orange-100',
+            textColor: 'text-orange-600',
+            textDark: 'text-orange-800',
+            borderColor: 'border-orange-500',
+            progress: scoreLoading ? 0 : scoreData?.smarter?.inovasi_score || 0,
+            loading: scoreLoading,
+            error: scoreError
         },
     ];
 
@@ -665,107 +663,71 @@ export default function UnitKerjaDashboard() {
                         </div>
                     ))}
                 </div>
-            </section>
-
-            {/* Performance Cards */}
-            <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-                {performanceCards.map((card, idx) => (
-                    <div
-                        key={idx}
-                        className={`bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border-l-4 ${card.borderColor} hover:scale-105 group overflow-hidden`}
-                    >
-                        <div className="p-6">
-                            <div className="flex items-center justify-between">
-                                <div className="flex-1">
-                                    <p className={`text-sm font-medium ${card.textDark} mb-1`}>
-                                        {card.title}
-                                    </p>
-                                    <p className={`text-3xl font-bold ${card.textColor} mb-2`}>
-                                        {card.value}
-                                    </p>
-                                    <div className="flex items-center">
-                                        <TrendingUp className="w-4 h-4 text-green-500 mr-1" />
-                                        <span className="text-sm font-medium text-green-600">
-                                            {card.change}
+            </section>            {/* Performance Cards */}
+            <section className="space-y-6">
+                <div className="flex items-center space-x-3 mb-6">
+                    <div className="bg-gradient-to-r from-orange-500 to-red-600 p-3 rounded-full">
+                        <BarChart3 className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                        <h2 className="text-2xl font-bold text-gray-800">Skor Transformasi</h2>
+                        <p className="text-gray-600">Pencapaian skor untuk masing-masing pilar transformasi</p>
+                    </div>
+                </div>
+                
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+                    {performanceCards.map((card, idx) => (
+                        <div
+                            key={idx}
+                            className={`bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border-l-4 ${card.borderColor} hover:scale-105 group overflow-hidden`}
+                        >
+                            <div className="p-6">
+                                <div className="flex items-center justify-between">
+                                    <div className="flex-1">
+                                        <p className={`text-sm font-medium ${card.textDark} mb-1`}>
+                                            {card.title}
+                                        </p>
+                                        <p className={`text-2xl font-bold ${card.textColor} mb-2`}>
+                                            {card.loading ? (
+                                                <span className="animate-pulse text-gray-400">Loading...</span>
+                                            ) : card.error ? (
+                                                <span className="text-red-500 text-sm">Error</span>
+                                            ) : (
+                                                card.value
+                                            )}
+                                        </p>
+                                        <div className="flex items-center">
+                                            <span className="text-xs text-gray-500">Skor Transformasi</span>
+                                        </div>
+                                    </div>
+                                    <div className={`${card.bgLight} p-3 rounded-full group-hover:scale-110 transition-transform`}>
+                                        <div className={card.textColor}>
+                                            {card.icon}
+                                        </div>
+                                    </div>
+                                </div>
+                                
+                                {/* Progress Bar */}
+                                <div className="mt-4">
+                                    <div className="w-full bg-gray-200 rounded-full h-2">
+                                        <div 
+                                            className={`bg-gradient-to-r ${card.bgGradient} h-2 rounded-full transition-all duration-500`}
+                                            style={{ width: `${Math.min(card.progress, 100)}%` }}
+                                        ></div>
+                                    </div>
+                                    <div className="flex items-center justify-between text-xs text-gray-600 mt-2">
+                                        <span>Progress</span>
+                                        <span className={`font-medium ${card.textColor}`}>
+                                            {card.loading ? "0" : card.progress}%
                                         </span>
-                                        <span className="text-xs text-gray-500 ml-1">vs bulan lalu</span>
                                     </div>
-                                </div>
-                                <div className={`${card.bgLight} p-3 rounded-full group-hover:scale-110 transition-transform`}>
-                                    <div className={card.textColor}>
-                                        {card.icon}
-                                    </div>
-                                </div>
-                            </div>
-                            
-                            {/* Progress Bar */}
-                            <div className="mt-4">
-                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                    <div 
-                                        className={`bg-gradient-to-r ${card.bgGradient} h-2 rounded-full transition-all duration-500`}
-                                        style={{ width: `${Math.min(card.progress, 100)}%` }}
-                                    ></div>
-                                </div>
-                                <div className="flex items-center justify-between text-xs text-gray-600 mt-2">
-                                    <span>Progress</span>
-                                    <span className={`font-medium ${card.textColor}`}>
-                                        {card.progress}%
-                                    </span>
                                 </div>
                             </div>
                         </div>
-                    </div>
-                ))}
-            </section>
-
-            {/* Charts and Activity Section */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                {/* Bigger Better Smarter Trend */}
-                <section className="bg-white rounded-xl shadow-lg p-6">
-                    <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
-                        <Lightbulb className="w-6 h-6 mr-2 text-blue-500" />
-                        Tren Bigger Smarter Better
-                    </h2>
-                    <div className="h-[300px]">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={activityData}>
-                                <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
-                                <XAxis dataKey="bulan" tick={{ fontSize: 12 }} />
-                                <YAxis tick={{ fontSize: 12 }} />
-                                <Tooltip 
-                                    contentStyle={{ 
-                                        backgroundColor: '#f8fafc', 
-                                        border: '1px solid #e2e8f0',
-                                        borderRadius: '8px'
-                                    }}
-                                />
-                                <Legend />
-                                <Line 
-                                    type="monotone" 
-                                    dataKey="bigger" 
-                                    stroke="#3b82f6" 
-                                    strokeWidth={3}
-                                    name="BIGGER"
-                                />
-                                <Line 
-                                    type="monotone" 
-                                    dataKey="smarter" 
-                                    stroke="#8b5cf6" 
-                                    strokeWidth={3}
-                                    name="SMARTER"
-                                />
-                                <Line 
-                                    type="monotone" 
-                                    dataKey="better" 
-                                    stroke="#10b981" 
-                                    strokeWidth={3}
-                                    name="BETTER"
-                                />
-                            </LineChart>
-                        </ResponsiveContainer>
-                    </div>
-                </section>
-
+                    ))}
+                </div>
+            </section>{/* Charts and Activity Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 {/* Radial Progress Chart */}
                 <section className="bg-white rounded-xl shadow-lg p-6">
                     <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">

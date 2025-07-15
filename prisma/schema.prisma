@@ -215,8 +215,10 @@ model org_units {
   department_id   Int
   level           Int
   parent_id       Int?
+  unit_kerja_id   Int?
   org_kpis        org_kpis?
   org_metrics     org_metrics?
+  users           users?          @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "org_units_users_fk")
   org_departments org_departments @relation(fields: [department_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "units_department_id_fkey")
   org_units       org_units?      @relation("org_unitsToorg_units", fields: [parent_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "units_parent_id_fkey")
   other_org_units org_units[]     @relation("org_unitsToorg_units")
@@ -323,6 +325,7 @@ model rekap_skor_unit_kerja {
   bigger_score                   Decimal? @db.Decimal
   smarter_score                  Decimal? @db.Decimal
   better_score                   Decimal? @db.Decimal
+  users                          users?   @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "rekap_skor_unit_kerja_users_fk")
 
   @@schema("makarti")
 }
@@ -390,31 +393,33 @@ model status_inovasi {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model users {
-  created_at          DateTime              @default(now()) @db.Timestamptz(6)
-  unit_kerja          String?
-  username            String                @db.VarChar
-  password            String?               @db.VarChar
-  id                  Int                   @id @unique @default(autoincrement())
-  role_id             Int?
-  alias               String?               @db.VarChar(255)
-  role                String?               @db.VarChar(10)
-  bigger_score        bigger_score[]
-  evaluasi_unit_kerja evaluasi_unit_kerja?
-  event_schedule      event_schedule[]
-  inovasi             inovasi[]
-  kajian              kajian[]
-  koordinasi          koordinasi[]
-  networking          networking[]
-  notification        notification[]
-  pegawai             pegawai[]
-  pelatihan           pelatihan[]
-  penyelenggaraan     penyelenggaraan[]
-  produkInovasi       produkInovasi[]
-  publikasi           publikasi[]
-  serapan_anggaran    serapan_anggaran[]
-  skptransformational skptransformational[]
-  sosialisasi         sosialisasi[]
-  role_user           role_user?            @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  created_at            DateTime                @default(now()) @db.Timestamptz(6)
+  unit_kerja            String?
+  username              String                  @db.VarChar
+  password              String?                 @db.VarChar
+  id                    Int                     @id @unique @default(autoincrement())
+  role_id               Int?
+  alias                 String?                 @db.VarChar(255)
+  role                  String?                 @db.VarChar(10)
+  bigger_score          bigger_score[]
+  evaluasi_unit_kerja   evaluasi_unit_kerja?
+  event_schedule        event_schedule[]
+  inovasi               inovasi[]
+  kajian                kajian[]
+  koordinasi            koordinasi[]
+  networking            networking[]
+  notification          notification[]
+  org_units             org_units[]
+  pegawai               pegawai[]
+  pelatihan             pelatihan[]
+  penyelenggaraan       penyelenggaraan[]
+  produkInovasi         produkInovasi[]
+  publikasi             publikasi[]
+  rekap_skor_unit_kerja rekap_skor_unit_kerja[]
+  serapan_anggaran      serapan_anggaran[]
+  skptransformational   skptransformational[]
+  sosialisasi           sosialisasi[]
+  role_user             role_user?              @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("makarti")
 }

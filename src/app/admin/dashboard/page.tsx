@@ -2,19 +2,19 @@
 
 import { useState, useEffect } from 'react'
 import {
-  BarChart,
-  Bar,
-  XAxis,
-  YAxis,
-  CartesianGrid,
+  // BarChart,
+  // Bar,
+  // XAxis,
+  // YAxis,
+  // CartesianGrid,
   Tooltip,
   ResponsiveContainer,
   PieChart,
   Pie,
   Cell,
   Legend,
-  LineChart,
-  Line,
+  // LineChart,
+  // Line,
 } from 'recharts'
 import { 
   Lightbulb, 
@@ -22,7 +22,7 @@ import {
   Users, 
   BookOpenCheck, 
   TrendingUp, 
-  Award, 
+  // Award, 
   Rocket, 
   Star, 
   Brain,
@@ -64,112 +64,57 @@ interface PublikasiResponse {
   perBulan: PublikasiBulan[]
 }
 
-const summaryData = [
-  { 
-    title: 'Jumlah Inovasi Aktif', 
-    value: 15, 
-    icon: <Lightbulb className="w-6 h-6" />,
-    color: 'blue',
-    bgGradient: 'from-blue-500 to-blue-600',
-    bgLight: 'bg-blue-100',
-    textColor: 'text-blue-600',
-    textDark: 'text-blue-800',
-    borderColor: 'border-blue-500',
-    change: '+12%',
-    changeType: 'increase'
-  },
-  { 
-    title: 'Postingan Komunikasi', 
-    value: 42, 
-    icon: <Megaphone className="w-6 h-6" />,
-    color: 'green',
-    bgGradient: 'from-green-500 to-green-600',
-    bgLight: 'bg-green-100',
-    textColor: 'text-green-600',
-    textDark: 'text-green-800',
-    borderColor: 'border-green-500',
-    change: '+8%',
-    changeType: 'increase'
-  },
-  { 
-    title: 'Kunjungan Instansi', 
-    value: 8, 
-    icon: <Users className="w-6 h-6" />,
-    color: 'yellow',
-    bgGradient: 'from-yellow-500 to-yellow-600',
-    bgLight: 'bg-yellow-100',
-    textColor: 'text-yellow-600',
-    textDark: 'text-yellow-800',
-    borderColor: 'border-yellow-500',
-    change: '+25%',
-    changeType: 'increase'
-  },
-  { 
-    title: 'Kegiatan Pembelajaran', 
-    value: 10, 
-    icon: <BookOpenCheck className="w-6 h-6" />,
-    color: 'purple',
-    bgGradient: 'from-purple-500 to-purple-600',
-    bgLight: 'bg-purple-100',
-    textColor: 'text-purple-600',
-    textDark: 'text-purple-800',
-    borderColor: 'border-purple-500',
-    change: '+5%',
-    changeType: 'increase'
-  },
-]
-
-const makartiChart = [
-  { name: 'Inovasi', Januari: 2, Februari: 4, Maret: 5 },
-  { name: 'Komunikasi', Januari: 3, Februari: 6, Maret: 8 },
-  { name: 'Networking', Januari: 1, Februari: 2, Maret: 4 },
-  { name: 'Learning', Januari: 4, Februari: 6, Maret: 5 },
-]
-
-const trendData = [
-  { bulan: 'Jan', total: 10 },
-  { bulan: 'Feb', total: 18 },
-  { bulan: 'Mar', total: 22 },
-  { bulan: 'Apr', total: 28 },
-  { bulan: 'Mei', total: 35 },
-  { bulan: 'Jun', total: 42 },
-]
+// const makartiChart = [
+//   { name: 'Inovasi', Januari: 2, Februari: 4, Maret: 5 },
+//   { name: 'Komunikasi', Januari: 3, Februari: 6, Maret: 8 },
+//   { name: 'Networking', Januari: 1, Februari: 2, Maret: 4 },
+//   { name: 'Learning', Januari: 4, Februari: 6, Maret: 5 },
+// ]
+// 
+// const trendData = [
+//   { bulan: 'Jan', total: 10 },
+//   { bulan: 'Feb', total: 18 },
+//   { bulan: 'Mar', total: 22 },
+//   { bulan: 'Apr', total: 28 },
+//   { bulan: 'Mei', total: 35 },
+//   { bulan: 'Jun', total: 42 },
+// ]
 
 // Data Bigger Smarter Better yang dicapai melalui 4 pilar MAKARTI
 // (used in component below)
 // (Removed stray object literals; use the biggerSmarterBetterAchievements array in the component instead)
 
 // Data kontribusi setiap pilar terhadap BSB
-const pillarContributionData = [
-  { 
-    pillar: 'Inovasi', 
-    bigger: 70, 
-    smarter: 85, 
-    better: 75,
-    description: '15 inovasi aktif'
-  },
-  { 
-    pillar: 'Komunikasi & Branding', 
-    bigger: 45, 
-    smarter: 60, 
-    better: 50,
-    description: '42 postingan komunikasi'
-  },
-  { 
-    pillar: 'Networking', 
-    bigger: 65, 
-    smarter: 35, 
-    better: 40,
-    description: '8 kunjungan instansi'
-  },
-  { 
-    pillar: 'Learning', 
-    bigger: 55, 
-    smarter: 45, 
-    better: 80,
-    description: '10 kegiatan pembelajaran'
-  }
-]
+// const pillarContributionData = [
+//   { 
+//     pillar: 'Inovasi', 
+//     bigger: 70, 
+//     smarter: 85, 
+//     better: 75,
+//     description: '15 inovasi aktif'
+//   },
+//   { 
+//     pillar: 'Komunikasi & Branding', 
+//     bigger: 45, 
+//     smarter: 60, 
+//     better: 50,
+//     description: '42 postingan komunikasi'
+//   },
+//   { 
+//     pillar: 'Networking', 
+//     bigger: 65, 
+//     smarter: 35, 
+//     better: 40,
+//     description: '8 kunjungan instansi'
+//   },
+//   { 
+//     pillar: 'Learning', 
+//     bigger: 55, 
+//     smarter: 45, 
+//     better: 80,
+//     description: '10 kegiatan pembelajaran'
+//   }
+// ]
 
 export default function RingkasanMakartiPage() {
   const [serapanData, setSerapanData] = useState([
@@ -179,11 +124,63 @@ export default function RingkasanMakartiPage() {
   const [serapanSummary, setSerapanSummary] = useState({
     total_pagu: 500000000,
     total_realisasi: 375000000,
-    total_sisa: 125000000,
-    unit_kerja_penginput: []
+    total_sisa: 125000000,    unit_kerja_penginput: []
   })
   const [kegiatanData, setKegiatanData] = useState<Kegiatan[]>([])
-  const [dynamicSummaryData, setDynamicSummaryData] = useState(summaryData)
+  const [dynamicSummaryData, setDynamicSummaryData] = useState([
+    { 
+      title: 'Jumlah Inovasi Aktif', 
+      value: 0, 
+      icon: <Lightbulb className="w-6 h-6" />,
+      color: 'blue',
+      bgGradient: 'from-blue-500 to-blue-600',
+      bgLight: 'bg-blue-100',
+      textColor: 'text-blue-600',
+      textDark: 'text-blue-800',
+      borderColor: 'border-blue-500',
+      change: '',
+      changeType: 'same' as 'increase' | 'decrease' | 'same'
+    },
+    { 
+      title: 'Publikasi Media Branding', 
+      value: 0, 
+      icon: <Megaphone className="w-6 h-6" />,
+      color: 'green',
+      bgGradient: 'from-green-500 to-green-600',
+      bgLight: 'bg-green-100',
+      textColor: 'text-green-600',
+      textDark: 'text-green-800',
+      borderColor: 'border-green-500',
+      change: '',
+      changeType: 'same' as 'increase' | 'decrease' | 'same'
+    },
+    { 
+      title: 'Mitra yang menjadi networking LAN', 
+      value: 0, 
+      icon: <Users className="w-6 h-6" />,
+      color: 'yellow',
+      bgGradient: 'from-yellow-500 to-yellow-600',
+      bgLight: 'bg-yellow-100',
+      textColor: 'text-yellow-600',
+      textDark: 'text-yellow-800',
+      borderColor: 'border-yellow-500',
+      change: '',
+      changeType: 'same' as 'increase' | 'decrease' | 'same'
+    },
+    { 
+      title: 'Rata-rata Jam Pelatihan Pegawai', 
+      value: 0, 
+      icon: <BookOpenCheck className="w-6 h-6" />,
+      color: 'purple',
+      bgGradient: 'from-purple-500 to-purple-600',
+      bgLight: 'bg-purple-100',
+      textColor: 'text-purple-600',
+      textDark: 'text-purple-800',
+      borderColor: 'border-purple-500',
+      change: '',
+      changeType: 'same' as 'increase' | 'decrease' | 'same'
+    },
+  ])
   const [loading, setLoading] = useState(true)
   const [kegiatanLoading, setKegiatanLoading] = useState(true)
   // Define a more specific type for scoreData
@@ -221,17 +218,14 @@ export default function RingkasanMakartiPage() {
         // Fetch inovasi data
         const inovasiResponse = await fetch('/api/inovasi/summary')
         const inovasiData: InovasiSummary[] = await inovasiResponse.json()
-        
-        // Fetch publikasi data
+          // Fetch publikasi data
         const publikasiResponse = await fetch('/api/publikasi/rekapan')
         const publikasiData: PublikasiResponse = await publikasiResponse.json()
 
-        // Fetch kegiatan for kunjungan instansi
-        const kegiatanResponse = await fetch('/api/kegiatan')
-        const kegiatanAll: Kegiatan[] = await kegiatanResponse.json()
-        const kunjunganEvents = kegiatanAll.filter((event: Kegiatan) => event.type?.toLowerCase().includes('kunjungan'))
-        const uniqueMitra = new Set(kunjunganEvents.map((e: Kegiatan) => e.unit_kerja))
-        const mitraCount = uniqueMitra.size
+        // Fetch networking data
+        const networkingResponse = await fetch('/api/networking')
+        const networkingData = await networkingResponse.json()
+        const mitraCount = Array.isArray(networkingData) ? networkingData.length : 0
 
         // Fetch pelatihan summary for accurate training hours
         let avgTrainingPercent = 0
@@ -242,16 +236,9 @@ export default function RingkasanMakartiPage() {
           const totalJam = pelatihanSummary.reduce((sum, p) => sum + (p.total_jam || 0), 0)
           const employeeCount = pelatihanSummary.length
           const targetJam = 20
-          avgTrainingPercent = employeeCount > 0 ? Math.min(100, Math.round((totalJam / (employeeCount * targetJam)) * 100)) : 0
-        } catch {
-          // fallback: use pelatihan events from kegiatanAll
-          const pelatihanEvents = kegiatanAll.filter((event: Kegiatan) => event.type?.toLowerCase().includes('pelatihan') || event.type?.toLowerCase().includes('training'))
-          const employeeResponse = await fetch('/api/employee')
-          const employees: unknown[] = await employeeResponse.json()
-          const employeeCount = employees.length
-          const targetJam = 20
-          const totalTrainingHours = pelatihanEvents.length * 2
-          avgTrainingPercent = employeeCount > 0 ? Math.min(100, Math.round((totalTrainingHours / (employeeCount * targetJam)) * 100)) : 0
+          avgTrainingPercent = employeeCount > 0 ? Math.min(100, Math.round((totalJam / (employeeCount * targetJam)) * 100)) : 0        } catch {
+          // fallback: use default value if pelatihan API fails
+          avgTrainingPercent = 0
         }
 
         const currentMonth = new Date().toLocaleString('en-US', { month: 'long' })
@@ -264,9 +251,7 @@ export default function RingkasanMakartiPage() {
         const inovasiChange = calculateChange(
           currentInovasiMonth?.count || 0,
           lastInovasiMonth?.count || 0
-        )
-
-        // Process publikasi data
+        )        // Process publikasi data
         const currentPublikasiMonth = publikasiData.perBulan?.find((item: PublikasiBulan) => 
           item.month === currentMonth && item.year === currentYear
         )
@@ -278,39 +263,63 @@ export default function RingkasanMakartiPage() {
           lastPublikasiMonth?.count || 0
         )
 
-        // Update summary data with real values, including mitra networking and pelatihan
-        const updatedSummaryData = [
+        // Update summary data with real values
+        setDynamicSummaryData([
           {
-            ...summaryData[0],
+            title: 'Jumlah Inovasi Aktif',
             value: currentInovasiMonth?.count || 0,
+            icon: <Lightbulb className="w-6 h-6" />,
+            color: 'blue',
+            bgGradient: 'from-blue-500 to-blue-600',
+            bgLight: 'bg-blue-100',
+            textColor: 'text-blue-600',
+            textDark: 'text-blue-800',
+            borderColor: 'border-blue-500',
             change: inovasiChange.change,
             changeType: inovasiChange.type
           },
           {
-            ...summaryData[1],
+            title: 'Publikasi Media Branding',
             value: publikasiData.totalPublikasi || 0,
+            icon: <Megaphone className="w-6 h-6" />,
+            color: 'green',
+            bgGradient: 'from-green-500 to-green-600',
+            bgLight: 'bg-green-100',
+            textColor: 'text-green-600',
+            textDark: 'text-green-800',
+            borderColor: 'border-green-500',
             change: publikasiChange.change,
             changeType: publikasiChange.type
           },
           {
-            ...summaryData[2],
-            value: mitraCount,
             title: 'Mitra yang menjadi networking LAN',
+            value: mitraCount,
+            icon: <Users className="w-6 h-6" />,
+            color: 'yellow',
+            bgGradient: 'from-yellow-500 to-yellow-600',
+            bgLight: 'bg-yellow-100',
+            textColor: 'text-yellow-600',
+            textDark: 'text-yellow-800',
+            borderColor: 'border-yellow-500',
             change: '',
-            changeType: 'same'
+            changeType: 'same' as const
           },
           {
-            ...summaryData[3],
-            value: avgTrainingPercent,
             title: 'Rata-rata Jam Pelatihan Pegawai',
+            value: avgTrainingPercent,
+            icon: <BookOpenCheck className="w-6 h-6" />,
+            color: 'purple',
+            bgGradient: 'from-purple-500 to-purple-600',
+            bgLight: 'bg-purple-100',
+            textColor: 'text-purple-600',
+            textDark: 'text-purple-800',
+            borderColor: 'border-purple-500',
             change: '',
-            changeType: 'same'
+            changeType: 'same' as const
           }
-        ]
-
-        setDynamicSummaryData(updatedSummaryData)
+        ])
       } catch {
-        setDynamicSummaryData(summaryData) // Fallback to static data
+        // Keep default values on error
       }
     }
 
@@ -575,11 +584,10 @@ export default function RingkasanMakartiPage() {
             <div className="text-sm opacity-90">BETTER Score</div>
             <div className="text-xs opacity-75">via Branding, Networking, Inovasi & Learning</div>
           </div>
-        </div>
-      </div>
+        </div>      </div>
 
       {/* Kontribusi Pilar terhadap BSB */}
-      <div className="bg-white rounded-xl shadow-lg p-6">
+      {/* <div className="bg-white rounded-xl shadow-lg p-6">
         <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
           <Award className="w-6 h-6 mr-2 text-orange-500" />
           Kontribusi Pilar MAKARTI terhadap Bigger Smarter Better
@@ -613,12 +621,10 @@ export default function RingkasanMakartiPage() {
             </div>
           ))}
         </div>
-      </div>
-
-      {/* Charts Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+      </div> */}      {/* Charts Grid */}
+      {/* <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Bar Chart */}
-        <div className="bg-white p-6 rounded-xl shadow-lg">
+        {/* <div className="bg-white p-6 rounded-xl shadow-lg">
           <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
             <BarChart className="w-6 h-6 mr-2 text-blue-500" />
             Tren Kinerja Tiap Pilar (Jan–Mar)
@@ -643,10 +649,10 @@ export default function RingkasanMakartiPage() {
               </BarChart>
             </ResponsiveContainer>
           </div>
-        </div>
+        </div> */}
 
         {/* Line Chart - Trend */}
-        <div className="bg-white p-6 rounded-xl shadow-lg">
+        {/* <div className="bg-white p-6 rounded-xl shadow-lg">
           <h2 className="text-xl font-bold mb-4 text-gray-800 flex items-center">
             <TrendingUp className="w-6 h-6 mr-2 text-green-500" />
             Tren Pertumbuhan Total Kegiatan
@@ -676,7 +682,7 @@ export default function RingkasanMakartiPage() {
             </ResponsiveContainer>
           </div>
         </div>
-      </div>
+      </div> */}
 
       {/* Bottom Grid - Updated with Today's Schedule */}
       <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">

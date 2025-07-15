@@ -44,40 +44,35 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         total_sisa: 0,
         unit_kerja_penginput: []
       });
-    }
-
-    // Filter data hanya untuk bulan terakhir
+    }    // Filter data hanya untuk bulan terakhir (untuk total_pagu)
     const latestMonthData = allData.filter(item => item.bulan === latestMonth);
 
-    const total = latestMonthData.reduce(
-      (acc, item) => {
-        const pagu = typeof item.pagu_anggaran === 'object' && 'toNumber' in item.pagu_anggaran
-          ? item.pagu_anggaran.toNumber()
-          : Number(item.pagu_anggaran);
-        const realisasi = typeof item.realisasi_pengeluaran === 'object' && 'toNumber' in item.realisasi_pengeluaran
-          ? item.realisasi_pengeluaran.toNumber()
-          : Number(item.realisasi_pengeluaran);
+    // Hitung total_pagu dari bulan terakhir saja
+    const totalPagu = latestMonthData.reduce((sum, item) => {
+      const pagu = typeof item.pagu_anggaran === 'object' && 'toNumber' in item.pagu_anggaran
+        ? item.pagu_anggaran.toNumber()
+        : Number(item.pagu_anggaran);
+      return sum + pagu;
+    }, 0);
 
-        acc.total_pagu += pagu;
-        acc.total_realisasi += realisasi;
+    // Hitung total_realisasi dari semua bulan
+    const totalRealisasi = allData.reduce((sum, item) => {
+      const realisasi = typeof item.realisasi_pengeluaran === 'object' && 'toNumber' in item.realisasi_pengeluaran
+        ? item.realisasi_pengeluaran.toNumber()
+        : Number(item.realisasi_pengeluaran);
+      return sum + realisasi;
+    }, 0);
 
-        const alias = item.users?.alias || 'Tidak Diketahui';
-        if (!acc.unit_kerja_penginput.includes(alias)) {
-          acc.unit_kerja_penginput.push(alias);
-        }
+    // Kumpulkan unit kerja penginput dari semua data
+    const unitKerjaPenginput = [...new Set(allData.map(item => item.users?.alias || 'Tidak Diketahui'))];
 
-        return acc;
-      },
-      { total_pagu: 0, total_realisasi: 0, unit_kerja_penginput: [] as string[] }
-    );
-
-    const total_sisa = total.total_pagu - total.total_realisasi;
+    const total_sisa = totalPagu - totalRealisasi;
 
     return res.status(200).json({
-      total_pagu: total.total_pagu,
-      total_realisasi: total.total_realisasi,
+      total_pagu: totalPagu,
+      total_realisasi: totalRealisasi,
       total_sisa,
-      unit_kerja_penginput: total.unit_kerja_penginput,
+      unit_kerja_penginput: unitKerjaPenginput,
       bulan_terakhir: latestMonth // Menambahkan info bulan terakhir yang digunakan
     });
   } catch (error) {

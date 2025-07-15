@@ -25,7 +25,7 @@ const menuItems = [
     label: 'Dashboard',
     href: '/user/dashboard',
     icon: LayoutDashboard,
-    status: 'maintenance',
+    status: 'ready',
   },
   {
     label: 'Publikasi Media',

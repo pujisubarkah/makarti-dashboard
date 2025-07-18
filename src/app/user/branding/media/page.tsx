@@ -431,7 +431,7 @@ const handleDelete = async (id: number, judul: string) => {
   
   const totalLikes = socialMediaPosts.reduce((sum: number, item: PublikasiItem) => sum + (item.likes || 0), 0)
   const totalViews = socialMediaPosts.reduce((sum: number, item: PublikasiItem) => sum + (item.views || 0), 0)
-  const avgEngagement = totalViews > 0 ? ((totalLikes / totalViews) * 100).toFixed(1) : '0'
+  const avgEngagement = totalViews > 0 && totalLikes > 0 ? ((totalLikes / totalViews) * 100).toFixed(1) : '0'
   
   const instagramLikes = instagramPosts.reduce((sum: number, item: PublikasiItem) => sum + (item.likes || 0), 0)
   const instagramViews = instagramPosts.reduce((sum: number, item: PublikasiItem) => sum + (item.views || 0), 0)
@@ -474,7 +474,7 @@ const handleDelete = async (id: number, judul: string) => {
   // Hitung IKU Publikasi
   // Rumus: 0.5 * (engagement/0.6) + 0.5 * (Jumlah Publikasi/5)
   const engagementValue = typeof avgEngagement === 'string' ? parseFloat(avgEngagement) : avgEngagement;
-  const ikuPublikasi = 0.5 * (engagementValue / 0.6) + 0.5 * (totalPublikasi / 5);
+  const ikuPublikasi = 0.5 * (engagementValue / 0.6) + 0.5 * (totalPublikasi / 60);
 
   const summaryCards = [
     {
@@ -540,7 +540,7 @@ const handleDelete = async (id: number, judul: string) => {
       textDark: 'text-indigo-800',
       borderColor: 'border-indigo-500',
       change: '',
-      description: 'IKU = 0.5*(Engagement/0.6) + 0.5*(Publikasi/5)'
+      description: 'IKU = 0.5*(Engagement/0.6) + 0.5*(Publikasi/60)'
     }
   ]
 

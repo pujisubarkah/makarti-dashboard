@@ -84,7 +84,7 @@ export default function ProdukInovasiPage() {
     )
   }
 
-  // Group outstanding products by unit with 4D analysis
+  // Group outstanding products by unit with 5D+1 analysis
   const getOutstandingByUnit = () => {
     const outstanding = getOutstandingProducts()
     const grouped = outstanding.reduce((acc, item) => {
@@ -103,7 +103,7 @@ export default function ProdukInovasiPage() {
         count: products.length,
         completionRate: (products.filter(p => p.status_inovasi.status === 'Selesai').length / products.length) * 100,
         digitalRate: (products.filter(p => p.jenis.includes('Digital') || p.jenis === 'Dashboard' || p.jenis === 'Aplikasi').length / products.length) * 100,
-        // 4D Framework Analysis
+        // 5D+1 Framework Analysis
         drumUp: products.length >= 2 ? 'Champion' : products.length === 1 ? 'Starter' : 'Potential',
         diagnose: products.some(p => p.keterangan.toLowerCase().includes('monitoring') || p.keterangan.toLowerCase().includes('analisis')) ? 'Advanced' : 'Basic',
         design: products.filter(p => p.jenis.includes('Digital') || p.jenis === 'Dashboard').length > 0 ? 'Digital-Ready' : 'Traditional',
@@ -370,7 +370,7 @@ export default function ProdukInovasiPage() {
             className="bg-gradient-to-r from-purple-500 to-indigo-600 hover:from-purple-600 hover:to-indigo-700 text-white px-4 py-2 rounded-lg font-medium transition-all duration-300 flex items-center shadow-md hover:shadow-lg"
           >
             <Rocket className="w-4 h-4 mr-2" />
-            4D Innovation Hub
+            5D+1 Innovation Hub
             <span className="ml-2 bg-white bg-opacity-20 px-2 py-1 rounded-full text-xs">
               {getOutstandingProducts().length}
             </span>
@@ -616,7 +616,7 @@ export default function ProdukInovasiPage() {
         </div>
       </div>
 
-      {/* 4D Innovation Hub Modal - Ultra Enhanced */}
+      {/* 5D+1 Innovation Hub Modal - Ultra Enhanced */}
       {showInnovationModal && (
         <div className="fixed inset-0 bg-black bg-opacity-70 flex items-center justify-center p-4 z-50 backdrop-blur-md animate-in fade-in duration-500">
           <div className="bg-white rounded-3xl max-w-7xl w-full max-h-[95vh] overflow-hidden shadow-2xl transform transition-all duration-700 scale-100 animate-in slide-in-from-bottom-8 zoom-in-95 border-2 border-purple-200">
@@ -637,10 +637,10 @@ export default function ProdukInovasiPage() {
                   </div>
                   <div>
                     <h2 className="text-4xl font-bold mb-3 drop-shadow-md bg-gradient-to-r from-white to-purple-100 bg-clip-text text-transparent">
-                      🚀 4D Innovation Framework
+                      🚀 5D+1 Innovation Framework
                     </h2>
                     <p className="text-purple-100 text-xl font-medium drop-shadow-sm mb-4">
-                      ✨ Drum Up • Diagnose • Design • Delivered ✨
+                      ✨ Drum Up • Diagnose • Design • Deliver • Display • Documentation ✨
                     </p>
                     <div className="flex items-center flex-wrap gap-3">
                       <div className="bg-white/25 px-5 py-3 rounded-2xl backdrop-blur-sm shadow-lg hover:scale-105 transition-transform duration-300">
@@ -669,16 +669,16 @@ export default function ProdukInovasiPage() {
                 </button>
               </div>
               
-              {/* 4D Framework Icons */}
+              {/* 5D+1 Framework Icons */}
               <div className="absolute bottom-4 right-4 flex space-x-3 animate-bounce">
                 <span className="text-3xl" title="Drum Up">🥁</span>
                 <span className="text-3xl" title="Diagnose">🔍</span>
                 <span className="text-3xl" title="Design">🎨</span>
-                <span className="text-3xl" title="Delivered">🚀</span>
+                <span className="text-3xl" title="Deliver & Display">🚀</span>
               </div>
             </div>
 
-            {/* Modal Content - 4D Framework Enhanced */}
+            {/* Modal Content - 5D+1 Framework Enhanced */}
             <div className="p-10 overflow-y-auto max-h-[calc(95vh-320px)] bg-gradient-to-br from-gray-50 via-purple-50 to-blue-50">
               {/* Custom CSS Animations */}
               <style jsx>{`
@@ -729,7 +729,7 @@ export default function ProdukInovasiPage() {
                         }`}>
                           <span className="drop-shadow-lg">#{index + 1}</span>
                         </div>
-                        {/* 4D Badge */}
+                        {/* 5D+1 Badge */}
                         {index < 3 && (
                           <div className="absolute -top-2 -right-2 text-2xl animate-spin">🎯</div>
                         )}
@@ -740,12 +740,12 @@ export default function ProdukInovasiPage() {
                         <div className="absolute -top-4 -right-4 z-20">
                           <div className="text-5xl animate-bounce transform hover:scale-125 transition-transform duration-300">👑</div>
                           <div className="absolute -bottom-1 left-1/2 transform -translate-x-1/2 text-purple-600 font-bold text-xs bg-white px-2 py-1 rounded-full shadow-lg">
-                            4D MASTER
+                            5D+1 MASTER
                           </div>
                         </div>
                       )}
 
-                      {/* Unit Header - 4D Enhanced */}
+                      {/* Unit Header - 5D+1 Enhanced */}
                       <div className="mb-8 relative">
                         <div className="flex items-center justify-between mb-6">
                           <h3 className="text-3xl font-bold text-gray-800 flex items-center group">
@@ -770,7 +770,7 @@ export default function ProdukInovasiPage() {
                           </div>
                         </div>
                         
-                        {/* 4D Framework Analysis */}
+                        {/* 5D+1 Framework Analysis */}
                         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
                           <div className="bg-gradient-to-br from-red-100 to-red-200 p-4 rounded-2xl text-center shadow-lg hover:scale-105 transition-transform duration-300">
                             <div className="text-3xl mb-2">🥁</div>
@@ -789,12 +789,12 @@ export default function ProdukInovasiPage() {
                           </div>
                           <div className="bg-gradient-to-br from-green-100 to-green-200 p-4 rounded-2xl text-center shadow-lg hover:scale-105 transition-transform duration-300">
                             <div className="text-3xl mb-2">🚀</div>
-                            <div className="font-bold text-green-700 text-sm">DELIVERED</div>
+                            <div className="font-bold text-green-700 text-sm">DELIVER & DISPLAY</div>
                             <div className="text-green-600 font-medium">{unitData.delivered} Produk</div>
                           </div>
                         </div>
                         
-                        {/* Enhanced Progress Bar with 4D Visualization */}
+                        {/* Enhanced Progress Bar with 5d+1 Visualization */}
                         <div className="relative mb-4">
                           <div className="w-full bg-white/50 rounded-2xl h-8 shadow-inner backdrop-blur-sm border border-white/30">
                             <div 
@@ -802,7 +802,7 @@ export default function ProdukInovasiPage() {
                               style={{ width: `${Math.min(unitData.completionRate, 100)}%` }}
                             >
                               <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/40 to-transparent animate-pulse"></div>
-                              <span className="text-white font-bold text-sm z-10">4D Success</span>
+                              <span className="text-white font-bold text-sm z-10">5D+1 Success</span>
                             </div>
                           </div>
                           <div className="absolute right-0 -top-12">
@@ -814,11 +814,11 @@ export default function ProdukInovasiPage() {
                           </div>
                         </div>
                         
-                        {/* 4D Achievement Badges */}
+                        {/* 5D+1 Achievement Badges */}
                         <div className="flex items-center space-x-2 mb-4">
                           {unitData.completionRate >= 80 && (
                             <div className="bg-gradient-to-r from-green-500 to-green-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg animate-pulse">
-                              🚀 4D Champion
+                              🚀 5D+1 Champion
                             </div>
                           )}
                           {unitData.digitalRate >= 50 && (
@@ -833,13 +833,13 @@ export default function ProdukInovasiPage() {
                           )}
                           {index === 0 && (
                             <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white px-4 py-2 rounded-full text-sm font-bold shadow-lg animate-bounce">
-                              👑 4D Master Unit
+                              👑 5D+1 Master Unit
                             </div>
                           )}
                         </div>
                       </div>
 
-                      {/* Products Grid - 4D Enhanced */}
+                      {/* Products Grid - 5D+1 Enhanced */}
                       <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
                         {unitData.products.map((product, idx) => (
                           <div 
@@ -851,7 +851,7 @@ export default function ProdukInovasiPage() {
                                 'linear-gradient(135deg, rgba(147, 51, 234, 0.1), rgba(124, 58, 237, 0.1))',
                             }}
                           >
-                            {/* 4D Hover Effect */}
+                            {/* 5D+1 Hover Effect */}
                             <div className="absolute inset-0 bg-gradient-to-r from-purple-200/0 via-purple-200/30 to-purple-200/0 translate-x-[-100%] group-hover:translate-x-[100%] transition-transform duration-1000"></div>
                             
                             {/* Product Status Indicator */}
@@ -898,13 +898,13 @@ export default function ProdukInovasiPage() {
                                 </p>
                                 <div className="flex space-x-2">
                                   {product.status_inovasi.status === 'Selesai' && (
-                                    <span className="text-2xl animate-bounce" title="4D Delivered">🎯</span>
+                                    <span className="text-2xl animate-bounce" title="5D+1 Deliver & Display">🎯</span>
                                   )}
                                   {product.jenis.includes('Digital') && (
-                                    <span className="text-2xl animate-pulse" title="4D Design">🎨</span>
+                                    <span className="text-2xl animate-pulse" title="5D+1 Design">🎨</span>
                                   )}
                                   {product.keterangan.toLowerCase().includes('monitoring') && (
-                                    <span className="text-2xl animate-bounce delay-200" title="4D Diagnose">🔍</span>
+                                    <span className="text-2xl animate-bounce delay-200" title="5D+1 Diagnose">🔍</span>
                                   )}
                                 </div>
                               </div>
@@ -923,16 +923,16 @@ export default function ProdukInovasiPage() {
                   <h3 className="text-3xl font-bold text-gray-600 mb-6 bg-gradient-to-r from-gray-600 to-gray-800 bg-clip-text text-transparent">
                     🔍 Belum Ada Produk Unggulan Terdeteksi
                   </h3>                  <p className="text-gray-500 text-xl max-w-2xl mx-auto leading-relaxed mb-8">
-                    Sistem sedang mencari produk inovasi yang sudah selesai atau memiliki karakteristik unggulan untuk analisis 4D Framework
+                    Sistem sedang mencari produk inovasi yang sudah selesai atau memiliki karakteristik unggulan untuk analisis 5d+1 Framework
                   </p>
                   <div className="bg-gradient-to-r from-purple-500 to-blue-600 text-white px-8 py-4 rounded-2xl inline-block shadow-lg">
-                    <span className="font-bold">🚀 Kembangkan produk inovasi untuk muncul di 4D Hub!</span>
+                    <span className="font-bold">🚀 Kembangkan produk inovasi untuk muncul di 5d+1 Hub!</span>
                   </div>
                 </div>
               )}
             </div>
 
-            {/* Modal Footer - 4D Enhanced */}
+            {/* Modal Footer - 5D+1 Enhanced */}
             <div className="bg-gradient-to-r from-gray-50 via-purple-50 to-blue-50 px-10 py-8 flex justify-between items-center border-t-2 border-purple-300">
               <div className="flex items-center space-x-6">
                 <div className="text-xl text-gray-700 flex items-center">
@@ -942,7 +942,7 @@ export default function ProdukInovasiPage() {
                   <span className="ml-2">produk tergolong unggulan</span>
                 </div>
                 <div className="bg-gradient-to-r from-purple-400 via-indigo-500 to-blue-600 text-white px-6 py-3 rounded-2xl text-base font-bold shadow-xl hover:scale-105 transition-transform duration-300">
-                  🎯 4D Success Rate: {((getOutstandingProducts().length / dataProduk.length) * 100).toFixed(1)}%
+                  🎯 5D+1 Success Rate: {((getOutstandingProducts().length / dataProduk.length) * 100).toFixed(1)}%
                 </div>
                 <div className="bg-gradient-to-r from-green-400 to-green-600 text-white px-6 py-3 rounded-2xl text-base font-bold shadow-xl animate-pulse">
                   ⚡ {getOutstandingProducts().filter(p => p.status_inovasi.status === 'Selesai').length} Delivered
@@ -952,7 +952,7 @@ export default function ProdukInovasiPage() {
                 onClick={() => setShowInnovationModal(false)}
                 className="bg-gradient-to-r from-gray-600 via-gray-700 to-gray-800 hover:from-gray-700 hover:via-gray-800 hover:to-gray-900 text-white px-10 py-4 rounded-2xl font-bold transition-all duration-300 hover:scale-105 shadow-xl hover:shadow-2xl transform hover:-translate-y-1"
               >
-                ✨ Tutup 4D Hub
+                ✨ Tutup 5D+1 Hub
               </button>
             </div>
           </div>

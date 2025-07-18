@@ -98,7 +98,7 @@ export default function ProdukInovasiPage() {
     { step: "Drum Up", icon: "🥁", color: "from-red-500 to-pink-600", description: "Ide-ide brilian" },
     { step: "Diagnose", icon: "🔍", color: "from-blue-500 to-cyan-600", description: "Masalah mendalam" },
     { step: "Design", icon: "🎨", color: "from-purple-500 to-indigo-600", description: "Solusi inovatif" },
-    { step: "Delivered", icon: "🚀", color: "from-green-500 to-emerald-600", description: "Bukti nyata" }
+    { step: "Deliver & Display", icon: "🚀", color: "from-green-500 to-emerald-600", description: "Bukti nyata" }
   ]
 
   // Fetch data from API on mount
@@ -823,13 +823,13 @@ export default function ProdukInovasiPage() {
               ))}
               
               <div className="relative p-8 text-white">
-                <DialogTitle className="sr-only">4D Innovation Hub - Inspirasi Inovasi</DialogTitle>
+                <DialogTitle className="sr-only">5D+1 Innovation Hub - Inspirasi Inovasi</DialogTitle>
                 
                 {/* Header */}
                 <div className="text-center mb-8">
                   <div className="inline-flex items-center gap-2 bg-gradient-to-r from-yellow-400 to-orange-500 text-gray-900 px-4 py-2 rounded-full text-sm font-bold mb-4">
                     <span className="text-xl">🚀</span>
-                    4D Innovation Hub
+                    5D+1 Innovation Hub
                   </div>
                   <h2 className="text-3xl font-bold bg-gradient-to-r from-yellow-300 to-orange-300 bg-clip-text text-transparent mb-4">
                     Inspirasi Inovasi
@@ -849,7 +849,7 @@ export default function ProdukInovasiPage() {
                 
                 {/* 4D Process Visualization */}
                 <div className="mb-8">
-                  <h3 className="text-lg font-semibold text-center mb-6 text-yellow-300">Proses 4D Innovation</h3>
+                  <h3 className="text-lg font-semibold text-center mb-6 text-yellow-300">Proses 5D+1 Innovation</h3>
                   <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                     {innovationSteps.map((step, index) => (
                       <div 

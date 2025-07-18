@@ -186,7 +186,7 @@ export default function InovasiPage() {
       description: 'Inovasi keseluruhan'
     },
     {
-      title: "Implementasi",
+      title: "Implementasi (Deliver, Display)",
       value: implementasi,
       icon: <Rocket className="w-6 h-6" />,
       color: 'green',
@@ -199,7 +199,7 @@ export default function InovasiPage() {
       description: 'Sudah diimplementasi'
     },
     {
-      title: "Uji Coba",
+      title: "Uji Coba (Deliver)",
       value: ujiCoba,
       icon: <Settings className="w-6 h-6" />,
       color: 'yellow',
@@ -212,7 +212,7 @@ export default function InovasiPage() {
       description: 'Dalam tahap uji coba'
     },
     {
-      title: "Perencanaan",
+      title: "Perencanaan (Diagnose, DrumUp)",
       value: perencanaan + ide,
       icon: <Target className="w-6 h-6" />,
       color: 'purple',

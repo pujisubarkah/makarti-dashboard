@@ -230,7 +230,7 @@ export default function InovasiPage() {  const [dataInovasi, setDataInovasi] = u
       textDark: 'text-blue-800'
     },
     {
-      label: 'Tahap Ide',
+      label: 'Tahap Ide (Diagnose, DrumUp)',
       value: dataInovasi.filter(d => d.tahap === 'Ide').length,
       icon: '🧠',
       color: 'yellow',
@@ -240,7 +240,7 @@ export default function InovasiPage() {  const [dataInovasi, setDataInovasi] = u
       textDark: 'text-yellow-800'
     },
     {
-      label: 'Tahap Uji Coba',
+      label: 'Tahap Uji Coba (Deliver)',
       value: dataInovasi.filter(d => d.tahap === 'Uji Coba').length,
       icon: '🔬',
       color: 'orange',
@@ -250,7 +250,7 @@ export default function InovasiPage() {  const [dataInovasi, setDataInovasi] = u
       textDark: 'text-orange-800'
     },
     {
-      label: 'Sudah Implementasi',
+      label: 'Sudah Implementasi (Deliver, Display)',
       value: dataInovasi.filter(d => d.tahap === 'Implementasi').length,
       icon: '✅',
       color: 'green',

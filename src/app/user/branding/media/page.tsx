@@ -491,7 +491,7 @@ const handleDelete = async (id: number, judul: string) => {
       description: 'Total konten semua platform'
     },
     {
-      title: "Total Likes",
+      title: "Total Interaksi",
       value: totalLikes.toLocaleString(),
       icon: <Heart className="w-6 h-6" />,
       color: 'pink',

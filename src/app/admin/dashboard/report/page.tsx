@@ -157,7 +157,7 @@ export default function ReportRekapPage() {
       .then(([rekap, serapanData]) => {
         if (rekap.level_3 && Array.isArray(rekap.level_3)) {
           // Pastikan parent_id ikut diambil
-          setData(rekap.level_3.map((d: any) => ({ ...d, parent_id: d.parent_id })));
+          setData(rekap.level_3.map((d: UnitKerjaData) => ({ ...d, parent_id: d.parent_id })));
         } else {
           setError("Format data rekap tidak sesuai.");
         }
@@ -276,7 +276,7 @@ export default function ReportRekapPage() {
     const head = [
       ["Unit Kerja", ...ALL_COLUMNS.map((col) => col.label)]
     ];
-    const body = sorted.map((item, idx) => {
+    const body = sorted.map((item) => {
       return [
         item.name,
         ...ALL_COLUMNS.map((col) => {

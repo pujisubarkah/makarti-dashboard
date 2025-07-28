@@ -102,6 +102,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               : 0;
             return {
               id: item.id,
+              unit_kerja_id: item.unit_kerja_id, // tambahkan unit_kerja_id di detail
               bulan: item.bulan,
               pagu_anggaran: Number(item.pagu_anggaran),
               realisasi_pengeluaran: realisasi,
@@ -109,8 +110,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               capaian_realisasi_kumulatif: capaianKumulatif
             };
           });
+          // Ambil unit_kerja_id dari data bulan terakhir (paling akhir setelah sort)
+          const lastUnitKerjaId = serapanData.length ? serapanData[serapanData.length - 1].unit_kerja_id : null;
           return {
             unit_kerja: alias,
+            unit_kerja_id: lastUnitKerjaId, // tambahkan unit_kerja_id di summary
             pagu_anggaran: paguAnggaran,
             total_realisasi: totalRealisasi,
             sisa_anggaran: sisaAnggaran,

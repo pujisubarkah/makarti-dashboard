@@ -693,10 +693,112 @@ function OrgChart({ node }: {
   )
 }
 
+import React from "react";
+
+function InfoButton({ onClick }: { onClick: (e: React.MouseEvent<HTMLButtonElement>) => void }) {
+  return (
+    <button type="button" className="ml-2 align-middle" onClick={onClick} aria-label="Info">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="10" cy="10" r="9" stroke="#2563eb" strokeWidth="2" fill="#fff" />
+        <path d="M10 7.5a1 1 0 110-2 1 1 0 010 2zm-1 2.5a1 1 0 012 0v5a1 1 0 11-2 0v-5z" fill="#2563eb" />
+      </svg>
+    </button>
+  );
+}
+
+function InfoPopupGlobal({ show, onClose }: { show: boolean; onClose: () => void }) {
+  if (!show) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+      <div className="bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full relative">
+        <h2 className="text-lg font-bold mb-4 text-gray-800">Penjelasan Indikator & Formula Makarti</h2>
+        <div className="overflow-x-auto mb-6">
+          <table className="min-w-full text-xs border mb-4">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border px-2 py-1">DIMENSI MAKARTI</th>
+                <th className="border px-2 py-1">INDIKATOR & BOBOT</th>
+                <th className="border px-2 py-1">FORMULA PENGHITUNGAN</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="border px-2 py-1 font-semibold align-top" rowSpan={2}>INOVASI</td>
+                <td className="border px-2 py-1">KINERJA INOVASI (50%)</td>
+                <td className="border px-2 py-1">Rata-rata kinerja inovasi: Ide (40%), Perencanaan (60%), Uji Coba (80%), Implementasi (100%)</td>
+              </tr>
+              <tr>
+                <td className="border px-2 py-1">PRODUK KAJIAN (50%)</td>
+                <td className="border px-2 py-1">Rata-rata progres kajian: Draft (40%), Revisi (60%), Review (80%), Selesai (100%)</td>
+              </tr>
+              <tr>
+                <td className="border px-2 py-1 font-semibold align-top" rowSpan={2}>LEARNING</td>
+              <td className="border px-2 py-1">PELATIHAN PEGAWAI INTERNAL (50%)</td>
+              <td className="border px-2 py-1">Persentase pegawai yang telah mengikuti Pengembangan Kompetensi ASN minimal 20 JP</td>
+              </tr>
+              <tr>
+                <td className="border px-2 py-1">PENYELENGGARAAN BANGKOM UNIT (50%)</td>
+                <td className="border px-2 py-1">Total peserta dari daftar kehadiran dibagi 5000 x 100%</td>
+              </tr>
+              <tr><td className="border px-2 py-1 font-semibold align-top" rowSpan={2}>BRANDING</td>
+              <td className="border px-2 py-1">ENGAGEMENT (50%)</td>
+              <td className="border px-2 py-1">(Jumlah Likes / Jumlah Views) x 100% dibagi 0.06 x 100%</td>
+              </tr>
+              <tr>
+                <td className="border px-2 py-1">JUMLAH PUBLIKASI (50%)</td>
+                <td className="border px-2 py-1">Jumlah publikasi unit kerja dibagi 60 x 100%</td>
+              </tr>
+              <tr>
+                <td className="border px-2 py-1 font-semibold align-top" rowSpan={2}>NETWORKING</td>
+              <td className="border px-2 py-1">KERJASAMA (80%)</td>
+              <td className="border px-2 py-1">Persentase kerjasama dengan status MoU Ditandatangani atau Selesai</td>
+              </tr>
+              <tr><td className="border px-2 py-1">KOORDINASI (20%)</td>
+              <td className="border px-2 py-1">Persentase koordinasi dengan status SELESAI</td>
+              </tr>
+            </tbody>
+          </table>
+          <table className="min-w-full text-xs border">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border px-2 py-1">PILAR MAKARTI</th>
+                <th className="border px-2 py-1">DIMENSI & BOBOT</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr><td className="border px-2 py-1 font-semibold align-top" rowSpan={2}>BIGGER</td><td className="border px-2 py-1">BRANDING (50%)</td></tr>
+              <tr><td className="border px-2 py-1">NETWORKING (50%)</td></tr>
+              <tr><td className="border px-2 py-1 font-semibold align-top" rowSpan={2}>SMARTER</td><td className="border px-2 py-1">LEARNING (50%)</td></tr>
+              <tr><td className="border px-2 py-1">INOVASI (50%)</td></tr>
+              <tr><td className="border px-2 py-1 font-semibold align-top" rowSpan={4}>BETTER</td><td className="border px-2 py-1">BRANDING (25%)</td></tr>
+              <tr><td className="border px-2 py-1">NETWORKING (25%)</td></tr>
+              <tr><td className="border px-2 py-1">LEARNING (25%)</td></tr>
+              <tr><td className="border px-2 py-1">INOVASI (25%)</td></tr>
+            </tbody>
+          </table>
+        </div>
+        <button className="absolute top-2 right-2 text-gray-500 hover:text-blue-600 text-sm" onClick={onClose}>Tutup</button>
+      </div>
+    </div>
+  );
+}
+
 export default function StatistikPage() {
   const [organizationData, setOrganizationData] = useState<OrgNode | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
+  const [infoOpen, setInfoOpen] = useState(false);
+
+  // Untuk menutup popup info jika klik di luar
+  useEffect(() => {
+    function handleClick() {
+      setInfoOpen(false);
+    }
+    if (infoOpen) {
+      window.addEventListener("click", handleClick);
+      return () => window.removeEventListener("click", handleClick);
+    }
+  }, [infoOpen]);
 
   useEffect(() => {
     const fetchOrganizationData = async () => {
@@ -790,23 +892,23 @@ export default function StatistikPage() {
   }
   const allNodes = getAllNodes(organizationData)
   const totalNodes = allNodes.length
-  
-  // Calculate status based on better_score
   const excellentNodes = allNodes.filter(node => getStatusFromScore(node.scores.better_score) === 'excellent').length
   const goodNodes = allNodes.filter(node => getStatusFromScore(node.scores.better_score) === 'good').length
   const warningNodes = allNodes.filter(node => getStatusFromScore(node.scores.better_score) === 'warning').length
   const poorNodes = allNodes.filter(node => getStatusFromScore(node.scores.better_score) === 'poor').length
-
   const averageKPI = Math.round(allNodes.reduce((sum, node) => sum + (node.scores.better_score || 0), 0) / allNodes.length || 0)
-
+  
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
       {/* Header */}
       <div className="mb-8">
+        <div className="flex items-center mb-6">
         <h1 className="text-3xl font-bold text-gray-800 mb-2">Pohon Kinerja Organisasi LAN</h1>
+        <InfoButton onClick={(e) => { e.stopPropagation(); setInfoOpen(true); }} />
+        </div>
         <p className="text-gray-600">Visualisasi struktur organisasi Lembaga Administrasi Negara dengan metrik kinerja real-time</p>
       </div>
-
+      <InfoPopupGlobal show={infoOpen} onClose={() => setInfoOpen(false)} />
       {/* Summary Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 mb-8">
         <div className="bg-white rounded-xl shadow-lg p-6 border-l-4 border-purple-500">

@@ -278,14 +278,14 @@ export default function ReportRekapPage() {
     ];
     const body = sorted.map((item) => {
       return [
-        item.name,
+        item.name ?? "-",
         ...ALL_COLUMNS.map((col) => {
           if (col.key === "serapan") {
             const val = getSerapanPersenById(item.unit_kerja_id);
-            return val !== null && val !== undefined ? val + "%" : "-";
+            return typeof val === "number" ? `${val}%` : "-";
           } else {
-            const val = item.scores?.[col.key] ?? "-";
-            return val !== "-" ? val : "-";
+            const val = item.scores?.[col.key];
+            return typeof val === "number" || typeof val === "string" ? val : "-";
           }
         })
       ];

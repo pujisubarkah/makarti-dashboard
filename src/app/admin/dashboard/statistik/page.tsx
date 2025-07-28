@@ -905,7 +905,6 @@ export default function StatistikPage() {
           </h3>
           <div className="space-y-3">
             {allNodes
-              .filter(node => getStatusFromScore(node.scores.better_score) === 'excellent')
               .sort((a, b) => (b.scores.better_score || 0) - (a.scores.better_score || 0))
               .slice(0, 3)
               .map((node, index) => (

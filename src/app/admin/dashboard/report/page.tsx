@@ -1,15 +1,17 @@
 "use client";
 
 import React, { useEffect, useState } from "react";
+import jsPDF from "jspdf";
+import autoTable from "jspdf-autotable";
 
 const SCORE_COLUMNS = [
-  { key: "learning_score", label: "Learning Score" },
-  { key: "branding_score", label: "Branding Score" },
-  { key: "networking_score", label: "Networking Score" },
-  { key: "inovasi_score", label: "Inovasi Score" },
-  { key: "bigger_score", label: "Bigger Score" },
-  { key: "smarter_score", label: "Smarter Score" },
-  { key: "better_score", label: "Better Score" },
+  { key: "learning_score", label: "Learning" },
+  { key: "branding_score", label: "Branding" },
+  { key: "bigger_score", label: "BIGGER" },
+  { key: "networking_score", label: "Networking" },
+  { key: "inovasi_score", label: "Inovasi" },
+  { key: "smarter_score", label: "SMARTER" },
+  { key: "better_score", label: "BETTER" },
 ];
 
 const ALL_COLUMNS = [
@@ -118,6 +120,7 @@ function InfoPopupGlobal({ show, onClose }: { show: boolean; onClose: () => void
 interface UnitKerjaData {
   name?: string;
   unit_kerja_id: number;
+  parent_id?: number;
   scores?: { [key: string]: number };
 }
 
@@ -153,7 +156,8 @@ export default function ReportRekapPage() {
     ])
       .then(([rekap, serapanData]) => {
         if (rekap.level_3 && Array.isArray(rekap.level_3)) {
-          setData(rekap.level_3);
+          // Pastikan parent_id ikut diambil
+          setData(rekap.level_3.map((d: any) => ({ ...d, parent_id: d.parent_id })));
         } else {
           setError("Format data rekap tidak sesuai.");
         }
@@ -176,6 +180,13 @@ export default function ReportRekapPage() {
   // Sort
   const sorted = [...filtered].sort((a, b) => {
     let aVal, bVal;
+    if (sortKey === "unit_kerja") {
+      aVal = a.parent_id ?? -Infinity;
+      bVal = b.parent_id ?? -Infinity;
+      if (aVal === bVal) return 0;
+      if (sortDir === "asc") return aVal - bVal;
+      return bVal - aVal;
+    }
     if (sortKey === "serapan") {
       aVal = getSerapanPersenById(a.unit_kerja_id) ?? -Infinity;
       bVal = getSerapanPersenById(b.unit_kerja_id) ?? -Infinity;
@@ -247,11 +258,71 @@ export default function ReportRekapPage() {
     }
   });
 
+  // Helper untuk style kolom
+  function getColClass(key: string, isHeader = false) {
+    if (key === "bigger_score" || key === "smarter_score") {
+      return isHeader ? "bg-gray-50" : "bg-gray-50";
+    }
+    if (key === "better_score" || key === "serapan") {
+      return isHeader ? "bg-blue-50" : "bg-blue-50";
+    }
+    return "";
+  }
+
+  function handleExportPDF() {
+    const doc = new jsPDF({ orientation: "landscape" });
+    doc.setFontSize(14);
+    doc.text("Rekapitulasi Capaian Makarti Unit Kerja", 14, 16);
+    const head = [
+      ["Unit Kerja", ...ALL_COLUMNS.map((col) => col.label)]
+    ];
+    const body = sorted.map((item, idx) => {
+      return [
+        item.name,
+        ...ALL_COLUMNS.map((col) => {
+          if (col.key === "serapan") {
+            const val = getSerapanPersenById(item.unit_kerja_id);
+            return val !== null && val !== undefined ? val + "%" : "-";
+          } else {
+            const val = item.scores?.[col.key] ?? "-";
+            return val !== "-" ? val : "-";
+          }
+        })
+      ];
+    });
+    autoTable(doc, {
+      head,
+      body,
+      startY: 22,
+      styles: {
+        fontSize: 10,
+        cellPadding: 2,
+      },
+      headStyles: {
+        fillColor: [240, 240, 240],
+        textColor: 60,
+      },
+      columnStyles: {
+        3: { fillColor: [240, 240, 240] }, // BIGGER
+        5: { fillColor: [240, 240, 240] }, // SMARTER
+        6: { fillColor: [219, 234, 254] }, // BETTER
+        7: { fillColor: [219, 234, 254] }, // Serapan
+      },
+    });
+    doc.save("Rekap_Makarti_Unit_Kerja.pdf");
+  }
+
   return (
     <div className="bg-white rounded-xl shadow-lg p-8 overflow-x-auto">
       <div className="flex items-center mb-6">
         <h1 className="text-2xl font-bold text-gray-800">Rekapitulasi Capaian Makarti Unit Kerja</h1>
         <InfoButton onClick={(e) => { e.stopPropagation(); setInfoOpen(true); }} />
+        <button
+          className="ml-4 px-4 py-2 bg-blue-600 text-white rounded-lg shadow hover:bg-blue-700 text-sm"
+          onClick={handleExportPDF}
+        >
+          Download Report
+        </button>
       </div>
       <InfoPopupGlobal show={infoOpen} onClose={() => setInfoOpen(false)} />
       <div className="mb-4 flex flex-col md:flex-row md:items-center gap-2 md:gap-4">
@@ -271,11 +342,19 @@ export default function ReportRekapPage() {
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50">
             <tr>
-              <th className="px-6 py-3 text-left font-semibold text-gray-700">Unit Kerja</th>
+              <th
+                className="px-6 py-3 text-left font-semibold text-gray-700 cursor-pointer select-none relative"
+                onClick={() => handleSort("unit_kerja")}
+              >
+                <div className="flex flex-col items-start">
+                  <span>Unit Kerja</span>
+                </div>
+                <SortIcon direction={sortKey === "unit_kerja" ? sortDir : null} />
+              </th>
               {ALL_COLUMNS.map((col) => (
                 <th
                   key={col.key}
-                  className="px-6 py-3 text-center font-semibold text-gray-700 cursor-pointer select-none relative"
+                  className={`px-6 py-3 text-center font-semibold text-gray-700 cursor-pointer select-none relative ${getColClass(col.key, true)}`}
                   onClick={() => handleSort(col.key)}
                 >
                   <div className="flex flex-col items-center">
@@ -297,6 +376,7 @@ export default function ReportRekapPage() {
                   <td className="px-6 py-4 font-medium text-gray-800">{item.name}</td>
                   {ALL_COLUMNS.map((col) => {
                     let val, rank, badge = null, numClass = "";
+                    const cellClass = getColClass(col.key);
                     if (col.key === "serapan") {
                       val = getSerapanPersenById(item.unit_kerja_id);
                       rank = rankingsByCol[col.key][idx];
@@ -317,7 +397,7 @@ export default function ReportRekapPage() {
                         numClass = "text-red-600 font-bold";
                       }
                       return (
-                        <td key={col.key} className="px-6 py-4 text-center">
+                        <td key={col.key} className={`px-6 py-4 text-center ${cellClass}`}>
                           {badge}
                           <span className={numClass}>{val !== null && val !== undefined ? `${val}%` : '-'}</span>
                         </td>
@@ -342,7 +422,7 @@ export default function ReportRekapPage() {
                         numClass = "text-red-600 font-bold";
                       }
                       return (
-                        <td key={col.key} className="px-6 py-4 text-center">
+                        <td key={col.key} className={`px-6 py-4 text-center ${cellClass}`}>
                           {badge}
                           <span className={numClass}>{val !== '-' ? val : '-'}</span>
                         </td>

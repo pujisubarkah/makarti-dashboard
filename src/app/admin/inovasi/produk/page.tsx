@@ -46,6 +46,16 @@ export default function ProdukInovasiPage() {
     key: keyof ProdukInovasiData | 'users.unit_kerja' | 'status_inovasi.status' | null
     direction: 'asc' | 'desc'
   }>({ key: null, direction: 'asc' })
+  // Tambahkan state untuk data rekap
+  interface RekapUnitKerja {
+    unit_kerja_id: number;
+    name?: string;
+    unit_kerja?: string;
+    scores?: {
+      inovasi_kinerja_score?: number;
+    };
+  }
+  const [rekapUnitKerja, setRekapUnitKerja] = useState<RekapUnitKerja[]>([]);
 
   useEffect(() => {
     const fetchProdukData = async () => {
@@ -63,6 +73,15 @@ export default function ProdukInovasiPage() {
         setLoading(false)
       }
     }
+
+    // Fetch rekap scores
+    fetch('/api/scores/rekap')
+      .then(res => res.json())
+      .then(rekap => {
+        if (rekap.level_3 && Array.isArray(rekap.level_3)) {
+          setRekapUnitKerja(rekap.level_3);
+        }
+      });
 
     fetchProdukData()
   }, [])
@@ -228,6 +247,44 @@ export default function ProdukInovasiPage() {
       </div>
     )
   }
+
+  // Calculate top and low performers for unit kerja
+  //const unitProdukCounts = Object.entries(
+  //  dataProduk.reduce((acc, curr) => {
+  //    const unitId = curr.unit_kerja_id;
+  //    const unitName = curr.users.unit_kerja;
+  //    if (!acc[unitId]) {
+  //      acc[unitId] = { unit_kerja_id: unitId, name: unitName, produkCount: 0 };
+  //    }
+  //    acc[unitId].produkCount += 1;
+  //    return acc;
+  //  }, {} as Record<number, { unit_kerja_id: number; name: string; produkCount: number }>),
+  //).map(([_, value]) => value);
+
+  // Gabungkan rekap dengan jumlah produk inovasi, pastikan semua unit kerja dari rekap
+  const unitSummary: { name: string; unit_kerja_id: number; inovasi_kinerja_score: number; produkCount: number }[] = rekapUnitKerja.map((unit: RekapUnitKerja) => {
+    const produkCount = dataProduk.filter(d => d.unit_kerja_id === unit.unit_kerja_id).length;
+    // Ambil score dari unit.scores.inovasi_kinerja_score
+    const score = unit.scores && typeof unit.scores.inovasi_kinerja_score === 'number'
+      ? unit.scores.inovasi_kinerja_score
+      : (unit.scores && unit.scores.inovasi_kinerja_score ? Number(unit.scores.inovasi_kinerja_score) : 0);
+    return {
+      name: unit.name || unit.unit_kerja || '-',
+      unit_kerja_id: unit.unit_kerja_id,
+      inovasi_kinerja_score: score,
+      produkCount,
+    };
+  });
+
+  // Urutkan untuk top performers dan low performers
+  const sortedByScore = [...unitSummary].sort((a, b) => {
+    if (b.produkCount === a.produkCount) {
+      return b.inovasi_kinerja_score - a.inovasi_kinerja_score;
+    }
+    return b.produkCount - a.produkCount;
+  });
+  const topProdukPerformers = sortedByScore.slice(0, 3);
+  const lowProdukPerformers = [...sortedByScore].reverse().slice(0, 3);
 
   if (!dataProduk || dataProduk.length === 0) {
     return (
@@ -958,6 +1015,52 @@ export default function ProdukInovasiPage() {
           </div>
         </div>
       )}
+
+      {/* Tambahan: Top & Low Performers Produk Inovasi */}
+      <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-lg font-bold text-green-700 mb-4">Top Performers Produk Inovasi</h2>
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-green-50">
+                <th className="px-4 py-2 text-left">Unit Kerja</th>
+                <th className="px-4 py-2 text-center">Score Implementasi</th>
+                <th className="px-4 py-2 text-center">Jumlah Produk Inovasi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {topProdukPerformers.map((unit) => (
+                <tr key={unit.unit_kerja_id} className="border-b">
+                  <td className="px-4 py-2 font-bold text-green-800">{unit.name}</td>
+                  <td className="px-4 py-2 text-center text-green-700 font-semibold">{unit.inovasi_kinerja_score}</td>
+                  <td className="px-4 py-2 text-center">{unit.produkCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-lg font-bold text-red-700 mb-4">Needs Attention Produk Inovasi</h2>
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-red-50">
+                <th className="px-4 py-2 text-left">Unit Kerja</th>
+                <th className="px-4 py-2 text-center">Score Implementasi</th>
+                <th className="px-4 py-2 text-center">Jumlah Produk Inovasi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lowProdukPerformers.map((unit) => (
+                <tr key={unit.unit_kerja_id} className="border-b">
+                  <td className="px-4 py-2 font-bold text-red-800">{unit.name}</td>
+                  <td className="px-4 py-2 text-center text-red-700 font-semibold">{unit.inovasi_kinerja_score}</td>
+                  <td className="px-4 py-2 text-center">{unit.produkCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }

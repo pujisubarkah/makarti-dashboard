@@ -35,6 +35,20 @@ export default function InovasiPage() {  const [dataInovasi, setDataInovasi] = u
   const [sortColumn, setSortColumn] = useState<string | null>(null)
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc')
 
+  // Tambahkan state untuk data rekap
+  interface RekapUnitKerja {
+    unit_kerja_id: number;
+    name?: string;
+    unit_kerja?: string;
+    scores?: {
+      inovasi_kinerja_score?: number | string;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  }
+  
+    const [rekapUnitKerja, setRekapUnitKerja] = useState<RekapUnitKerja[]>([]);
+
   useEffect(() => {
     const fetchInovasiData = async () => {
       try {
@@ -51,6 +65,15 @@ export default function InovasiPage() {  const [dataInovasi, setDataInovasi] = u
         setLoading(false)
       }
     }
+
+    // Fetch rekap scores
+    fetch('/api/scores/rekap')
+      .then(res => res.json())
+      .then(rekap => {
+        if (rekap.level_3 && Array.isArray(rekap.level_3)) {
+          setRekapUnitKerja(rekap.level_3);
+        }
+      });
 
     fetchInovasiData()
   }, [])
@@ -270,6 +293,31 @@ export default function InovasiPage() {  const [dataInovasi, setDataInovasi] = u
     name: key,
     value,
   }))
+  // Gabungkan rekap dengan jumlah inovasi, pastikan semua unit kerja dari rekap
+  const unitSummary: { name: string; unit_kerja_id: number; inovasi_kinerja_score: number; inovasiCount: number }[] = rekapUnitKerja.map((unit: RekapUnitKerja) => {
+    const inovasiCount = dataInovasi.filter(d => d.unit_kerja_id === unit.unit_kerja_id).length;
+    // Ambil score dari unit.scores.inovasi_kinerja_score
+    const score = unit.scores && typeof unit.scores.inovasi_kinerja_score === 'number'
+      ? unit.scores.inovasi_kinerja_score
+      : (unit.scores && unit.scores.inovasi_kinerja_score ? Number(unit.scores.inovasi_kinerja_score) : 0);
+    return {
+      name: unit.name || unit.unit_kerja || '-',
+      unit_kerja_id: unit.unit_kerja_id,
+      inovasi_kinerja_score: score,
+      inovasiCount,
+    };
+  });
+
+  // Urutkan untuk top performers dan low performers
+  const sortedByScore = [...unitSummary].sort((a, b) => {
+    if (b.inovasiCount === a.inovasiCount) {
+      return b.inovasi_kinerja_score - a.inovasi_kinerja_score;
+    }
+    return b.inovasiCount - a.inovasiCount;
+  });
+  const topPerformers: typeof unitSummary = sortedByScore.slice(0, 3);
+  const lowPerformers: typeof unitSummary = [...sortedByScore].reverse().slice(0, 3);
+
   return (
     <div className="p-6">
       {/* Custom CSS Animations */}
@@ -905,6 +953,52 @@ export default function InovasiPage() {  const [dataInovasi, setDataInovasi] = u
           </div>
         </div>
       )}
+
+      {/* Tambahan: Top & Low Performers */}
+      <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-lg font-bold text-green-700 mb-4">Top Performers Kinerja Inovasi</h2>
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-green-50">
+                <th className="px-4 py-2 text-left">Unit Kerja</th>
+                <th className="px-4 py-2 text-center">Score Implementasi</th>
+                <th className="px-4 py-2 text-center">Jumlah Inovasi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {topPerformers.map((unit: typeof unitSummary[0]) => (
+                <tr key={unit.unit_kerja_id} className="border-b">
+                  <td className="px-4 py-2 font-bold text-green-800">{unit.name}</td>
+                  <td className="px-4 py-2 text-center text-green-700 font-semibold">{unit.inovasi_kinerja_score}</td>
+                  <td className="px-4 py-2 text-center">{unit.inovasiCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-lg font-bold text-red-700 mb-4">Needs Attention Kinerja Inovasi</h2>
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-red-50">
+                <th className="px-4 py-2 text-left">Unit Kerja</th>
+                <th className="px-4 py-2 text-center">Score Implementasi</th>
+                <th className="px-4 py-2 text-center">Jumlah Inovasi</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lowPerformers.map((unit: typeof unitSummary[0]) => (
+                <tr key={unit.unit_kerja_id} className="border-b">
+                  <td className="px-4 py-2 font-bold text-red-800">{unit.name}</td>
+                  <td className="px-4 py-2 text-center text-red-700 font-semibold">{unit.inovasi_kinerja_score}</td>
+                  <td className="px-4 py-2 text-center">{unit.inovasiCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }

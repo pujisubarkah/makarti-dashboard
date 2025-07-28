@@ -68,6 +68,19 @@ export default function KajianPage() {
     direction: 'asc' | 'desc'
   }>({ key: null, direction: 'asc' })
 
+  // Tambahkan state untuk data rekap
+  interface RekapUnitKerja {
+    unit_kerja_id: number;
+    name?: string;
+    unit_kerja?: string;
+    scores?: {
+      inovasi_kajian_score?: number | string;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  }
+  const [rekapUnitKerja, setRekapUnitKerja] = useState<RekapUnitKerja[]>([]);
+
   // Filter and sort functions
   const filteredAndSortedData = () => {
     const filtered = dataKajian.filter(item => {
@@ -189,6 +202,15 @@ export default function KajianPage() {
         setLoading(false)
       }
     }
+
+    // Fetch rekap scores
+    fetch('/api/scores/rekap')
+      .then(res => res.json())
+      .then(rekap => {
+        if (rekap.level_3 && Array.isArray(rekap.level_3)) {
+          setRekapUnitKerja(rekap.level_3);
+        }
+      });
 
     fetchKajianData()
   }, [])
@@ -396,6 +418,31 @@ export default function KajianPage() {
       return acc
     }, {} as Record<string, number>)
   ).map(([unit, jumlah]) => ({ unit, jumlah }))
+
+  // Gabungkan rekap dengan jumlah kajian, pastikan semua unit kerja dari rekap
+  const unitSummary: { name: string; unit_kerja_id: number; inovasi_kajian_score: number; kajianCount: number }[] = rekapUnitKerja.map((unit: RekapUnitKerja) => {
+    const kajianCount = dataKajian.filter(d => d.unit_kerja_id === unit.unit_kerja_id).length;
+    // Ambil score dari unit.scores.inovasi_kajian_score
+    const score = unit.scores && typeof unit.scores?.inovasi_kajian_score === 'number'
+      ? unit.scores.inovasi_kajian_score as number
+      : (unit.scores && unit.scores.inovasi_kajian_score ? Number(unit.scores.inovasi_kajian_score) : 0);
+    return {
+      name: unit.name || unit.unit_kerja || '-',
+      unit_kerja_id: unit.unit_kerja_id,
+      inovasi_kajian_score: score,
+      kajianCount,
+    };
+  });
+
+  // Urutkan untuk top performers dan low performers
+  const sortedByScore = [...unitSummary].sort((a, b) => {
+    if (b.kajianCount === a.kajianCount) {
+      return b.inovasi_kajian_score - a.inovasi_kajian_score;
+    }
+    return b.kajianCount - a.kajianCount;
+  });
+  const topKajianPerformers = sortedByScore.slice(0, 3);
+  const lowKajianPerformers = [...sortedByScore].reverse().slice(0, 3);
 
   return (
     <div className="p-6">
@@ -953,6 +1000,52 @@ export default function KajianPage() {
           </div>
         </div>
       )}
+
+      {/* Tambahan: Top & Low Performers Kajian */}
+      <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-lg font-bold text-green-700 mb-4">Top Performers Kajian Terbanyak</h2>
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-green-50">
+                <th className="px-4 py-2 text-left">Unit Kerja</th>
+                <th className="px-4 py-2 text-center">Score Implementasi</th>
+                <th className="px-4 py-2 text-center">Jumlah Kajian</th>
+              </tr>
+            </thead>
+            <tbody>
+              {topKajianPerformers.map((unit) => (
+                <tr key={unit.unit_kerja_id} className="border-b">
+                  <td className="px-4 py-2 font-bold text-green-800">{unit.name}</td>
+                  <td className="px-4 py-2 text-center text-green-700 font-semibold">{unit.inovasi_kajian_score}</td>
+                  <td className="px-4 py-2 text-center">{unit.kajianCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-lg font-bold text-red-700 mb-4">Needs Attention Produk Kajian</h2>
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-red-50">
+                <th className="px-4 py-2 text-left">Unit Kerja</th>
+                <th className="px-4 py-2 text-center">Score Implementasi</th>
+                <th className="px-4 py-2 text-center">Jumlah Kajian</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lowKajianPerformers.map((unit) => (
+                <tr key={unit.unit_kerja_id} className="border-b">
+                  <td className="px-4 py-2 font-bold text-red-800">{unit.name}</td>
+                  <td className="px-4 py-2 text-center text-red-700 font-semibold">{unit.inovasi_kajian_score}</td>
+                  <td className="px-4 py-2 text-center">{unit.kajianCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }

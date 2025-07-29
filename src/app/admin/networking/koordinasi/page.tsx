@@ -55,7 +55,7 @@ export default function KoordinasiDashboardPage() {
   
   // State untuk pagination top units
   const [currentTopUnitsPage, setCurrentTopUnitsPage] = useState(1)
-  const [topUnitsPerPage] = useState(6) // Show 6 units per page
+  const [topUnitsPerPage] = useState(3) // Show 6 units per page
 
   // State untuk pagination table
   const [currentTablePage, setCurrentTablePage] = useState(1)
@@ -67,6 +67,19 @@ export default function KoordinasiDashboardPage() {
   
   // State untuk champion alert
   const [showChampionAlert, setShowChampionAlert] = useState(false)
+
+  // Tambahkan state untuk data rekap
+  interface RekapUnitKerja {
+    unit_kerja_id: number;
+    name?: string;
+    unit_kerja?: string;
+    scores?: {
+      networking_koordinasi_score?: number | string;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  }
+  const [rekapUnitKerja, setRekapUnitKerja] = useState<RekapUnitKerja[]>([]);
 
   // Fetch data dari API
   useEffect(() => {
@@ -95,6 +108,17 @@ export default function KoordinasiDashboardPage() {
 
     fetchData()
   }, [])
+
+  // Fetch rekap scores
+  useEffect(() => {
+    fetch('/api/scores/rekap')
+      .then(res => res.json())
+      .then(rekap => {
+        if (rekap.level_3 && Array.isArray(rekap.level_3)) {
+          setRekapUnitKerja(rekap.level_3);
+        }
+      });
+  }, []);
 
   // Show champion alert after data loads
   useEffect(() => {
@@ -207,11 +231,6 @@ export default function KoordinasiDashboardPage() {
     setIsModalOpen(true)
   }
 
-  // Get top 3 for quick summary
-  const topThreeUnits = useMemo(() => {
-    return allUnitCount.slice(0, 3)
-  }, [allUnitCount])
-
   // Get champion unit (most active unit)
   const championUnit = useMemo(() => {
     return allUnitCount.length > 0 ? allUnitCount[0] : null
@@ -292,6 +311,31 @@ export default function KoordinasiDashboardPage() {
     setItemsPerPage(newItemsPerPage)
     setCurrentTablePage(1) // Reset to first page when changing items per page
   }
+
+  // Gabungkan rekap dengan jumlah stakeholder, pastikan semua unit kerja dari rekap
+  const unitSummary: { name: string; unit_kerja_id: number; networking_koordinasi_score: number; stakeholderCount: number }[] = rekapUnitKerja.map((unit: RekapUnitKerja) => {
+    const stakeholderCount = rawData.filter(d => d.unit_kerja_id === unit.unit_kerja_id).length;
+    // Ambil score dari unit.scores.networking_koordinasi_score
+    const score = unit.scores && typeof unit.scores.networking_koordinasi_score === 'number'
+      ? unit.scores.networking_koordinasi_score
+      : (unit.scores && unit.scores.networking_koordinasi_score ? Number(unit.scores.networking_koordinasi_score) : 0);
+    return {
+      name: unit.name || unit.unit_kerja || '-',
+      unit_kerja_id: unit.unit_kerja_id,
+      networking_koordinasi_score: score,
+      stakeholderCount,
+    };
+  });
+
+  // Urutkan untuk top performers dan low performers
+  const sortedByScore = [...unitSummary].sort((a, b) => {
+    if (b.stakeholderCount === a.stakeholderCount) {
+      return b.networking_koordinasi_score - a.networking_koordinasi_score;
+    }
+    return b.stakeholderCount - a.stakeholderCount;
+  });
+  const topKoordinasiPerformers = sortedByScore.slice(0, 3);
+  const lowKoordinasiPerformers = [...sortedByScore].reverse().slice(0, 3);
 
   return (
     <div className="p-6">
@@ -424,97 +468,6 @@ export default function KoordinasiDashboardPage() {
           </div>
           <div className="absolute bottom-0 left-0 opacity-10">
             <span className="text-4xl">⭐</span>
-          </div>
-        </div>
-      )}
-
-      {/* Top Performing Units */}
-      {topThreeUnits.length > 0 && (
-        <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-          <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
-            <span className="mr-2">🏆</span>
-            Top 3 Unit Paling Aktif dalam Koordinasi
-            <span className="ml-2 text-sm text-gray-500 font-normal">(Klik untuk detail)</span>
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            {topThreeUnits.map(([unit, count]: [string, number], index: number) => {
-              const colors = [
-                { 
-                  bg: 'from-yellow-400 to-yellow-500', 
-                  light: 'bg-yellow-100', 
-                  text: 'text-yellow-600', 
-                  dark: 'text-yellow-800',
-                  border: 'border-yellow-500',
-                  icon: '🥇' 
-                },
-                { 
-                  bg: 'from-gray-400 to-gray-500', 
-                  light: 'bg-gray-100', 
-                  text: 'text-gray-600', 
-                  dark: 'text-gray-800',
-                  border: 'border-gray-500',
-                  icon: '🥈' 
-                },
-                { 
-                  bg: 'from-orange-400 to-orange-500', 
-                  light: 'bg-orange-100', 
-                  text: 'text-orange-600', 
-                  dark: 'text-orange-800',
-                  border: 'border-orange-500',
-                  icon: '🥉' 
-                }
-              ][index]
-
-              const percentage = ((count / filteredData.length) * 100).toFixed(1)
-
-              return (
-                <div
-                  key={unit}
-                  onClick={() => openUnitModal(unit)}
-                  className={`bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border-l-4 ${colors.border} hover:scale-105 group overflow-hidden cursor-pointer`}
-                >
-                  <div className="p-6">
-                    <div className="flex items-center justify-between">
-                      <div>
-                        <p className={`text-sm font-medium ${colors.dark} mb-1`}>
-                          {unit}
-                        </p>
-                        <p className={`text-3xl font-bold ${colors.text}`}>
-                          {count}
-                        </p>
-                      </div>
-                      <div className={`${colors.light} p-3 rounded-full group-hover:scale-110 transition-transform`}>
-                        <span className="text-2xl">{colors.icon}</span>
-                      </div>
-                    </div>
-                    
-                    <div className="mt-4">
-                      <div className="w-full bg-gray-200 rounded-full h-2">
-                        <div 
-                          className={`bg-gradient-to-r ${colors.bg} h-2 rounded-full transition-all duration-500`}
-                          style={{ 
-                            width: `${(count / Math.max(...topThreeUnits.map(([, c]: [string, number]) => c))) * 100}%`
-                          }}
-                        ></div>
-                      </div>
-                      <div className="flex items-center justify-between text-xs text-gray-600 mt-2">
-                        <span>{percentage}% total koordinasi</span>
-                        <span className={`font-medium ${colors.text}`}>
-                          Rank #{index + 1}
-                        </span>
-                      </div>
-                    </div>
-                    
-                    {/* Click indicator */}
-                    <div className="mt-3 text-center">
-                      <span className="text-xs text-gray-500 group-hover:text-gray-700 transition-colors">
-                        👆 Klik untuk detail
-                      </span>
-                    </div>
-                  </div>
-                </div>
-              )
-            })}
           </div>
         </div>
       )}
@@ -731,6 +684,8 @@ export default function KoordinasiDashboardPage() {
         </div>
       )}
 
+      
+
       {/* Enhanced Filters */}
       <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
         <h2 className="text-xl font-bold text-gray-800 mb-4 flex items-center">
@@ -772,7 +727,7 @@ export default function KoordinasiDashboardPage() {
           </div>
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Jenis Instansi</label>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Jenis Stakeholder</label>
             <Select onValueChange={setSelectedJenis} defaultValue="all">
               <SelectTrigger className="border-gray-300 focus:border-blue-500">
                 <SelectValue placeholder="Pilih Jenis Instansi" />
@@ -824,8 +779,8 @@ export default function KoordinasiDashboardPage() {
                 <th className="px-6 py-3 text-left font-medium">No</th>
                 <th className="px-6 py-3 text-left font-medium">Tanggal</th>
                 <th className="px-6 py-3 text-left font-medium">Unit Kerja</th>
-                <th className="px-6 py-3 text-left font-medium">Instansi</th>
-                <th className="px-6 py-3 text-left font-medium">Jenis Instansi</th>
+                <th className="px-6 py-3 text-left font-medium">Stakeholder</th>
+                <th className="px-6 py-3 text-left font-medium">Jenis Stakeholder</th>
                 <th className="px-6 py-3 text-left font-medium">Topik</th>
                 <th className="px-6 py-3 text-left font-medium">Catatan</th>
               </tr>
@@ -1226,6 +1181,53 @@ export default function KoordinasiDashboardPage() {
           )}
         </DialogContent>
       </Dialog>
+
+
+      {/* Tambahan: Top & Low Performers Networking Koordinasi */}
+      <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-lg font-bold text-green-700 mb-4">Top Performers Koordinasi Terbanyak</h2>
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-green-50">
+                <th className="px-4 py-2 text-left">Unit Kerja</th>
+                <th className="px-4 py-2 text-center">Score Implementasi</th>
+                <th className="px-4 py-2 text-center">Jumlah Stakeholder</th>
+              </tr>
+            </thead>
+            <tbody>
+              {topKoordinasiPerformers.map((unit) => (
+                <tr key={unit.unit_kerja_id} className="border-b">
+                  <td className="px-4 py-2 font-bold text-green-800">{unit.name}</td>
+                  <td className="px-4 py-2 text-center text-green-700 font-semibold">{unit.networking_koordinasi_score}</td>
+                  <td className="px-4 py-2 text-center">{unit.stakeholderCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-lg font-bold text-red-700 mb-4">Needs Attention Networking Koordinasi</h2>
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-red-50">
+                <th className="px-4 py-2 text-left">Unit Kerja</th>
+                <th className="px-4 py-2 text-center">Score Implementasi</th>
+                <th className="px-4 py-2 text-center">Jumlah Stakeholder</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lowKoordinasiPerformers.map((unit) => (
+                <tr key={unit.unit_kerja_id} className="border-b">
+                  <td className="px-4 py-2 font-bold text-red-800">{unit.name}</td>
+                  <td className="px-4 py-2 text-center text-red-700 font-semibold">{unit.networking_koordinasi_score}</td>
+                  <td className="px-4 py-2 text-center">{unit.stakeholderCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }

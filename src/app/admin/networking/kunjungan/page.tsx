@@ -36,6 +36,18 @@ export default function NetworkingPage() {
   const [sortColumn, setSortColumn] = useState<string | null>(null);
   const [sortDirection, setSortDirection] = useState<'asc' | 'desc'>('asc');
 
+  // Tambahkan state untuk data rekap
+  interface RekapUnitKerja {
+    name?: string;
+    unit_kerja?: string;
+    unit_kerja_id: number;
+    scores?: {
+      networking_kerjasama_score?: number | string;
+      [key: string]: unknown;
+    };
+  }
+  const [rekapUnitKerja, setRekapUnitKerja] = useState<RekapUnitKerja[]>([]);
+
   useEffect(() => {
     const fetchData = async () => {
       try {
@@ -59,6 +71,15 @@ export default function NetworkingPage() {
     };
 
     fetchData();
+
+    // Fetch rekap scores
+    fetch('/api/scores/rekap')
+      .then(res => res.json())
+      .then(rekap => {
+        if (rekap.level_3 && Array.isArray(rekap.level_3)) {
+          setRekapUnitKerja(rekap.level_3);
+        }
+      });
   }, []);
 
   // Create summary cards with dynamic data - with null checks
@@ -264,6 +285,31 @@ export default function NetworkingPage() {
       fullUnitName: unitData[0]?.unit_kerja || unit
     };
   };
+
+  // Gabungkan rekap dengan jumlah stakeholder, pastikan semua unit kerja dari rekap
+  const unitSummary: { name: string; unit_kerja_id: number; networking_kerjasama_score: number; stakeholderCount: number }[] = rekapUnitKerja.map((unit: RekapUnitKerja) => {
+    const stakeholderCount = (dataKegiatan || []).filter(d => d.unit_kerja === (unit.name || unit.unit_kerja)).length;
+    // Ambil score dari unit.scores.networking_kerjasama_score
+    const score = unit.scores && typeof unit.scores.networking_kerjasama_score === 'number'
+      ? unit.scores.networking_kerjasama_score
+      : (unit.scores && unit.scores.networking_kerjasama_score ? Number(unit.scores.networking_kerjasama_score) : 0);
+    return {
+      name: unit.name || unit.unit_kerja || '-',
+      unit_kerja_id: unit.unit_kerja_id,
+      networking_kerjasama_score: score,
+      stakeholderCount,
+    };
+  });
+
+  // Urutkan untuk top performers dan low performers
+  const sortedByScore = [...unitSummary].sort((a, b) => {
+    if (b.stakeholderCount === a.stakeholderCount) {
+      return b.networking_kerjasama_score - a.networking_kerjasama_score;
+    }
+    return b.stakeholderCount - a.stakeholderCount;
+  });
+  const topNetworkingPerformers = sortedByScore.slice(0, 3);
+  const lowNetworkingPerformers = [...sortedByScore].reverse().slice(0, 3);
 
   if (loading) {
     return (
@@ -1201,6 +1247,52 @@ export default function NetworkingPage() {
           </div>
         </div>
       )}
+
+      {/* Tambahan: Top & Low Performers Networking Kerjasama */}
+      <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-lg font-bold text-green-700 mb-4">Top Performers Kerjasama Terbanyak</h2>
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-green-50">
+                <th className="px-4 py-2 text-left">Unit Kerja</th>
+                <th className="px-4 py-2 text-center">Score Implementasi</th>
+                <th className="px-4 py-2 text-center">Jumlah Stakeholder</th>
+              </tr>
+            </thead>
+            <tbody>
+              {topNetworkingPerformers.map((unit) => (
+                <tr key={unit.unit_kerja_id} className="border-b">
+                  <td className="px-4 py-2 font-bold text-green-800">{unit.name}</td>
+                  <td className="px-4 py-2 text-center text-green-700 font-semibold">{unit.networking_kerjasama_score}</td>
+                  <td className="px-4 py-2 text-center">{unit.stakeholderCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-lg font-bold text-red-700 mb-4">Needs Attention Networking Kerjasama</h2>
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-red-50">
+                <th className="px-4 py-2 text-left">Unit Kerja</th>
+                <th className="px-4 py-2 text-center">Score Implementasi</th>
+                <th className="px-4 py-2 text-center">Jumlah Stakeholder</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lowNetworkingPerformers.map((unit) => (
+                <tr key={unit.unit_kerja_id} className="border-b">
+                  <td className="px-4 py-2 font-bold text-red-800">{unit.name}</td>
+                  <td className="px-4 py-2 text-center text-red-700 font-semibold">{unit.networking_kerjasama_score}</td>
+                  <td className="px-4 py-2 text-center">{unit.stakeholderCount}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   );
 }

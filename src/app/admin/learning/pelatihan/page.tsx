@@ -229,10 +229,13 @@ export default function PelatihanPage() {
 
   // Gabungkan data rekap dengan jumlah pegawai dan rata-rata jam pelatihan
   const unitSummary = (rekapData && rekapData.level_3 ? rekapData.level_3.map((unit: RekapUnit) => {
-    const pelatihanUnit = dataPelatihan.filter(d => d.unit === unit.name || d.unit === unit.unit_kerja);
+    // Normalisasi nama unit untuk pencocokan
+    const unitNames = [unit.name, unit.unit_kerja].filter(Boolean).map(u => u?.toString().trim().toLowerCase());
+    const pelatihanUnit = dataPelatihan.filter(d => unitNames.includes(d.unit?.toString().trim().toLowerCase()) || unitNames.includes(d.alias?.toString().trim().toLowerCase()));
+    // Pastikan jam bertipe number dan valid
     const pegawaiSet = new Set(pelatihanUnit.map(d => d.nama));
     const jumlahPegawai = pegawaiSet.size;
-    const totalJam = pelatihanUnit.reduce((sum, d) => sum + d.jam, 0);
+    const totalJam = pelatihanUnit.reduce((sum, d) => sum + (typeof d.jam === 'number' && !isNaN(d.jam) ? d.jam : 0), 0);
     const rataJam = jumlahPegawai > 0 ? (totalJam / jumlahPegawai) : 0;
     const score = unit.scores && typeof unit.scores.learning_pelatihan_score === 'number'
       ? unit.scores.learning_pelatihan_score

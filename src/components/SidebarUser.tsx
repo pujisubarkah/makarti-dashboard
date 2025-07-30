@@ -82,6 +82,13 @@ const menuItems = [
     status: 'ready',
     allowedRoles: [3], // hanya untuk role_id 3
   },
+  {
+    label: 'Panduan Makarti 5.0',
+    href: 'https://s.id/PanduanMakarti',
+    icon: PieChart,
+    status: 'ready',
+    allowedRoles: [3], // hanya untuk role_id 3
+  },
 ]
 
 export function SidebarUser({ roleId }: SidebarUserProps) {

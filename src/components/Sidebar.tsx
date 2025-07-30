@@ -64,6 +64,13 @@ const menuItems = [
       { title: "Serapan Anggaran", href: "/admin/serapan" },
     ],
   },
+  {
+    title: "Panduan",
+    icon: PieChart,
+    children: [
+      { title: "Panduan Makarti 5.0", href: "https://s.id/PanduanMakarti" },
+    ],
+  },
 ]
 
 export function Sidebar() {

@@ -50,7 +50,7 @@ export default function KoordinasiDashboardPage() {
   
   // State untuk filters
   const [selectedMonth, setSelectedMonth] = useState('all')
-  const [selectedUnit, setSelectedUnit] = useState('all')
+  //const [selectedUnit, setSelectedUnit] = useState('all')
   const [selectedJenis, setSelectedJenis] = useState('all')
   
   // State untuk pagination top units
@@ -132,24 +132,32 @@ export default function KoordinasiDashboardPage() {
   }, [loading, error, rawData.length])
 
   // Generate options from API data
-  const allUnits = useMemo(() => {
-    return [...new Set(rawData.map((d) => d.users.unit_kerja))].sort()
-  }, [rawData])
+  //const allUnits = useMemo(() => {
+  //  return [...new Set(rawData.map((d) => d.users.unit_kerja))].sort()
+  //}, [rawData])
 
   const allJenisInstansi = useMemo(() => {
     return [...new Set(rawData.map((d) => d.jenisInstansi))].sort()
   }, [rawData])
 
+  // State untuk search bar
+  const [searchQuery, setSearchQuery] = useState("")
+
+  // Filter data dengan search bar
   const filteredData = useMemo(() => {
     return rawData.filter((item) => {
-      const itemDate = new Date(item.tanggal)
+      const itemDate = new Date(item.tanggal);
       const monthMatch =
-        selectedMonth === 'all' || (itemDate.getMonth() + 1).toString().padStart(2, '0') === selectedMonth
-      const unitMatch = selectedUnit === 'all' || item.users.unit_kerja === selectedUnit
-      const jenisMatch = selectedJenis === 'all' || item.jenisInstansi === selectedJenis
-      return monthMatch && unitMatch && jenisMatch
-    })
-  }, [selectedMonth, selectedUnit, selectedJenis, rawData])
+        selectedMonth === "all" || (itemDate.getMonth() + 1).toString().padStart(2, "0") === selectedMonth;
+      const jenisMatch = selectedJenis === "all" || item.jenisInstansi === selectedJenis;
+      const searchMatch = searchQuery === "" || [
+        item.users.unit_kerja,
+        item.topik,
+        item.instansi
+      ].some((field) => field && field.toLowerCase().includes(searchQuery.toLowerCase()));
+      return monthMatch && jenisMatch && searchMatch;
+    });
+  }, [selectedMonth, selectedJenis, rawData, searchQuery])
 
   const pieData = useMemo(() => {
     const count: Record<string, number> = {}
@@ -692,7 +700,7 @@ export default function KoordinasiDashboardPage() {
           <span className="mr-2">🔍</span>
           Filter Data Koordinasi
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-2">
           <div>
             <label className="block text-sm font-medium text-gray-700 mb-2">Bulan</label>
             <Select onValueChange={setSelectedMonth} defaultValue="all">
@@ -703,23 +711,6 @@ export default function KoordinasiDashboardPage() {
                 {allMonths.map((m) => (
                   <SelectItem key={m.value} value={m.value}>
                     {m.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div>
-            <label className="block text-sm font-medium text-gray-700 mb-2">Unit Kerja</label>
-            <Select onValueChange={setSelectedUnit} defaultValue="all">
-              <SelectTrigger className="border-gray-300 focus:border-blue-500">
-                <SelectValue placeholder="Pilih Unit Kerja" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Semua Unit</SelectItem>
-                {allUnits.map((unit) => (
-                  <SelectItem key={unit} value={unit}>
-                    {unit}
                   </SelectItem>
                 ))}
               </SelectContent>
@@ -742,6 +733,19 @@ export default function KoordinasiDashboardPage() {
               </SelectContent>
             </Select>
           </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-2">Cari Unit Kerja / Topik / Stakeholder</label>
+            <input
+              type="text"
+              value={searchQuery}
+              onChange={e => setSearchQuery(e.target.value)}
+              placeholder="Ketik nama unit kerja, topik, atau stakeholder..."
+              className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+            />
+          </div>
+
+          
         </div>
       </div>
 

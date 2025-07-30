@@ -122,6 +122,7 @@ interface UnitKerjaData {
   unit_kerja_id: number;
   parent_id?: number;
   scores?: { [key: string]: number };
+    department?: { name?: string };
 }
 
 function getRankings(data: UnitKerjaData[], colKey: string) {
@@ -148,6 +149,8 @@ export default function ReportRekapPage() {
   const [sortKey, setSortKey] = useState("better_score");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [infoOpen, setInfoOpen] = useState(false);
+  const [selectedDept, setSelectedDept] = useState<string>("");
+  const [departments, setDepartments] = useState<string[]>([]);
 
   useEffect(() => {
     Promise.all([
@@ -156,8 +159,16 @@ export default function ReportRekapPage() {
     ])
       .then(([rekap, serapanData]) => {
         if (rekap.level_3 && Array.isArray(rekap.level_3)) {
-          // Pastikan parent_id ikut diambil
           setData(rekap.level_3.map((d: UnitKerjaData) => ({ ...d, parent_id: d.parent_id })));
+          // Extract unique department names
+          const deptNames = Array.from(
+            new Set(
+              rekap.level_3
+                .map((d: UnitKerjaData & { department?: { name?: string } }) => d.department?.name)
+                .filter(Boolean)
+            )
+          ) as string[];
+          setDepartments(deptNames);
         } else {
           setError("Format data rekap tidak sesuai.");
         }
@@ -172,8 +183,13 @@ export default function ReportRekapPage() {
       });
   }, []);
 
+  // Filter by department
+  const deptFiltered = selectedDept
+    ? data.filter((item) => item.department?.name === selectedDept)
+    : data;
+
   // Filter by search
-  const filtered = data.filter((item) =>
+  const filtered = deptFiltered.filter((item) =>
     item.name?.toLowerCase().includes(search.toLowerCase())
   );
 
@@ -333,6 +349,16 @@ export default function ReportRekapPage() {
           onChange={(e) => setSearch(e.target.value)}
           className="border px-4 py-2 rounded-lg w-full md:w-64 text-sm"
         />
+        <select
+          value={selectedDept}
+          onChange={(e) => setSelectedDept(e.target.value)}
+          className="border px-4 py-2 rounded-lg w-full md:w-64 text-sm"
+        >
+          <option value="">Semua Departemen</option>
+          {departments.map((dept) => (
+            <option key={dept} value={dept}>{dept}</option>
+          ))}
+        </select>
       </div>
       {loading ? (
         <div className="text-center py-12 text-gray-500">Memuat data...</div>

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import {
   BarChart,
   Bar,
@@ -49,6 +49,29 @@ export default function PesertaPage() {  const [data, setData] = useState<Penyel
   const [showTopUnitAlert, setShowTopUnitAlert] = useState(false)
   const [showUnitModal, setShowUnitModal] = useState(false)
   const [selectedUnit, setSelectedUnit] = useState<string | null>(null)
+
+  // Define type for rekapData
+  type RekapUnit = {
+    name?: string;
+    unit_kerja?: string;
+    unit_kerja_id?: string | number;
+    scores?: {
+      learning_penyelenggaraan_score?: number | string;
+    };
+  };
+
+  type RekapData = {
+    level_3?: RekapUnit[];
+    [key: string]: unknown;
+  };
+
+  // Fetch rekap scores
+  const [rekapData, setRekapData] = useState<RekapData | null>(null);
+  useEffect(() => {
+    fetch('/api/scores/rekap')
+      .then(res => res.json())
+      .then(data => setRekapData(data));
+  }, []);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -331,6 +354,38 @@ export default function PesertaPage() {  const [data, setData] = useState<Penyel
     name: jenis,
     value: count,
   }))
+
+  // Gabungkan data rekap dengan jumlah pelatihan dan jam pelajaran
+  const unitSummary = useMemo(() => {
+    if (!rekapData || !rekapData.level_3) return [];
+    return rekapData.level_3.map(unit => {
+      const unitNames = [unit.name, unit.unit_kerja].filter(Boolean).map(u => u?.toString().trim().toLowerCase());
+      const pelatihanUnit = data.filter(d => unitNames.includes(d.users?.unit_kerja?.toString().trim().toLowerCase()));
+      const jumlahPelatihan = pelatihanUnit.length;
+      // Calculate totalPeserta as sum of jumlahPeserta for all pelatihan by unit kerja
+      const totalPeserta = pelatihanUnit.reduce((sum, d) => sum + (typeof d.jumlahPeserta === 'number' && !isNaN(d.jumlahPeserta) ? d.jumlahPeserta : 0), 0);
+      // Placeholder for totalJam, update logic if needed
+      const score = unit.scores && typeof unit.scores.learning_penyelenggaraan_score === 'number'
+        ? unit.scores.learning_penyelenggaraan_score
+        : (unit.scores && unit.scores.learning_penyelenggaraan_score ? Number(unit.scores.learning_penyelenggaraan_score) : 0);
+      return {
+        name: unit.name || unit.unit_kerja || '-',
+        unit_kerja_id: unit.unit_kerja_id,
+        learning_penyelenggaraan_score: score,
+        jumlahPelatihan,
+        totalPeserta,
+      };
+    });
+  }, [rekapData, data]);
+
+  const sortedByScore = [...unitSummary].sort((a, b) => {
+    if (b.jumlahPelatihan === a.jumlahPelatihan) {
+      return b.learning_penyelenggaraan_score - a.learning_penyelenggaraan_score;
+    }
+    return b.jumlahPelatihan - a.jumlahPelatihan;
+  });
+  const topPerformers = sortedByScore.slice(0, 3);
+  const lowPerformers = [...sortedByScore].reverse().slice(0, 3);
 
   return (
     <div className="p-6">
@@ -1174,6 +1229,56 @@ export default function PesertaPage() {  const [data, setData] = useState<Penyel
               </PieChart>
             </ResponsiveContainer>
           </div>
+        </div>
+      </div>
+
+      {/* Tambahkan tabel Top & Needs Attention */}
+      <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-lg font-bold text-green-700 mb-4">Top Performers Penyelenggaraan Bangkom Terbanyak</h2>
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-green-50">
+                <th className="px-4 py-2 text-left">Unit Kerja</th>
+                <th className="px-4 py-2 text-center">Score</th>
+                <th className="px-4 py-2 text-center">Jumlah Pelatihan</th>
+                <th className="px-4 py-2 text-center">Jumlah Peserta</th>
+              </tr>
+            </thead>
+            <tbody>
+              {topPerformers.map(unit => (
+                <tr key={unit.unit_kerja_id} className="border-b">
+                  <td className="px-4 py-2 font-bold text-green-800">{unit.name}</td>
+                  <td className="px-4 py-2 text-center text-green-700 font-semibold">{unit.learning_penyelenggaraan_score}</td>
+                  <td className="px-4 py-2 text-center">{unit.jumlahPelatihan}</td>
+                  <td className="px-4 py-2 text-center">{unit.totalPeserta ?? '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-lg font-bold text-red-700 mb-4">Needs Attention Penyelenggaraan Bangkom</h2>
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-red-50">
+                <th className="px-4 py-2 text-left">Unit Kerja</th>
+                <th className="px-4 py-2 text-center">Score</th>
+                <th className="px-4 py-2 text-center">Jumlah Pelatihan</th>
+                <th className="px-4 py-2 text-center">Jumlah Peserta</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lowPerformers.map(unit => (
+                <tr key={unit.unit_kerja_id} className="border-b">
+                  <td className="px-4 py-2 font-bold text-red-800">{unit.name}</td>
+                  <td className="px-4 py-2 text-center text-red-700 font-semibold">{unit.learning_penyelenggaraan_score}</td>
+                  <td className="px-4 py-2 text-center">{unit.jumlahPelatihan}</td>
+                  <td className="px-4 py-2 text-center">{unit.totalPeserta ?? '-'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
         </div>
       </div>
     </div>

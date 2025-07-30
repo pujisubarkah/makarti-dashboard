@@ -76,6 +76,23 @@ export default function PelatihanPage() {
   const [loadingPersenInput, setLoadingPersenInput] = useState(true)
   const [errorPersenInput, setErrorPersenInput] = useState<string | null>(null)
 
+  // Fetch learning scores rekap
+  interface RekapUnit {
+    name?: string;
+    unit_kerja?: string;
+    unit_kerja_id?: number;
+    scores?: {
+      learning_pelatihan_score?: number | string;
+    };
+  }
+
+  interface RekapData {
+    level_3?: RekapUnit[];
+    // Add other levels if needed
+  }
+
+  const [rekapData, setRekapData] = useState<RekapData | null>(null);
+
   useEffect(() => {
     fetchPelatihanData()
   }, [])
@@ -203,6 +220,41 @@ export default function PelatihanPage() {
       ) : part
     )
   }
+
+  useEffect(() => {
+    fetch('/api/scores/rekap')
+      .then(res => res.json())
+      .then(data => setRekapData(data));
+  }, []);
+
+  // Gabungkan data rekap dengan jumlah pegawai dan rata-rata jam pelatihan
+  const unitSummary = (rekapData && rekapData.level_3 ? rekapData.level_3.map((unit: RekapUnit) => {
+    const pelatihanUnit = dataPelatihan.filter(d => d.unit === unit.name || d.unit === unit.unit_kerja);
+    const pegawaiSet = new Set(pelatihanUnit.map(d => d.nama));
+    const jumlahPegawai = pegawaiSet.size;
+    const totalJam = pelatihanUnit.reduce((sum, d) => sum + d.jam, 0);
+    const rataJam = jumlahPegawai > 0 ? (totalJam / jumlahPegawai) : 0;
+    const score = unit.scores && typeof unit.scores.learning_pelatihan_score === 'number'
+      ? unit.scores.learning_pelatihan_score
+      : (unit.scores && unit.scores.learning_pelatihan_score ? Number(unit.scores.learning_pelatihan_score) : 0);
+    return {
+      name: unit.name || unit.unit_kerja || '-',
+      unit_kerja_id: unit.unit_kerja_id,
+      learning_pelatihan_score: score,
+      jumlahPegawai,
+      rataJam: rataJam.toFixed(1),
+    };
+  }) : []);
+
+  // Urutkan performers
+  const sortedByScore = [...unitSummary].sort((a, b) => {
+    if (b.learning_pelatihan_score === a.learning_pelatihan_score) {
+      return Number(b.rataJam) - Number(a.rataJam);
+    }
+    return b.learning_pelatihan_score - a.learning_pelatihan_score;
+  });
+  const topLearningPerformers = sortedByScore.slice(0, 3);
+  const lowLearningPerformers = [...sortedByScore].reverse().slice(0, 3);
 
   if (loading) {
     return (
@@ -1237,6 +1289,56 @@ export default function PelatihanPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Tambahkan tabel Top & Needs Attention */}
+      <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-lg font-bold text-green-700 mb-4">Top 3 Unit Kerja (Learning Pelatihan)</h2>
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-green-50">
+                <th className="px-4 py-2 text-left">Unit Kerja</th>
+                <th className="px-4 py-2 text-center">Persentase Pegawai 20 JP</th>
+                <th className="px-4 py-2 text-center">Jumlah Pegawai Pelatihan</th>
+                <th className="px-4 py-2 text-center">Rata-rata JP</th>
+              </tr>
+            </thead>
+            <tbody>
+              {topLearningPerformers.map((unit) => (
+                <tr key={unit.unit_kerja_id} className="border-b">
+                  <td className="px-4 py-2 font-bold text-green-800">{unit.name}</td>
+                  <td className="px-4 py-2 text-center text-green-700 font-semibold">{unit.learning_pelatihan_score}</td>
+                  <td className="px-4 py-2 text-center">{unit.jumlahPegawai}</td>
+                  <td className="px-4 py-2 text-center">{unit.rataJam}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-lg font-bold text-red-700 mb-4">Needs Attention (Bottom 3 Unit Kerja)</h2>
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-red-50">
+                <th className="px-4 py-2 text-left">Unit Kerja</th>
+                <th className="px-4 py-2 text-center">Persentase Pegawai 20 JP</th>
+                <th className="px-4 py-2 text-center">Jumlah Pegawai Pelatihan</th>
+                <th className="px-4 py-2 text-center">Rata-rata JP</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lowLearningPerformers.map((unit) => (
+                <tr key={unit.unit_kerja_id} className="border-b">
+                  <td className="px-4 py-2 font-bold text-red-800">{unit.name}</td>
+                  <td className="px-4 py-2 text-center text-red-700 font-semibold">{unit.learning_pelatihan_score}</td>
+                  <td className="px-4 py-2 text-center">{unit.jumlahPegawai}</td>
+                  <td className="px-4 py-2 text-center">{unit.rataJam}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }

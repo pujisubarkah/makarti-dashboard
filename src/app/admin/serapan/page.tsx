@@ -26,6 +26,7 @@ interface DetailPerBulan {
 
 interface SerapanData {
   unit_kerja: string
+  unit_kerja_id: number
   pagu_anggaran: number
   total_realisasi: number
   sisa_anggaran: number
@@ -56,6 +57,8 @@ export default function SerapanTablePage() {
     key: keyof SerapanData | null
     direction: 'asc' | 'desc'
   }>({ key: null, direction: 'asc' })
+  const [departments, setDepartments] = useState<{ name: string; unitIds: number[] }[]>([]);
+  const [selectedDepartment, setSelectedDepartment] = useState<string>('');
 
   // Fetch data from API
   useEffect(() => {
@@ -82,15 +85,43 @@ export default function SerapanTablePage() {
     fetchData()
   }, [])
 
+  // Fetch departments from /api/scores/rekap
+  useEffect(() => {
+    fetch('/api/scores/rekap')
+      .then(res => res.json())
+      .then(rekap => {
+        if (rekap.level_3 && Array.isArray(rekap.level_3)) {
+          // Map department name to unit_kerja_id
+          const deptMap: { [name: string]: number[] } = {};
+          interface RekapUnit {
+            unit_kerja_id: number;
+            department?: { name?: string };
+          }
+          rekap.level_3.forEach((unit: RekapUnit) => {
+            const deptName = unit.department?.name || '-';
+            if (!deptMap[deptName]) deptMap[deptName] = [];
+            deptMap[deptName].push(unit.unit_kerja_id);
+          });
+          setDepartments(Object.entries(deptMap).map(([name, unitIds]) => ({ name, unitIds })));
+        }
+      });
+  }, []);
+
   const handleRowClick = (unit: SerapanData) => {
     setSelectedUnit(unit)
   }
 
   // Filter dan sort data
   const filteredAndSortedData = dataSerapan
-    .filter(item => 
-      formatUnitName(item.unit_kerja).toLowerCase().includes(searchTerm.toLowerCase())
-    )    .sort((a, b) => {
+    .filter(item => {
+      // Filter by department if selected
+      if (selectedDepartment) {
+        const dept = departments.find(d => d.name === selectedDepartment);
+        if (!dept || !dept.unitIds.includes(item.unit_kerja_id)) return false;
+      }
+      return formatUnitName(item.unit_kerja).toLowerCase().includes(searchTerm.toLowerCase());
+    })
+    .sort((a, b) => {
       if (!sortConfig.key) return 0
       
       let aValue: string | number
@@ -382,6 +413,19 @@ export default function SerapanTablePage() {
             
             {/* Search and Filter Controls */}
             <div className="flex flex-col sm:flex-row gap-3">
+              {/* Department Dropdown */}
+              <select
+                value={selectedDepartment}
+                onChange={e => setSelectedDepartment(e.target.value)}
+                className="px-3 py-2 border border-gray-300 rounded-lg text-sm bg-white"
+                style={{ minWidth: 180 }}
+              >
+                <option value="">Semua Kompartemen</option>
+                {departments.map(dept => (
+                  <option key={dept.name} value={dept.name}>{dept.name}</option>
+                ))}
+              </select>
+              
               {/* Search Input */}
               <div className="relative">
                 <input

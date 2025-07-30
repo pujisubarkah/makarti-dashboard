@@ -46,6 +46,7 @@ export default function ProdukInovasiPage() {
     key: keyof ProdukInovasiData | 'users.unit_kerja' | 'status_inovasi.status' | null
     direction: 'asc' | 'desc'
   }>({ key: null, direction: 'asc' })
+  const [expandedRows, setExpandedRows] = useState<{ [key: number]: boolean }>({})
   // Tambahkan state untuk data rekap
   interface RekapUnitKerja {
     unit_kerja_id: number;
@@ -549,41 +550,61 @@ export default function ProdukInovasiPage() {
             </thead>
             <tbody className="text-sm divide-y divide-gray-200">
               {filteredAndSortedData().length > 0 ? (
-                filteredAndSortedData().map((item, index) => (
-                  <tr key={item.id} className="hover:bg-blue-50 transition-colors">
-                    <td className="px-6 py-4 text-gray-600">{index + 1}</td>
-                    <td className="px-6 py-4 font-medium text-gray-800">{item.nama}</td>
-                    <td className="px-6 py-4">
-                      <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                        {item.users.unit_kerja}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
-                        item.jenis.includes('Digital') || item.jenis === 'Dashboard' || item.jenis === 'Aplikasi' ? 'bg-purple-100 text-purple-800' :
-                        item.jenis === 'Modul Pelatihan' ? 'bg-green-100 text-green-800' :
-                        'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {item.jenis.includes('Digital') || item.jenis === 'Dashboard' || item.jenis === 'Aplikasi' ? '💻' :
-                         item.jenis === 'Modul Pelatihan' ? '📚' : '📋'} {item.jenis}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4">
-                      <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
-                        item.status_inovasi.status === 'Selesai' ? 'bg-green-100 text-green-800' :
-                        item.status_inovasi.status === 'Proses' ? 'bg-orange-100 text-orange-800' :
-                        'bg-gray-100 text-gray-800'
-                      }`}>
-                        {item.status_inovasi.status === 'Selesai' ? '✅' :
-                         item.status_inovasi.status === 'Proses' ? '⏳' : '📦'} {item.status_inovasi.status}
-                      </span>
-                    </td>
-                    <td className="px-6 py-4 text-gray-600">
-                      {new Date(item.tanggalRilis).toLocaleDateString('id-ID')}
-                    </td>
-                    <td className="px-6 py-4 text-gray-600 max-w-xs truncate">{item.keterangan}</td>
-                  </tr>
-                ))
+                filteredAndSortedData().map((item, index) => {
+                  const maxLength = 80;
+                  const isLong = item.keterangan && item.keterangan.length > maxLength;
+                  const expanded = expandedRows[item.id];
+                  return (
+                    <tr key={item.id} className="hover:bg-blue-50 transition-colors">
+                      <td className="px-6 py-4 text-gray-600">{index + 1}</td>
+                      <td className="px-6 py-4 font-medium text-gray-800">{item.nama}</td>
+                      <td className="px-6 py-4">
+                        <span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                          {item.users.unit_kerja}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-2 py-1 rounded-full text-xs font-medium ${
+                          item.jenis.includes('Digital') || item.jenis === 'Dashboard' || item.jenis === 'Aplikasi' ? 'bg-purple-100 text-purple-800' :
+                          item.jenis === 'Modul Pelatihan' ? 'bg-green-100 text-green-800' :
+                          'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {item.jenis.includes('Digital') || item.jenis === 'Dashboard' || item.jenis === 'Aplikasi' ? '💻' :
+                           item.jenis === 'Modul Pelatihan' ? '📚' : '📋'} {item.jenis}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4">
+                        <span className={`inline-flex items-center px-3 py-1 rounded-full text-xs font-medium ${
+                          item.status_inovasi.status === 'Selesai' ? 'bg-green-100 text-green-800' :
+                          item.status_inovasi.status === 'Proses' ? 'bg-orange-100 text-orange-800' :
+                          'bg-gray-100 text-gray-800'
+                        }`}>
+                          {item.status_inovasi.status === 'Selesai' ? '✅' :
+                           item.status_inovasi.status === 'Proses' ? '⏳' : '📦'} {item.status_inovasi.status}
+                        </span>
+                      </td>
+                      <td className="px-6 py-4 text-gray-600">
+                        {new Date(item.tanggalRilis).toLocaleDateString('id-ID')}
+                      </td>
+                      <td className="px-6 py-4 text-gray-600 max-w-xs whitespace-pre-line">
+                        {isLong ? (
+                          <>
+                            {expanded ? item.keterangan : item.keterangan.slice(0, maxLength) + '...'}{' '}
+                            <button
+                              type="button"
+                              className="text-blue-600 underline hover:text-blue-800 text-xs ml-1"
+                              onClick={() => setExpandedRows(prev => ({ ...prev, [item.id]: !expanded }))}
+                            >
+                              {expanded ? 'Show less' : 'Read more'}
+                            </button>
+                          </>
+                        ) : (
+                          item.keterangan
+                        )}
+                      </td>
+                    </tr>
+                  );
+                })
               ) : (
                 <tr>
                   <td colSpan={7} className="px-6 py-12 text-center">

@@ -95,6 +95,9 @@ export default function MediaPage() {
     dedupingInterval: 10000,
   })
 
+  // Fetch branding scores rekap
+  const { data: rekapData } = useSWR('/api/scores/rekap', url => fetch(url).then(r => r.json()))
+
   // State for popup
   const [showInactiveUnitsAlert, setShowInactiveUnitsAlert] = React.useState(false)
   
@@ -112,7 +115,7 @@ export default function MediaPage() {
   const [sortColumn, setSortColumn] = React.useState<string>('')
   const [sortDirection, setSortDirection] = React.useState<'asc' | 'desc'>('asc')
   // Transform and calculate data
-  const dataPublikasi = publikasiData || []
+  const dataPublikasi = React.useMemo(() => publikasiData || [], [publikasiData])
 
   // Apply filters
   const filteredData = dataPublikasi.filter(item => {
@@ -404,6 +407,48 @@ export default function MediaPage() {
     )
   }
 
+  // Define a type for unit object from rekapData.level_3
+  interface RekapUnit {
+    name?: string;
+    unit_kerja?: string;
+    unit_kerja_id: number;
+    scores?: {
+      branding_score?: number | string;
+      [key: string]: unknown;
+    };
+    [key: string]: unknown;
+  }
+
+  // Gabungkan data rekap dengan jumlah publikasi per unit dan rata-rata engagement
+  const unitSummary = React.useMemo(() => {
+    if (!rekapData || !rekapData.level_3) return [];
+    return rekapData.level_3.map((unit: RekapUnit) => {
+      const publikasiUnit = dataPublikasi.filter(d => d.unit_kerja_id === unit.unit_kerja_id);
+      const publikasiCount = publikasiUnit.length;
+      const score = unit.scores && typeof unit.scores.branding_score === 'number'
+        ? unit.scores.branding_score
+        : (unit.scores && unit.scores.branding_score ? Number(unit.scores.branding_score) : 0);
+      // Hitung rata-rata engagement untuk Instagram, YouTube, TikTok
+      const mediaTypes = ['Instagram', 'YouTube', 'TikTok'];
+      let totalLikes = 0, totalViews = 0;
+      publikasiUnit.forEach(post => {
+        if (mediaTypes.includes(post.jenis) && post.views && post.views > 0) {
+          totalLikes += post.likes || 0;
+          totalViews += post.views;
+          //countMedia++;
+        }
+      });
+      const avgEngagement = totalViews > 0 ? ((totalLikes / totalViews) * 100).toFixed(1) : '-';
+      return {
+        name: unit.name || unit.unit_kerja || '-',
+        unit_kerja_id: unit.unit_kerja_id,
+        branding_score: score,
+        publikasiCount,
+        avgEngagement,
+      };
+    });
+  }, [rekapData, dataPublikasi]);
+
   if (isLoading || summaryLoading) {
     return (
       <div className="p-6 min-h-screen bg-gray-50 flex items-center justify-center">
@@ -431,6 +476,16 @@ export default function MediaPage() {
       </div>
     )
   }
+
+  // Urutkan performers
+  const sortedByScore = [...unitSummary].sort((a, b) => {
+    if (b.branding_score === a.branding_score) {
+      return b.publikasiCount - a.publikasiCount;
+    }
+    return b.branding_score - a.branding_score;
+  });
+  const topBrandingPerformers = sortedByScore.slice(0, 3);
+  const lowBrandingPerformers = [...sortedByScore].reverse().slice(0, 3);
 
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -1344,6 +1399,56 @@ export default function MediaPage() {
           )}
         </DialogContent>
       </Dialog>
+
+      {/* Top & Needs Attention Tables */}
+      <div className="mt-12 grid grid-cols-1 md:grid-cols-2 gap-8">
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-lg font-bold text-green-700 mb-4">Top Performers Branding Publikasi Terbanyak</h2>
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-green-50">
+                <th className="px-4 py-2 text-left">Unit Kerja</th>
+                <th className="px-4 py-2 text-center">Score Implementasi</th>
+                <th className="px-4 py-2 text-center">Jumlah Publikasi</th>
+                <th className="px-4 py-2 text-center">Rata-rata Engagement (%)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {topBrandingPerformers.map((unit) => (
+                <tr key={unit.unit_kerja_id} className="border-b">
+                  <td className="px-4 py-2 font-bold text-green-800">{unit.name}</td>
+                  <td className="px-4 py-2 text-center text-green-700 font-semibold">{unit.branding_score}</td>
+                  <td className="px-4 py-2 text-center">{unit.publikasiCount}</td>
+                  <td className="px-4 py-2 text-center">{unit.avgEngagement}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-lg font-bold text-red-700 mb-4">Needs Attention Branding Publikasi</h2>
+          <table className="min-w-full text-sm">
+            <thead>
+              <tr className="bg-red-50">
+                <th className="px-4 py-2 text-left">Unit Kerja</th>
+                <th className="px-4 py-2 text-center">Score Implementasi</th>
+                <th className="px-4 py-2 text-center">Jumlah Publikasi</th>
+                <th className="px-4 py-2 text-center">Rata-rata Engagement (%)</th>
+              </tr>
+            </thead>
+            <tbody>
+              {lowBrandingPerformers.map((unit) => (
+                <tr key={unit.unit_kerja_id} className="border-b">
+                  <td className="px-4 py-2 font-bold text-red-800">{unit.name}</td>
+                  <td className="px-4 py-2 text-center text-red-700 font-semibold">{unit.branding_score}</td>
+                  <td className="px-4 py-2 text-center">{unit.publikasiCount}</td>
+                  <td className="px-4 py-2 text-center">{unit.avgEngagement}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+      </div>
     </div>
   )
 }

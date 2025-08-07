@@ -27,6 +27,30 @@ model bigger_score {
   @@schema("makarti")
 }
 
+model broadcastmessage {
+  id            Int             @id(map: "BroadcastMessage_pkey") @default(autoincrement())
+  sender_id     Int
+  message       String
+  type          String          @db.VarChar(20)
+  createdAt     DateTime        @default(now()) @db.Timestamp(6)
+  users         users           @relation(fields: [sender_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  broadcastread broadcastread[]
+
+  @@schema("makarti")
+}
+
+model broadcastread {
+  id               Int              @id(map: "BroadcastRead_pkey") @default(autoincrement())
+  user_id          Int
+  message_id       Int
+  readAt           DateTime         @default(now()) @db.Timestamp(6)
+  broadcastmessage broadcastmessage @relation(fields: [message_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users            users            @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@unique([user_id, message_id], map: "BroadcastRead_user_id_message_id_key")
+  @@schema("makarti")
+}
+
 model evaluasi_unit_kerja {
   id            Int       @id @default(autoincrement())
   unit_kerja_id Int       @unique
@@ -395,13 +419,15 @@ model status_inovasi {
 model users {
   created_at            DateTime                @default(now()) @db.Timestamptz(6)
   unit_kerja            String?
-  username              String                  @db.VarChar
+  username              String                  @db.VarChar @unique
   password              String?                 @db.VarChar
   id                    Int                     @id @unique @default(autoincrement())
   role_id               Int?
   alias                 String?                 @db.VarChar(255)
   role                  String?                 @db.VarChar(10)
   bigger_score          bigger_score[]
+  broadcastmessage      broadcastmessage[]
+  broadcastread         broadcastread[]
   evaluasi_unit_kerja   evaluasi_unit_kerja?
   event_schedule        event_schedule[]
   inovasi               inovasi[]

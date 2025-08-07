@@ -7,11 +7,11 @@ import autoTable from "jspdf-autotable";
 const SCORE_COLUMNS = [
   { key: "learning_score", label: "Learning" },
   { key: "branding_score", label: "Branding" },
-  { key: "bigger_score", label: "BIGGER" },
+  //{ key: "bigger_score", label: "BIGGER" },
   { key: "networking_score", label: "Networking" },
   { key: "inovasi_score", label: "Inovasi" },
-  { key: "smarter_score", label: "SMARTER" },
-  { key: "better_score", label: "BETTER" },
+  //{ key: "smarter_score", label: "SMARTER" },
+  { key: "better_score", label: "TOTAL" },
 ];
 
 const ALL_COLUMNS = [

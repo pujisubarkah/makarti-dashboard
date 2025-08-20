@@ -1,6 +1,17 @@
 // app/user/koordinasi/tambah/page.tsx
 "use client"
 
+/*
+ * 🔧 PERBAIKAN EDIT STATUS KOORDINASI - August 20, 2025
+ * 
+ * ✅ ROOT CAUSE YANG DIPERBAIKI:
+ * - API mengharapkan field "Status" (uppercase S)
+ * - Frontend form menggunakan "status" (lowercase s)  
+ * - Mapping yang salah menyebabkan status tidak terupdate
+ * 
+ * ✅ SOLUSI: Explicit field mapping editFormData.status → requestData.Status
+ */
+
 import React, { useState, useEffect } from "react"
 import { toast } from "sonner" // Hanya import toast yang digunakan
 import {
@@ -183,6 +194,12 @@ export default function TambahKoordinasiPage() {
       const result = await response.json()
       const koordinasiData = Array.isArray(result) ? result : result.data || []
       
+      console.log('=== FETCH DATA DEBUG ===')
+      console.log('Raw koordinasi data:', koordinasiData)
+      koordinasiData.forEach((item: KoordinasiItem, index: number) => {
+        console.log(`Item ${index + 1} - ID: ${item.id}, Status: "${item.Status}"`)
+      })
+      
       setData(koordinasiData)
       
       // Dismiss loading toast dan show success
@@ -287,6 +304,7 @@ export default function TambahKoordinasiPage() {
   const handleEdit = (item: KoordinasiItem) => {
     console.log('=== HANDLE EDIT DEBUG ===')
     console.log('Original item:', item)
+    console.log('Original item.Status (from DB):', item.Status)
     
     setEditingItem(item)
     
@@ -295,11 +313,12 @@ export default function TambahKoordinasiPage() {
       instansi: item.instansi,
       jenisInstansi: item.jenisInstansi,
       topik: item.topik,
-      status: item.Status,
+      status: item.Status, // Map from item.Status (uppercase) to form status (lowercase)
       catatan: item.catatan,
     }
     
     console.log('New edit form data:', newEditFormData)
+    console.log('Form status (lowercase):', newEditFormData.status)
     setEditFormData(newEditFormData)
     setShowEditModal(true)
     
@@ -336,6 +355,14 @@ export default function TambahKoordinasiPage() {
   }
 
   const handleEditSelectChange = (name: keyof FormData, value: string) => {
+    console.log('=== EDIT SELECT CHANGE ===')
+    console.log(`Field "${name}" changed to:`, value)
+    if (name === 'status') {
+      console.log('Status changed:')
+      console.log('- Previous status:', editFormData.status)
+      console.log('- New status:', value)
+    }
+    
     setEditFormData((prev) => ({
       ...prev,
       [name]: value,
@@ -361,15 +388,27 @@ export default function TambahKoordinasiPage() {
     })
     
     try {
+      const requestData = {
+        tanggal: formData.tanggal,
+        instansi: formData.instansi,
+        jenisInstansi: formData.jenisInstansi,
+        topik: formData.topik,
+        Status: formData.status, // ✅ Map lowercase 'status' to uppercase 'Status' for API consistency
+        catatan: formData.catatan,
+        unit_kerja_id: parseInt(unitKerjaId),
+      }
+      
+      console.log('=== POST SUBMIT DEBUG ===')
+      console.log('Form status (lowercase):', formData.status)
+      console.log('Mapped to API Status (uppercase):', requestData.Status)
+      console.log('POST Request Data:', requestData)
+      
       const response = await fetch(`/api/koordinasi/${unitKerjaId}`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          ...formData,
-          unit_kerja_id: parseInt(unitKerjaId),
-        }),
+        body: JSON.stringify(requestData),
       })
       
       console.log('POST Response Status:', response.status)
@@ -449,13 +488,22 @@ export default function TambahKoordinasiPage() {
     
     try {
       const requestData = {
-        ...editFormData,
+        tanggal: editFormData.tanggal,
+        instansi: editFormData.instansi,
+        jenisInstansi: editFormData.jenisInstansi,
+        topik: editFormData.topik,
+        Status: editFormData.status, // ✅ IMPORTANT: Map lowercase 'status' to uppercase 'Status' for API
+        catatan: editFormData.catatan,
         id: editingItem.id,
         koordinasiId: editingItem.id,
         unit_kerja_id: parseInt(unitKerjaId),
       }
 
-      console.log('PUT Request Data:', requestData)
+      console.log('=== EDIT SUBMIT DEBUG ===')
+      console.log('Edit form status (lowercase):', editFormData.status)
+      console.log('Mapped to API Status (uppercase):', requestData.Status)
+      console.log('Full request data:', requestData)
+      console.log('API URL:', `/api/koordinasi/${unitKerjaId}/${editingItem.id}`)
 
       const response = await fetch(`/api/koordinasi/${unitKerjaId}/${editingItem.id}`, {
         method: 'PUT',
@@ -469,12 +517,38 @@ export default function TambahKoordinasiPage() {
       const responseText = await response.text()
       console.log('PUT Response Body:', responseText)
       
+      // Try to parse as JSON for better error handling
+      let responseData
+      try {
+        responseData = JSON.parse(responseText)
+        console.log('Parsed Response Data:', responseData)
+      } catch {
+        console.log('Response is not JSON, using as text')
+        responseData = responseText
+      }
+      
       if (!response.ok) {
-        throw new Error(`Gagal memperbarui data: ${response.status} - ${responseText}`)
+        throw new Error(`Gagal memperbarui data: ${response.status} - ${JSON.stringify(responseData)}`)
       }
       
       // Refresh data
       await mutateKoordinasi()
+      
+      // Validate that the status was actually updated
+      setTimeout(() => {
+        const updatedItem = data.find(item => item.id === editingItem.id)
+        if (updatedItem) {
+          console.log('=== VALIDATION AFTER UPDATE ===')
+          console.log('Updated item Status:', updatedItem.Status)
+          console.log('Expected Status:', editFormData.status)
+          
+          if (updatedItem.Status === editFormData.status) {
+            console.log('✅ Status update SUCCESS - Status berubah dengan benar')
+          } else {
+            console.log('❌ Status update FAILED - Status tidak berubah')
+          }
+        }
+      }, 1000) // Wait 1 second for data refresh
       
       setShowEditModal(false)
       setEditingItem(null)

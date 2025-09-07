@@ -70,7 +70,7 @@ export default function Home() {
             </a>
 
             {/* Top Circle: Manajemen Kinerja */}
-            <a href="/manajemen-kinerja" id="btn-manajemen-kinerja"
+            <a href="https://simanja-indol.vercel.app/" target="_blank" rel="noopener noreferrer" id="btn-manajemen-kinerja"
               className="absolute text-center size-[120px] lg:size-[150px] bg-blue-50 border-red-500 border-[1px] shadow-lg shadow-white/40 text-slate-800 font-semibold hover:scale-105 opacity-0 rounded-full flex flex-col justify-center items-center transition-all duration-300 delay-300 group-hover:opacity-90 group-hover:-translate-y-[140px] lg:group-hover:-translate-y-[170px]"
               style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%) translate(0px, -140px)' }}
             >

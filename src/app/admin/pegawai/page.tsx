@@ -5,6 +5,30 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Ba
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e42", "#ef4444", "#6366f1", "#f472b6", "#22d3ee"];
 
+// Define types for pegawai data
+interface User {
+  unit_kerja?: string;
+}
+
+interface Pegawai {
+  id: string;
+  nama: string;
+  jabatan: string;
+  golongan: string;
+  nip?: string;
+  users?: User;
+}
+
+interface ChartEntry {
+  golongan: string;
+  jumlah: number;
+}
+
+// interface GenerasiEntry {
+//   generasi: string;
+//   jumlah: number;
+// }
+
 // Fungsi untuk menentukan generasi berdasarkan tahun lahir
 function getGenerasi(tglLahir: string): string {
   const tahun = parseInt(tglLahir.slice(0, 4));
@@ -16,7 +40,7 @@ function getGenerasi(tglLahir: string): string {
 }
 
 export default function DaftarPegawaiPage() {
-  const [pegawaiList, setPegawaiList] = useState<any[]>([]);
+  const [pegawaiList, setPegawaiList] = useState<Pegawai[]>([]);
   const [unitFilter, setUnitFilter] = useState("");
 
   useEffect(() => {
@@ -33,7 +57,7 @@ export default function DaftarPegawaiPage() {
 
   // Grafik donat golongan
   const golonganData = Array.from(
-    filteredPegawai.reduce((map: Map<string, number>, pegawai: any) => {
+    filteredPegawai.reduce((map: Map<string, number>, pegawai: Pegawai) => {
       map.set(
         pegawai.golongan,
         (map.get(pegawai.golongan) || 0) + 1
@@ -44,9 +68,8 @@ export default function DaftarPegawaiPage() {
   );
 
   // Grafik batang generasi
-  const generasiList = ["Baby Boomer", "X", "Y", "Z", "Alpha"];
   const generasiData = Array.from(
-    filteredPegawai.reduce((map: Map<string, number>, pegawai: any) => {
+    filteredPegawai.reduce((map: Map<string, number>, pegawai: Pegawai) => {
       // Asumsi nip format: tahun lahir 8 digit pertama, misal: 19680705...
       const tglLahir = pegawai.nip ? pegawai.nip.slice(0, 4) + "-01-01" : "";
       const generasi = getGenerasi(tglLahir);
@@ -74,7 +97,7 @@ export default function DaftarPegawaiPage() {
                   innerRadius={60}
                   outerRadius={100}
                   fill="#3b82f6"
-                  label={(entry: any) => entry.golongan}
+                  label={(entry: ChartEntry) => entry.golongan}
                 >
                   {golonganData.map((entry, idx) => (
                     <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />

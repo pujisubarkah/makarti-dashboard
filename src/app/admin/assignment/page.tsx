@@ -1,6 +1,6 @@
 "use client";
 import React, { useState } from "react";
-import { LineChart, Line, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
 
 // Dummy data prediksi pensiun
 const tahunPensiun = [2026, 2027, 2028, 2029, 2030];
@@ -46,7 +46,7 @@ export default function PrediksiPegawaiPage() {
     <div className="p-6">
       <h2 className="text-2xl font-bold mb-4 text-blue-700">Prediksi Pegawai</h2>
       <div className="mb-8">
-        <h3 className="text-lg font-semibold mb-2 text-gray-700">Grafik Prediksi Pegawai Pensiun</h3>
+        <h3 className="text-lg font-semibold mb-2 text-gray-700">Grafik Prediksi Pegawai Pensiun (dalam pengembangan)</h3>
         <div className="bg-white border rounded shadow mb-6 p-4" style={{ width: "100%", height: 300 }}>
           <ResponsiveContainer width="100%" height={250}>
             <LineChart data={dataGrafikPensiun}>

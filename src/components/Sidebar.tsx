@@ -57,6 +57,14 @@ const menuItems = [
       // { title: "Penyelenggaraan Bangkom", href: "/admin/learning/penyelenggaraan" },
     ],
   },
+    {
+      title: "Pegawai",
+      icon: Users,
+      children: [
+    { title: "Data Pegawai", href: "/admin/pegawai" },
+    { title: "Prediksi Pegawai", href: "/admin/assignment" },
+      ],
+    },
   {
     title: "Anggaran",
     icon: PieChart,

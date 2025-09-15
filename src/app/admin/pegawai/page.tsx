@@ -5,31 +5,6 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Ba
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e42", "#ef4444", "#6366f1", "#f472b6", "#22d3ee"];
 
-// Define types for pegawai data
-interface User {
-  unit_kerja?: string;
-}
-
-interface Pegawai {
-  id: string;
-  nama: string;
-  jabatan: string;
-  golongan: string;
-  nip?: string;
-  users?: User;
-}
-
-interface ChartEntry {
-  golongan: string;
-  jumlah: number;
-}
-
-// interface GenerasiEntry {
-//   generasi: string;
-//   jumlah: number;
-// }
-
-// Fungsi untuk menentukan generasi berdasarkan tahun lahir
 function getGenerasi(tglLahir: string): string {
   const tahun = parseInt(tglLahir.slice(0, 4));
   if (tahun <= 1964) return "Baby Boomer";
@@ -39,52 +14,60 @@ function getGenerasi(tglLahir: string): string {
   return "Alpha";
 }
 
-export default function DaftarPegawaiPage() {
+type Pegawai = {
+  id: number;
+  nama: string;
+  nip: string;
+  jabatan: string;
+  golongan?: string;
+  users?: { unit_kerja?: string };
+};
+
+const PegawaiPage: React.FC = () => {
   const [pegawaiList, setPegawaiList] = useState<Pegawai[]>([]);
   const [unitFilter, setUnitFilter] = useState("");
 
   useEffect(() => {
     fetch("/api/employee")
       .then((res) => res.json())
-      .then((data) => setPegawaiList(data));
+      .then((data: Pegawai[]) => setPegawaiList(data));
   }, []);
 
-  // Filter unit kerja
   const unitOptions = Array.from(new Set(pegawaiList.map((p) => p.users?.unit_kerja).filter(Boolean)));
   const filteredPegawai = unitFilter
     ? pegawaiList.filter((pegawai) => pegawai.users?.unit_kerja === unitFilter)
     : pegawaiList;
 
-  // Grafik donat golongan
   const golonganData = Array.from(
     filteredPegawai.reduce((map: Map<string, number>, pegawai: Pegawai) => {
-      map.set(
-        pegawai.golongan,
-        (map.get(pegawai.golongan) || 0) + 1
-      );
+      const golongan = pegawai.golongan;
+      if (golongan) {
+        map.set(golongan, (map.get(golongan) || 0) + 1);
+      }
       return map;
-    }, new Map()),
+    }, new Map<string, number>()),
     ([golongan, jumlah]) => ({ golongan, jumlah })
   );
 
-  // Grafik batang generasi
-  const generasiData = Array.from(
-    filteredPegawai.reduce((map: Map<string, number>, pegawai: Pegawai) => {
-      // Asumsi nip format: tahun lahir 8 digit pertama, misal: 19680705...
-      const tglLahir = pegawai.nip ? pegawai.nip.slice(0, 4) + "-01-01" : "";
-      const generasi = getGenerasi(tglLahir);
-      map.set(generasi, (map.get(generasi) || 0) + 1);
-      return map;
-    }, new Map()),
-    ([generasi, jumlah]) => ({ generasi, jumlah })
-  );
+        // Grafik batang generasi (selalu tampilkan semua generasi)
+        const generasiList = ["Baby Boomer", "X", "Y", "Z", "Alpha"];
+        const generasiMap = new Map<string, number>();
+        filteredPegawai.forEach((pegawai: Pegawai) => {
+          // Asumsi nip format: tahun lahir 8 digit pertama, misal: 19680705...
+          const tglLahir = pegawai.nip ? pegawai.nip.slice(0, 4) + "-01-01" : "";
+          const generasi = getGenerasi(tglLahir);
+          generasiMap.set(generasi, (generasiMap.get(generasi) || 0) + 1);
+        });
+        const generasiData = generasiList.map((generasi) => ({ generasi, jumlah: generasiMap.get(generasi) || 0 }));
+
+  // Modal logic removed (not used)
 
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold mb-4 text-blue-700">Daftar Pegawai</h2>
       <div className="mb-8 flex flex-wrap gap-8 items-start">
         <div className="flex-1 min-w-[300px]">
-          <h3 className="text-lg font-semibold mb-2 text-gray-700">Grafik Pegawai Berdasarkan Golongan (Donat)</h3>
+          <h3 className="text-lg font-semibold mb-2 text-gray-700">Grafik Pegawai Berdasarkan Golongan</h3>
           <div className="bg-white border rounded shadow mb-6 p-4 flex items-center justify-center" style={{ width: "100%", height: 300 }}>
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
@@ -97,7 +80,7 @@ export default function DaftarPegawaiPage() {
                   innerRadius={60}
                   outerRadius={100}
                   fill="#3b82f6"
-                  label={(entry: ChartEntry) => entry.golongan}
+                  label={(entry: { golongan: string; jumlah: number }) => entry.golongan}
                 >
                   {golonganData.map((entry, idx) => (
                     <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
@@ -110,7 +93,7 @@ export default function DaftarPegawaiPage() {
           </div>
         </div>
         <div className="flex-1 min-w-[300px]">
-          <h3 className="text-lg font-semibold mb-2 text-gray-700">Grafik Pegawai Berdasarkan Generasi (Batang)</h3>
+          <h3 className="text-lg font-semibold mb-2 text-gray-700">Grafik Pegawai Berdasarkan Generasi</h3>
           <div className="bg-white border rounded shadow mb-6 p-4" style={{ width: "100%", height: 300 }}>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={generasiData}>
@@ -156,7 +139,14 @@ export default function DaftarPegawaiPage() {
           {filteredPegawai.map((pegawai, idx) => (
             <tr key={pegawai.id} className="hover:bg-gray-100">
               <td className="py-2 px-4 border text-center">{idx + 1}</td>
-              <td className="py-2 px-4 border">{pegawai.nama}</td>
+              <td className="py-2 px-4 border">
+                <a
+                  href={`/admin/pegawai/${pegawai.id}`}
+                  className="text-blue-600 underline hover:text-blue-800 cursor-pointer"
+                >
+                  {pegawai.nama}
+                </a>
+              </td>
               <td className="py-2 px-4 border">{pegawai.jabatan}</td>
               <td className="py-2 px-4 border">{pegawai.users?.unit_kerja}</td>
               <td className="py-2 px-4 border">{pegawai.golongan}</td>
@@ -167,3 +157,5 @@ export default function DaftarPegawaiPage() {
     </div>
   );
 }
+
+export default PegawaiPage;

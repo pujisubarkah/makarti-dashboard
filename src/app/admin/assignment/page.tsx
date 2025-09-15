@@ -1,139 +1,126 @@
 "use client";
-import React, { useState } from "react";
-import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid, Legend } from "recharts";
-
-// Dummy data prediksi pensiun
-const tahunPensiun = [2026, 2027, 2028, 2029, 2030];
-const prediksiPensiun = [
-  { nama: "Budi Santoso", tahun: 2026 },
-  { nama: "Andi Wijaya", tahun: 2026 },
-  { nama: "Siti Aminah", tahun: 2027 },
-  { nama: "Joko Widodo", tahun: 2028 },
-  { nama: "Rina Dewi", tahun: 2028 },
-  { nama: "Agus Salim", tahun: 2029 },
-  { nama: "Dewi Lestari", tahun: 2030 },
-  { nama: "Fajar Pratama", tahun: 2030 },
-];
-
-const tahunNaikPangkat = [2026, 2027, 2028];
-const prediksiNaikPangkat = [
-  { nama: "Budi Santoso", tahun: 2026 },
-  { nama: "Joko Widodo", tahun: 2027 },
-  { nama: "Rina Dewi", tahun: 2027 },
-  { nama: "Siti Aminah", tahun: 2028 },
-];
-
-function getJumlahPerTahun(
-  data: { nama: string; tahun: number }[],
-  tahunList: number[]
-): { tahun: number; jumlah: number; pegawai: string[] }[] {
-  return tahunList.map((tahun: number) => ({
-    tahun,
-    jumlah: data.filter((d: { tahun: number }) => d.tahun === tahun).length,
-    pegawai: data.filter((d: { tahun: number; nama: string }) => d.tahun === tahun).map((d) => d.nama),
-  }));
+import React, { useEffect, useState } from "react";
+function Modal({ open, onClose, children }: { open: boolean; onClose: () => void; children: React.ReactNode }) {
+  if (!open) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+      <div className="bg-white rounded-lg shadow-lg p-6 max-w-2xl w-full relative">
+        <button
+          className="absolute top-2 right-2 px-2 py-1 text-gray-500 hover:text-gray-700"
+          onClick={onClose}
+        >
+          &times;
+        </button>
+        <div className="max-h-[60vh] overflow-y-auto pr-2">
+          {children}
+        </div>
+      </div>
+    </div>
+  );
 }
+import { LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid } from "recharts";
 
-export default function PrediksiPegawaiPage() {
-  const [showDetail, setShowDetail] = useState<{ type: string; tahun: number | null }>({ type: "", tahun: null });
-  const jumlahPensiun = getJumlahPerTahun(prediksiPensiun, tahunPensiun);
-  const jumlahNaikPangkat = getJumlahPerTahun(prediksiNaikPangkat, tahunNaikPangkat);
+type Pegawai = {
+  id: number;
+  nama: string;
+  nip: string;
+  jabatan: string;
+  tahun_pensiun?: number;
+  users?: { unit_kerja?: string };
+};
 
-  // Data grafik pensiun untuk recharts
-  const dataGrafikPensiun = jumlahPensiun.map((row) => ({ tahun: row.tahun.toString(), jumlah: row.jumlah }));
+export default function PensiunRekapPage() {
+  const [data, setData] = useState<{ rekap: Record<string, number>; pegawai: Pegawai[] } | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [selectedYear, setSelectedYear] = useState<string | null>(null);
+
+  useEffect(() => {
+    fetch("/api/employee/pensiun")
+      .then((res) => res.json())
+      .then((res) => {
+        setData(res);
+        setLoading(false);
+      });
+  }, []);
+
+  if (loading) return <div>Memuat data...</div>;
+  if (!data) return <div>Data tidak ditemukan</div>;
+
+  // Format data untuk grafik
+  const chartData = Object.entries(data.rekap).map(([tahun, jumlah]) => ({ tahun, jumlah }));
+
+  // Filter pegawai sesuai tahun pensiun yang dipilih
+  const detailPegawai = selectedYear
+    ? data.pegawai.filter((p) => String(p.tahun_pensiun) === selectedYear)
+    : [];
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4 text-blue-700">Prediksi Pegawai</h2>
-      <div className="mb-8">
-        <h3 className="text-lg font-semibold mb-2 text-gray-700">Grafik Prediksi Pegawai Pensiun (dalam pengembangan)</h3>
-        <div className="bg-white border rounded shadow mb-6 p-4" style={{ width: "100%", height: 300 }}>
-          <ResponsiveContainer width="100%" height={250}>
-            <LineChart data={dataGrafikPensiun}>
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis dataKey="tahun" label={{ value: "Tahun", position: "insideBottom", offset: -5 }} />
-              <YAxis label={{ value: "Jumlah", angle: -90, position: "insideLeft" }} allowDecimals={false} />
-              <Tooltip />
-              <Legend />
-              <Line type="monotone" dataKey="jumlah" stroke="#3b82f6" name="Jumlah Pegawai Pensiun" strokeWidth={3} dot={{ r: 5 }} />
-            </LineChart>
-          </ResponsiveContainer>
-        </div>
-        <h3 className="text-lg font-semibold mb-2 text-gray-700">Prediksi Pegawai Pensiun</h3>
-        <table className="min-w-full bg-white border rounded shadow mb-4">
-          <thead>
-            <tr className="bg-blue-100 text-blue-700">
-              {tahunPensiun.map((tahun) => (
-                <th key={tahun} className="py-2 px-4 border text-center">{tahun}</th>
-              ))}
-            </tr>
-          </thead>
-          <tbody>
-            <tr>
-              {jumlahPensiun.map((row) => (
-                <td key={row.tahun} className="py-2 px-4 border text-center">
-                  <button
-                    className="text-blue-600 underline hover:text-blue-800"
-                    onClick={() => setShowDetail({ type: "pensiun", tahun: row.tahun })}
-                  >
-                    {row.jumlah}
-                  </button>
-                </td>
-              ))}
-            </tr>
-          </tbody>
-        </table>
+    <div className="max-w-4xl mx-auto p-6">
+      <h2 className="text-xl font-bold mb-4">Grafik Rekap Pensiun per Tahun</h2>
+      <div className="bg-white rounded shadow p-4 mb-8">
+        <ResponsiveContainer width="100%" height={350}>
+          <LineChart data={chartData} margin={{ top: 20, right: 30, left: 0, bottom: 5 }}>
+            <CartesianGrid strokeDasharray="3 3" />
+            <XAxis dataKey="tahun" angle={-45} textAnchor="end" height={70} interval={0} tick={{ fontSize: 12 }} />
+            <YAxis allowDecimals={false} />
+            <Tooltip />
+            <Line type="monotone" dataKey="jumlah" stroke="#2563eb" strokeWidth={3} dot={{ r: 4 }} activeDot={{ r: 6 }} />
+          </LineChart>
+        </ResponsiveContainer>
       </div>
-      <div>
-        <h3 className="text-lg font-semibold mb-2 text-gray-700">Prediksi Pegawai Naik Pangkat</h3>
-        <table className="min-w-full bg-white border rounded shadow">
-          <thead>
-            <tr className="bg-green-100 text-green-700">
-              {tahunNaikPangkat.map((tahun) => (
-                <th key={tahun} className="py-2 px-4 border text-center">{tahun}</th>
-              ))}
+
+      <h2 className="text-xl font-bold mb-4">Tabel Rekap Pensiun per Tahun</h2>
+      <table className="w-full mb-8 border">
+        <thead>
+          <tr className="bg-gray-100">
+            <th className="p-2 text-left">Tahun Pensiun</th>
+            <th className="p-2 text-left">Jumlah Pegawai</th>
+          </tr>
+        </thead>
+        <tbody>
+          {Object.entries(data.rekap).map(([tahun, jumlah]) => (
+            <tr key={tahun}>
+              <td className="p-2">{tahun}</td>
+              <td className="p-2">
+                <button
+                  className="text-blue-600 underline hover:text-blue-800 font-semibold"
+                  onClick={() => setSelectedYear(tahun)}
+                >
+                  {jumlah}
+                </button>
+              </td>
             </tr>
-          </thead>
-          <tbody>
-            <tr>
-              {jumlahNaikPangkat.map((row) => (
-                <td key={row.tahun} className="py-2 px-4 border text-center">
-                  <button
-                    className="text-green-600 underline hover:text-green-800"
-                    onClick={() => setShowDetail({ type: "naik", tahun: row.tahun })}
-                  >
-                    {row.jumlah}
-                  </button>
-                </td>
-              ))}
-            </tr>
-          </tbody>
-        </table>
-      </div>
-      {/* Modal detail pegawai */}
-      {showDetail.tahun && (
-        <div className="fixed inset-0 bg-black bg-opacity-30 flex items-center justify-center z-50">
-          <div className="bg-white rounded shadow-lg p-6 min-w-[300px]">
-            <h4 className="text-lg font-bold mb-2">
-              {showDetail.type === "pensiun" ? "Daftar Pegawai Pensiun" : "Daftar Pegawai Naik Pangkat"} {showDetail.tahun}
-            </h4>
-            <ul className="mb-4">
-              {(showDetail.type === "pensiun"
-                ? jumlahPensiun.find((r) => r.tahun === showDetail.tahun)?.pegawai
-                : jumlahNaikPangkat.find((r) => r.tahun === showDetail.tahun)?.pegawai
-              )?.map((nama, idx) => (
-                <li key={idx} className="py-1 border-b last:border-b-0">{nama}</li>
-              ))}
-            </ul>
-            <button
-              className="px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              onClick={() => setShowDetail({ type: "", tahun: null })}
-            >
-              Tutup
-            </button>
-          </div>
-        </div>
-      )}
+          ))}
+        </tbody>
+      </table>
+
+      <Modal open={!!selectedYear} onClose={() => setSelectedYear(null)}>
+        {selectedYear && (
+          <>
+            <h2 className="text-lg font-bold mb-4">Detail Pegawai Pensiun Tahun {selectedYear}</h2>
+            <table className="w-full border">
+              <thead>
+                <tr className="bg-gray-100">
+                  <th className="p-2 text-left">Nama</th>
+                  <th className="p-2 text-left">NIP</th>
+                  <th className="p-2 text-left">Jabatan</th>
+                  <th className="p-2 text-left">Unit Kerja</th>
+                </tr>
+              </thead>
+              <tbody>
+                {detailPegawai.map((p) => (
+                  <tr key={p.id}>
+                    <td className="p-2">{p.nama}</td>
+                    <td className="p-2">{p.nip}</td>
+                    <td className="p-2">{p.jabatan}</td>
+                    <td className="p-2">{p.users?.unit_kerja || '-'}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </>
+        )}
+      </Modal>
     </div>
   );
 }

@@ -1,5 +1,6 @@
 generator client {
   provider        = "prisma-client-js"
+  previewFeatures = ["multiSchema"]
 }
 
 datasource db {
@@ -262,7 +263,27 @@ model pegawai {
   eselon            String?             @db.VarChar(10)
   event_assignments event_assignments[]
   users             users?              @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  pegawai_detail    pegawai_detail[]
   pelatihan         pelatihan[]
+
+  @@schema("makarti")
+}
+
+model pegawai_detail {
+  id                 Int       @id @default(autoincrement())
+  pegawai_id         Int
+  email              String?   @db.VarChar(255)
+  unit_kerja         String?   @db.VarChar(255)
+  status_kepegawaian String?   @db.VarChar(100)
+  alamat             String?
+  pendidikan         String?   @db.VarChar(100)
+  telp               String?   @db.VarChar(50)
+  tanggal_lahir      DateTime? @db.Date
+  jenis_kelamin      String?   @db.VarChar(20)
+  nm_goldar          String?   @db.VarChar(5)
+  peg_cpns_tmt       DateTime? @db.Date
+  nip                String?   @db.VarChar(20)
+  pegawai            pegawai   @relation(fields: [pegawai_id], references: [id], onDelete: Cascade, map: "fk_pegawai")
 
   @@schema("makarti")
 }

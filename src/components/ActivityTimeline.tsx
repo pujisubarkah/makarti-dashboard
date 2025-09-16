@@ -36,7 +36,7 @@ export default function ActivityTimeline() {
       const unitKerjaId = localStorage.getItem('id') || '4';
       const [eventRes, teamRes] = await Promise.all([
         fetch(`/api/kegiatan/${unitKerjaId}`),
-        fetch(`/api/employee/${unitKerjaId}`)
+        fetch(`/api/employee/unit/${unitKerjaId}`)
       ]);
       let events: ReportData[] = [];
       let team: TeamMember[] = [];
@@ -64,12 +64,14 @@ export default function ActivityTimeline() {
         }));
       }
       if (teamRes.ok) {
-        const apiEmployees = await teamRes.json() as Array<{
-          id: number;
-          nama: string;
-          jabatan: string;
-        }>;
-        team = apiEmployees.map((emp) => ({
+        const apiEmployees = await teamRes.json();
+        // Handle if response is { data: [...] } or just [...]
+        const employeesArray = Array.isArray(apiEmployees)
+          ? apiEmployees
+          : Array.isArray(apiEmployees.data)
+            ? apiEmployees.data
+            : [];
+        team = employeesArray.map((emp: { id: number; nama: string; jabatan: string; }) => ({
           id: emp.id,
           name: emp.nama,
           position: emp.jabatan,

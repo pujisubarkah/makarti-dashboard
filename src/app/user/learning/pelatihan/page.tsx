@@ -293,11 +293,22 @@ export default function PelatihanPage() {
 
   const fetchEmployeesData = async (id: number) => {
   try {
-    const response = await fetch(`/api/employee/${id}`)
+    const response = await fetch(`/api/employee/unit/${id}`)
     if (!response.ok) throw new Error('Failed to fetch employees data')
-    const employeeList: Employee[] = await response.json()
-
-    setEmployees(employeeList)
+    const employeeList = await response.json()
+    if (Array.isArray(employeeList)) {
+      setEmployees(employeeList as Employee[])
+    } else if (
+      employeeList &&
+      typeof employeeList === 'object' &&
+      'data' in employeeList &&
+      Array.isArray(employeeList.data)
+    ) {
+      // Type guard for object with data property
+      setEmployees(employeeList.data as Employee[])
+    } else {
+      setEmployees([])
+    }
   } catch (err) {
     console.error('Error fetching employees data:', err)
     toast.error('Gagal memuat data pegawai')

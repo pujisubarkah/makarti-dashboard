@@ -37,15 +37,17 @@ export default async function handler(
             const eselon = pegawai.eselon?.toUpperCase() || "";
             const jabatan = pegawai.jabatan?.toUpperCase() || "";
 
-            if (eselon === "JPTP" || eselon === "JPTM") {
-                usia_pensiun = 60;
-            } else if (eselon === "JF" && (jabatan.includes("Madya") || jabatan.includes("Utama"))) {
-                usia_pensiun = 60;
-            } else if (jabatan.includes("Dosen")) {
-                usia_pensiun = 65;
-            } else if (jabatan.includes("Guru Besar")) {
-                usia_pensiun = 70;
-            }
+          if (eselon === "JPTP" || eselon === "JPTM" || eselon === "JPTU") {
+                    usia_pensiun = 60;
+                } else if (eselon === "JF" && jabatan.includes("UTAMA")) {
+                    usia_pensiun = 65;
+                } else if (eselon === "JF" && jabatan.includes("MADYA")) {
+                    usia_pensiun = 60;
+                } else if (jabatan.includes("DOSEN")) {
+                    usia_pensiun = 65;
+                } else if (jabatan.includes("GURU BESAR")) {
+                    usia_pensiun = 70;
+                }
 
             return res.status(200).json({ ...pegawai, foto_url, usia_pensiun });
         } catch (error) {
@@ -57,3 +59,4 @@ export default async function handler(
         res.status(405).end(`Metode ${req.method} tidak diizinkan`);
     }
 }
+

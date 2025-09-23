@@ -29,7 +29,13 @@ const menuItems = [
     status: 'ready',
   },
   {
-    label: 'Kegiatan Mingguan',
+    label: 'Daftar Pegawai',
+    href: '/user/pegawai',
+    icon: Users,
+    status: 'ready',
+  },
+  {
+    label: 'Rencana Mingguan',
     href: '/user/kegiatan',
     icon: Coins,
     status: 'ready',

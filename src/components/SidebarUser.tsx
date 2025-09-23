@@ -14,6 +14,7 @@ import {
   Package,
   PieChart,
   FileSearch,
+  Coins,
 } from 'lucide-react'
 
 type SidebarUserProps = {
@@ -73,6 +74,12 @@ const menuItems = [
     label: 'Produk Kajian',
     href: '/user/inovasi/kajian',
     icon: FileSearch,
+    status: 'ready',
+  },
+  {
+    label: 'Kegiatan Mingguan',
+    href: '/user/kegiatan',
+    icon: Coins,
     status: 'ready',
   },
   {

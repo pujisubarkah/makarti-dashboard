@@ -102,7 +102,7 @@ export default function RencanaKegiatanPage() {
   const [data, setData] = useState<RencanaMingguan[]>([])
   const [editingId, setEditingId] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage] = useState(5)
+  const [itemsPerPage] = useState(50)
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [serapanData, setSerapanData] = useState<SerapanData | null>(null)
@@ -112,8 +112,8 @@ export default function RencanaKegiatanPage() {
   const [filterStatus, setFilterStatus] = useState("all")
   const [filterBulan, setFilterBulan] = useState("all")
   const [filterJenisBelanja, setFilterJenisBelanja] = useState("all")
-  const [sortField, setSortField] = useState<keyof RencanaMingguan | "">("")
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc")
+  const [sortField, setSortField] = useState<keyof RencanaMingguan | "">("bulan")
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
 
   // Handle client-side mounting
   useEffect(() => {
@@ -227,8 +227,17 @@ export default function RencanaKegiatanPage() {
 
   // Sort data
   const sortedData = [...filteredData].sort((a, b) => {
-    if (!sortField) return 0
+    // Default sorting: bulan desc, then minggu desc
+    if (!sortField || sortField === "bulan") {
+      // Primary sort by month (descending)
+      const monthDiff = b.bulan - a.bulan
+      if (monthDiff !== 0) return monthDiff
+      
+      // Secondary sort by week (descending) if months are equal
+      return b.minggu - a.minggu
+    }
     
+    // For other fields, use the standard sorting logic
     let aValue = a[sortField]
     let bValue = b[sortField]
     
@@ -269,8 +278,8 @@ export default function RencanaKegiatanPage() {
     setFilterStatus("all")
     setFilterBulan("all")
     setFilterJenisBelanja("all")
-    setSortField("")
-    setSortDirection("asc")
+    setSortField("bulan")
+    setSortDirection("desc")
     setCurrentPage(1)
   }
 
@@ -935,7 +944,7 @@ export default function RencanaKegiatanPage() {
                   <TableRow key={item.id} className="hover:bg-gray-50 transition-colors">
                     <TableCell className="font-medium">{getBulanLabel(item.bulan)}</TableCell>
                     <TableCell>Minggu ke-{item.minggu}</TableCell>
-                    <TableCell>{item.kegiatan}</TableCell>
+                    <TableCell className="whitespace-normal break-words max-w-xs">{item.kegiatan}</TableCell>
                     <TableCell>{getJenisBelanjaLabel(item.jenis_belanja)}</TableCell>
                     <TableCell>Rp {item.anggaran_rencana.toLocaleString('id-ID')}</TableCell>
                     <TableCell>Rp {item.anggaran_cair.toLocaleString('id-ID')}</TableCell>

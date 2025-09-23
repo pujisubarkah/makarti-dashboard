@@ -29,6 +29,12 @@ const menuItems = [
     status: 'ready',
   },
   {
+    label: 'Kegiatan Mingguan',
+    href: '/user/kegiatan',
+    icon: Coins,
+    status: 'ready',
+  },
+  {
     label: 'Publikasi Media',
     href: '/user/branding/media',
     icon: Newspaper,
@@ -74,12 +80,6 @@ const menuItems = [
     label: 'Produk Kajian',
     href: '/user/inovasi/kajian',
     icon: FileSearch,
-    status: 'ready',
-  },
-  {
-    label: 'Kegiatan Mingguan',
-    href: '/user/kegiatan',
-    icon: Coins,
     status: 'ready',
   },
   {

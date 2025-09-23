@@ -148,6 +148,22 @@ export default function AdminKegiatanPage() {
         }
         return 0
       })
+    } else {
+      // Default sorting: berdasarkan bulan dulu (descending), kemudian minggu (descending)
+      filteredData.sort((a, b) => {
+        // Sort by bulan first (descending)
+        const aBulan = a.bulan || 0
+        const bBulan = b.bulan || 0
+        
+        if (aBulan !== bBulan) {
+          return bBulan - aBulan // descending
+        }
+        
+        // If bulan is the same, sort by minggu (descending)
+        const aMinggu = a.minggu || 0
+        const bMinggu = b.minggu || 0
+        return bMinggu - aMinggu // descending
+      })
     }
 
     return filteredData

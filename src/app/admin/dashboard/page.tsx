@@ -44,11 +44,6 @@ interface Kegiatan {
   unit_kerja: string
 }
 
-interface InovasiSummary {
-  month: string
-  count: number
-}
-
 interface PublikasiBulan {
   month: string
   year: number
@@ -129,7 +124,7 @@ export default function RingkasanMakartiPage() {
   const [kegiatanData, setKegiatanData] = useState<Kegiatan[]>([])
   const [dynamicSummaryData, setDynamicSummaryData] = useState([
     { 
-      title: 'Jumlah Inovasi Aktif', 
+      title: 'Jumlah Inovasi dan Produk Kajian', 
       value: 0, 
       icon: <Lightbulb className="w-6 h-6" />,
       color: 'blue',
@@ -168,7 +163,7 @@ export default function RingkasanMakartiPage() {
       changeType: 'same' as 'increase' | 'decrease' | 'same'
     },
     { 
-      title: 'Rata-rata Jam Pelatihan Pegawai', 
+      title: 'Persentase Pegawai yang Memenuhi 20 Jam Pelatihan', 
       value: 0, 
       icon: <BookOpenCheck className="w-6 h-6" />,
       color: 'purple',
@@ -215,9 +210,20 @@ export default function RingkasanMakartiPage() {
 
     const fetchSummaryData = async () => {
       try {
-        // Fetch inovasi data
-        const inovasiResponse = await fetch('/api/inovasi/summary')
-        const inovasiData: InovasiSummary[] = await inovasiResponse.json()
+        // Fetch inovasi data (total count)
+        const inovasiResponse = await fetch('/api/inovasi')
+        const inovasiData = await inovasiResponse.json()
+        const totalInovasi = Array.isArray(inovasiData) ? inovasiData.length : 0
+
+        // Fetch kajian data (total count) 
+        const kajianResponse = await fetch('/api/kajian')
+        const kajianResult = await kajianResponse.json()
+        const kajianData = kajianResult.data || []
+        const totalKajian = Array.isArray(kajianData) ? kajianData.length : 0
+
+        // Total inovasi dan produk kajian
+        const totalInovasiDanKajian = totalInovasi + totalKajian
+
           // Fetch publikasi data
         const publikasiResponse = await fetch('/api/publikasi/rekapan')
         const publikasiData: PublikasiResponse = await publikasiResponse.json()
@@ -227,31 +233,26 @@ export default function RingkasanMakartiPage() {
         const networkingData = await networkingResponse.json()
         const mitraCount = Array.isArray(networkingData) ? networkingData.length : 0
 
-        // Fetch pelatihan summary for accurate training hours
-        let avgTrainingPercent = 0
+        // Fetch pelatihan summary to calculate percentage of employees who completed 20+ hours
+        let employeesWithTargetHoursPercent = 0
         try {
           const pelatihanSummaryResponse = await fetch('/api/pelatihan_pegawai/summary')
           const pelatihanSummary: Array<{ nama: string; unit_kerja: string | null; total_jam: number; rata_rata_jam: number; jumlah_pelatihan: number }> = await pelatihanSummaryResponse.json()
           // pelatihanSummary is array of { nama, unit_kerja, total_jam, rata_rata_jam, jumlah_pelatihan }
-          const totalJam = pelatihanSummary.reduce((sum, p) => sum + (p.total_jam || 0), 0)
-          const employeeCount = pelatihanSummary.length
           const targetJam = 20
-          avgTrainingPercent = employeeCount > 0 ? Math.min(100, Math.round((totalJam / (employeeCount * targetJam)) * 100)) : 0        } catch {
+          const employeeCount = pelatihanSummary.length
+          const employeesWithTargetHours = pelatihanSummary.filter(p => (p.total_jam || 0) >= targetJam).length
+          employeesWithTargetHoursPercent = employeeCount > 0 ? Math.round((employeesWithTargetHours / employeeCount) * 100) : 0
+        } catch {
           // fallback: use default value if pelatihan API fails
-          avgTrainingPercent = 0
+          employeesWithTargetHoursPercent = 0
         }
 
         const currentMonth = new Date().toLocaleString('en-US', { month: 'long' })
         const currentYear = new Date().getFullYear()
         const lastMonth = new Date(currentYear, new Date().getMonth() - 1).toLocaleString('en-US', { month: 'long' })
 
-        // Process inovasi data
-        const currentInovasiMonth = inovasiData.find((item: InovasiSummary) => item.month === currentMonth)
-        const lastInovasiMonth = inovasiData.find((item: InovasiSummary) => item.month === lastMonth)
-        const inovasiChange = calculateChange(
-          currentInovasiMonth?.count || 0,
-          lastInovasiMonth?.count || 0
-        )        // Process publikasi data
+        // Process publikasi data
         const currentPublikasiMonth = publikasiData.perBulan?.find((item: PublikasiBulan) => 
           item.month === currentMonth && item.year === currentYear
         )
@@ -266,8 +267,8 @@ export default function RingkasanMakartiPage() {
         // Update summary data with real values
         setDynamicSummaryData([
           {
-            title: 'Jumlah Inovasi Aktif',
-            value: currentInovasiMonth?.count || 0,
+            title: 'Jumlah Inovasi dan Produk Kajian',
+            value: totalInovasiDanKajian,
             icon: <Lightbulb className="w-6 h-6" />,
             color: 'blue',
             bgGradient: 'from-blue-500 to-blue-600',
@@ -275,8 +276,8 @@ export default function RingkasanMakartiPage() {
             textColor: 'text-blue-600',
             textDark: 'text-blue-800',
             borderColor: 'border-blue-500',
-            change: inovasiChange.change,
-            changeType: inovasiChange.type
+            change: '',
+            changeType: 'same'
           },
           {
             title: 'Publikasi Media Branding',
@@ -305,8 +306,8 @@ export default function RingkasanMakartiPage() {
             changeType: 'same' as const
           },
           {
-            title: 'Rata-rata Jam Pelatihan Pegawai',
-            value: avgTrainingPercent,
+            title: 'Persentase Pegawai yang Memenuhi 20 Jam Pelatihan',
+            value: employeesWithTargetHoursPercent,
             icon: <BookOpenCheck className="w-6 h-6" />,
             color: 'purple',
             bgGradient: 'from-purple-500 to-purple-600',
@@ -463,7 +464,7 @@ export default function RingkasanMakartiPage() {
                     {item.title}
                   </p>
                   <p className={`text-3xl font-bold ${item.textColor} mb-2`}>
-                    {item.value}
+                    {item.title.includes('Persentase Pegawai yang Memenuhi 20 Jam Pelatihan') ? `${item.value}%` : item.value}
                   </p>
                   <div className="flex items-center">
                     {item.changeType === 'increase' ? (

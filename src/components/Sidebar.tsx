@@ -70,6 +70,7 @@ const menuItems = [
     icon: PieChart,
     children: [
       { title: "Serapan Anggaran", href: "/admin/serapan" },
+      { title: "Rencana Mingguan", href: "/admin/kegiatan" },
     ],
   },
   {

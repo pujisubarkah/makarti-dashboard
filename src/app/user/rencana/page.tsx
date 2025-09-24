@@ -13,17 +13,15 @@ import {
   Network,
   Megaphone,
   GraduationCap,
-  Filter,
   Search,
   MoreHorizontal,
   Edit,
   Trash2,
   Eye,
-  GripVertical,
-  TrendingUp
+  GripVertical
 } from 'lucide-react'
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -84,12 +82,7 @@ const priorityColors = {
   high: 'bg-red-100 text-red-800'
 }
 
-const statusColors = {
-  'not-started': 'bg-gray-100 text-gray-800',
-  'in-progress': 'bg-blue-100 text-blue-800',
-  'completed': 'bg-green-100 text-green-800',
-  'blocked': 'bg-red-100 text-red-800'
-}
+
 
 export default function RencanaAksiPage() {
   const [tasks, setTasks] = useState<Task[]>([])
@@ -98,7 +91,6 @@ export default function RencanaAksiPage() {
   const [selectedStatus, setSelectedStatus] = useState<string>('all')
   const [selectedPriority, setSelectedPriority] = useState<string>('all')
   const [searchTerm, setSearchTerm] = useState('')
-  const [viewMode, setViewMode] = useState<'board' | 'list'>('board')
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
   const [loading, setLoading] = useState(true)
   const [draggedTask, setDraggedTask] = useState<Task | null>(null)
@@ -260,7 +252,7 @@ export default function RencanaAksiPage() {
     setTimeout(() => document.body.removeChild(dragImage), 0)
   }
 
-  const handleDragEnd = (e: React.DragEvent) => {
+  const handleDragEnd = () => {
     setDraggedTask(null)
     setDragOverColumn(null)
   }

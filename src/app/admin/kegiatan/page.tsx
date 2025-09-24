@@ -81,7 +81,7 @@ export default function AdminKegiatanPage() {
   const [sortConfig, setSortConfig] = useState<{
     key: keyof KegiatanData | null
     direction: 'asc' | 'desc'
-  }>({ key: 'created_at', direction: 'desc' })
+  }>({ key: null, direction: 'desc' })
 
   useEffect(() => {
     fetchData()
@@ -134,6 +134,22 @@ export default function AdminKegiatanPage() {
     // Sort data
     if (sortConfig.key) {
       filteredData.sort((a, b) => {
+        // Special handling for periode (bulan) sorting
+        if (sortConfig.key === 'bulan') {
+          const aBulan = a.bulan || 0
+          const bBulan = b.bulan || 0
+          
+          if (aBulan !== bBulan) {
+            return sortConfig.direction === 'asc' ? aBulan - bBulan : bBulan - aBulan
+          }
+          
+          // If bulan is the same, sort by minggu
+          const aMinggu = a.minggu || 0
+          const bMinggu = b.minggu || 0
+          return sortConfig.direction === 'asc' ? aMinggu - bMinggu : bMinggu - aMinggu
+        }
+        
+        // Standard sorting for other columns
         const aValue = a[sortConfig.key!]
         const bValue = b[sortConfig.key!]
         
@@ -656,7 +672,15 @@ export default function AdminKegiatanPage() {
                       <ArrowUpDown className="ml-2 h-4 w-4" />
                     </div>
                   </TableHead>
-                  <TableHead>Periode</TableHead>
+                  <TableHead className="cursor-pointer" onClick={() => handleSort('bulan')}>
+                    <div className="flex items-center">
+                      Periode
+                      <ArrowUpDown className="ml-2 h-4 w-4" />
+                      {sortConfig.key === null && (
+                        <span className="ml-1 text-xs text-blue-600">↓</span>
+                      )}
+                    </div>
+                  </TableHead>
                   <TableHead className="cursor-pointer" onClick={() => handleSort('kegiatan')}>
                     <div className="flex items-center">
                       Kegiatan

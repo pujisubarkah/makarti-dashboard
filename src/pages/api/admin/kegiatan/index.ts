@@ -8,25 +8,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const rencanaMingguan = await prisma.rencana_mingguan.findMany({
         orderBy: [
           { bulan: "desc" },
-          { minggu: "desc" },
-          { created_at: "desc" }
+          { minggu: "desc" }
         ],
-        include: {
-          users: {
-            select: {
-              id: true,
-              unit_kerja: true,
-              alias: true,
-            },
-          },
-        },
-      });
-
-      // Ambil data dari event_schedule (kegiatan terjadwal)
-      const eventSchedule = await prisma.event_schedule.findMany({
-        orderBy: {
-          date: "desc",
-        },
         include: {
           users: {
             select: {
@@ -55,28 +38,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         unit_kerja_id: item.unit_id,
       }));
 
-      // Format data event schedule
-      const formattedEventSchedule = eventSchedule.map((item) => ({
-        id: item.id,
-        type: 'event_schedule' as const,
-        kegiatan: item.title,
-        tanggal: item.date,
-        lokasi: item.location,
-        waktu: item.time,
-        tipe: item.type,
-        prioritas: item.priority,
-        peserta: item.attendees,
-        deskripsi: item.description,
-        created_at: item.created_at,
-        unit_kerja: item.users?.unit_kerja || null,
-        unit_alias: item.users?.alias || null,
-        unit_kerja_id: item.unit_kerja_id,
-      }));
-
       // Gabungkan statistik
       const totalRencanaMingguan = rencanaMingguan.length;
-      const totalEventSchedule = eventSchedule.length;
-      const totalKegiatan = totalRencanaMingguan + totalEventSchedule;
+      const totalKegiatan = totalRencanaMingguan;
 
       // Statistik per unit kerja
       const unitStats: {
@@ -85,7 +49,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           unit_alias: string;
           unit_kerja_id: number;
           rencana_mingguan: number;
-          event_schedule: number;
           total_kegiatan: number;
           status_breakdown: { [key: string]: number };
           total_anggaran_rencana: number;
@@ -102,7 +65,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             unit_alias: item.users?.alias || '',
             unit_kerja_id: item.unit_id,
             rencana_mingguan: 0,
-            event_schedule: 0,
             total_kegiatan: 0,
             status_breakdown: {},
             total_anggaran_rencana: 0,
@@ -118,26 +80,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           unitStats[unitKey].status_breakdown[item.status] = 0;
         }
         unitStats[unitKey].status_breakdown[item.status]++;
-      });
-
-      // Hitung statistik event schedule per unit
-      eventSchedule.forEach(item => {
-        const unitKey = item.users?.unit_kerja || 'Unknown';
-        if (!unitStats[unitKey]) {
-          unitStats[unitKey] = {
-            unit_kerja: unitKey,
-            unit_alias: item.users?.alias || '',
-            unit_kerja_id: item.unit_kerja_id,
-            rencana_mingguan: 0,
-            event_schedule: 0,
-            total_kegiatan: 0,
-            status_breakdown: {},
-            total_anggaran_rencana: 0,
-            total_anggaran_cair: 0,
-          };
-        }
-        unitStats[unitKey].event_schedule++;
-        unitStats[unitKey].total_kegiatan++;
       });
 
       // Statistik status rencana mingguan
@@ -160,13 +102,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         success: true,
         data: {
           rencana_mingguan: formattedRencanaMingguan,
-          event_schedule: formattedEventSchedule,
-          combined: [...formattedRencanaMingguan, ...formattedEventSchedule],
+          combined: formattedRencanaMingguan,
         },
         statistics: {
           total_kegiatan: totalKegiatan,
           total_rencana_mingguan: totalRencanaMingguan,
-          total_event_schedule: totalEventSchedule,
           status_breakdown: statusStats,
           monthly_breakdown: monthlyStats,
           unit_statistics: Object.values(unitStats),

@@ -263,14 +263,18 @@ export default function AdminKegiatanPage() {
 
   const unitChartData = statistics?.unit_statistics ? 
     statistics.unit_statistics
-      .filter(unit => unit.rencana_mingguan > 0) // Hanya unit dengan rencana mingguan
-      .sort((a, b) => b.rencana_mingguan - a.rencana_mingguan) // Sort berdasarkan rencana mingguan
+      .filter(unit => unit.total_anggaran_rencana > 0) // Hanya unit dengan anggaran rencana
+      .sort((a, b) => b.total_anggaran_rencana - a.total_anggaran_rencana) // Sort berdasarkan anggaran rencana  
       .slice(0, 10)
       .map(unit => ({
         name: unit.unit_alias || unit.unit_kerja || 'Unknown',
-        rencana: unit.rencana_mingguan,
-        total: unit.rencana_mingguan
+        anggaran: unit.total_anggaran_rencana,
+        jumlah_kegiatan: unit.rencana_mingguan
       })) : []
+
+  // Debug logging
+  console.log('Statistics:', statistics)
+  console.log('Unit Chart Data:', unitChartData)
 
   // Hitung unit aktif yang memiliki rencana mingguan
   const unitAktifRencanaMingguan = statistics?.unit_statistics ? 
@@ -493,20 +497,35 @@ export default function AdminKegiatanPage() {
         {/* Top Units Chart */}
         <Card>
           <CardHeader>
-            <CardTitle>Unit Teratas - Rencana Mingguan</CardTitle>
-            <CardDescription>Unit dengan rencana kegiatan mingguan terbanyak</CardDescription>
+            <CardTitle>Unit dengan Anggaran Tertinggi</CardTitle>
+            <CardDescription>Unit dengan total anggaran rencana kegiatan terbesar</CardDescription>
           </CardHeader>
           <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={unitChartData} layout="horizontal">
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis type="number" />
-                <YAxis dataKey="name" type="category" width={120} />
-                <Tooltip />
-                <Legend />
-                <Bar dataKey="rencana" fill="#60a5fa" name="Rencana Mingguan" />
-              </BarChart>
-            </ResponsiveContainer>
+            {unitChartData && unitChartData.length > 0 ? (
+              <ResponsiveContainer width="100%" height={300}>
+                <BarChart data={unitChartData} layout="horizontal">
+                  <CartesianGrid strokeDasharray="3 3" />
+                  <XAxis type="number" />
+                  <YAxis dataKey="name" type="category" width={120} />
+                  <Tooltip 
+                    formatter={(value, name) => {
+                      if (name === 'Anggaran Rencana') {
+                        return [`Rp ${new Intl.NumberFormat('id-ID').format(value as number)}`, name]
+                      }
+                      return [value, name]
+                    }}
+                  />
+                  <Legend />
+                  <Bar dataKey="anggaran" fill="#10b981" name="Anggaran Rencana" />
+                </BarChart>
+              </ResponsiveContainer>
+            ) : (
+              <div className="flex flex-col items-center justify-center h-64 text-gray-500">
+                <BarChart3 className="h-12 w-12 mb-4" />
+                <p>Belum ada data anggaran rencana</p>
+                <p className="text-sm">Data chart akan muncul setelah ada anggaran rencana kegiatan</p>
+              </div>
+            )}
           </CardContent>
         </Card>
       </div>

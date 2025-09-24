@@ -21,72 +21,107 @@ type SidebarUserProps = {
   roleId: number
 }
 
-const menuItems = [
+type MenuItem = {
+  label: string
+  href?: string
+  icon?: React.ComponentType<{ className?: string }>
+  status?: 'ready' | 'maintenance'
+  allowedRoles?: number[]
+  type?: 'group' | 'item'
+}
+
+const menuItems: MenuItem[] = [
   {
     label: 'Dashboard',
     href: '/user/dashboard',
     icon: LayoutDashboard,
     status: 'ready',
+    type: 'item',
   },
   {
     label: 'Daftar Pegawai',
     href: '/user/pegawai',
     icon: Users,
     status: 'ready',
+    type: 'item',
+  },
+  {
+    type: 'group',
+    label: 'RENCANA AKSI',
+  },
+  {
+    label: 'Rencana Aksi',
+    href: '/user/rencana',
+    icon: UserCheck,
+    status: 'maintenance',
+    type: 'item',
   },
   {
     label: 'Rencana Mingguan',
     href: '/user/kegiatan',
     icon: Coins,
     status: 'ready',
+    type: 'item',
+  },
+  {
+    type: 'group',
+    label: 'PILAR MAKARTI',
   },
   {
     label: 'Publikasi Media',
     href: '/user/branding/media',
     icon: Newspaper,
     status: 'ready',
+    type: 'item',
   },
   {
     label: 'Networking Eksternal',
     href: '/user/networking/kunjungan',
     icon: Users,
     status: 'ready',
+    type: 'item',
   },
   {
     label: 'Koordinasi Eksternal',
     href: '/user/networking/koordinasi',
     icon: Share2,
     status: 'ready',
+    type: 'item',
   },
   {
     label: 'Pelatihan Pegawai',
     href: '/user/learning/pelatihan',
     icon: BookOpen,
     status: 'ready',
+    type: 'item',
   },
   {
     label: 'Penyelenggaraan Bangkom',
     href: '/user/learning/peserta',
     icon: UserCheck,
     status: 'ready',
+    type: 'item',
   },
   {
     label: 'Kinerja Inovasi',
     href: '/user/inovasi/kinerja',
     icon: ActivitySquare,
     status: 'ready',
+    type: 'item',
   },
   {
     label: 'Produk Inovasi',
     href: '/user/inovasi/produk',
     icon: Package,
     status: 'ready',
+    type: 'item',
   },
   {
     label: 'Produk Kajian',
     href: '/user/inovasi/kajian',
     icon: FileSearch,
     status: 'ready',
+    type: 'item',
   },
   {
     label: 'Serapan Anggaran',
@@ -94,13 +129,14 @@ const menuItems = [
     icon: PieChart,
     status: 'ready',
     allowedRoles: [3], // hanya untuk role_id 3
+    type: 'item',
   },
   {
     label: 'Panduan Makarti 5.0',
     href: 'https://s.id/PanduanMakarti',
     icon: PieChart,
     status: 'ready',
-    allowedRoles: [3], // hanya untuk role_id 3
+    type: 'item',
   },
 ]
 
@@ -118,8 +154,20 @@ export function SidebarUser({ roleId }: SidebarUserProps) {
             if (!item.allowedRoles) return true
             return item.allowedRoles.includes(roleId)
           })
-          .map((item) => {
-            const Icon = item.icon
+          .map((item, index) => {
+            // Render group label
+            if (item.type === 'group') {
+              return (
+                <div key={`group-${index}`} className="pt-4 pb-2">
+                  <h3 className="text-xs font-semibold text-gray-500 uppercase tracking-wider px-2">
+                    {item.label}
+                  </h3>
+                </div>
+              )
+            }
+
+            // Render menu item
+            const Icon = item.icon!
             const isActive = pathname === item.href
             const iconBg =
               item.status === 'ready'
@@ -127,7 +175,7 @@ export function SidebarUser({ roleId }: SidebarUserProps) {
                 : 'bg-orange-100 text-orange-500'
 
             return (
-              <Link key={item.href} href={item.href} className="block">
+              <Link key={item.href} href={item.href!} className="block">
                 <div
                   className={`flex items-center justify-between text-base font-semibold p-2 rounded-xl transition-all duration-200 group shadow-sm
                     ${
@@ -135,7 +183,8 @@ export function SidebarUser({ roleId }: SidebarUserProps) {
                         ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-r-4 border-blue-600 shadow-lg scale-[1.03]'
                         : 'text-gray-600 hover:bg-blue-50 hover:text-blue-700 hover:scale-[1.01]'
                     }`}
-                >                  <div className="flex items-center gap-3 min-w-0">
+                >
+                  <div className="flex items-center gap-3 min-w-0">
                     <span
                       className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors flex-shrink-0 ${iconBg} group-hover:scale-110`}
                     >

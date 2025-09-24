@@ -479,7 +479,7 @@ model rencana_mingguan {
   minggu           Int       @db.SmallInt
   kegiatan         String    @db.VarChar(255)
   unit_id          Int
-  jenis_belanja    String    @db.VarChar(100)
+  jenis_belanja    String?   @db.VarChar(100)
   anggaran_rencana Decimal   @default(0) @db.Decimal(18, 2)
   anggaran_cair    Decimal   @default(0) @db.Decimal(18, 2)
   created_at       DateTime? @default(now()) @db.Timestamp(6)

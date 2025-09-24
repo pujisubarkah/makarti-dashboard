@@ -25,17 +25,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const formattedRencanaMingguan = rencanaMingguan.map((item) => ({
         id: item.id,
         type: 'rencana_mingguan' as const,
-        kegiatan: item.kegiatan,
-        minggu: item.minggu,
-        bulan: item.bulan,
-        status: item.status,
-        jenis_belanja: item.jenis_belanja,
-        anggaran_rencana: Number(item.anggaran_rencana),
-        anggaran_cair: Number(item.anggaran_cair),
+        kegiatan: item.kegiatan || '',
+        minggu: item.minggu || 0,
+        bulan: item.bulan || 0,
+        status: item.status || 'Direncanakan',
+        jenis_belanja: item.jenis_belanja || '',
+        anggaran_rencana: Number(item.anggaran_rencana) || 0,
+        anggaran_cair: Number(item.anggaran_cair) || 0,
         created_at: item.created_at,
         unit_kerja: item.users?.unit_kerja || null,
         unit_alias: item.users?.alias || null,
-        unit_kerja_id: item.unit_id,
+        unit_kerja_id: item.unit_id || 0,
       }));
 
       // Gabungkan statistik
@@ -73,24 +73,26 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         }
         unitStats[unitKey].rencana_mingguan++;
         unitStats[unitKey].total_kegiatan++;
-        unitStats[unitKey].total_anggaran_rencana += Number(item.anggaran_rencana);
-        unitStats[unitKey].total_anggaran_cair += Number(item.anggaran_cair);
+        unitStats[unitKey].total_anggaran_rencana += Number(item.anggaran_rencana) || 0;
+        unitStats[unitKey].total_anggaran_cair += Number(item.anggaran_cair) || 0;
         
-        if (!unitStats[unitKey].status_breakdown[item.status]) {
-          unitStats[unitKey].status_breakdown[item.status] = 0;
+        const status = item.status || 'Direncanakan';
+        if (!unitStats[unitKey].status_breakdown[status]) {
+          unitStats[unitKey].status_breakdown[status] = 0;
         }
-        unitStats[unitKey].status_breakdown[item.status]++;
+        unitStats[unitKey].status_breakdown[status]++;
       });
 
       // Statistik status rencana mingguan
       const statusStats = rencanaMingguan.reduce((acc: Record<string, number>, item) => {
-        acc[item.status] = (acc[item.status] || 0) + 1;
+        const status = item.status || 'Direncanakan';
+        acc[status] = (acc[status] || 0) + 1;
         return acc;
       }, {} as Record<string, number>);
 
       // Statistik per bulan untuk rencana mingguan
       const monthlyStats = rencanaMingguan.reduce((acc: Record<string, number>, item) => {
-        const monthKey = `${item.bulan}`;
+        const monthKey = `${item.bulan || 0}`;
         if (!acc[monthKey]) {
           acc[monthKey] = 0;
         }

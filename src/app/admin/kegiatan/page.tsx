@@ -165,7 +165,7 @@ export default function AdminKegiatanPage() {
         return 0
       })
     } else {
-      // Default sorting: berdasarkan bulan dulu (descending), kemudian minggu (descending)
+      // Default sorting: berdasarkan bulan (descending), minggu (descending), kemudian unit kerja (ascending)
       filteredData.sort((a, b) => {
         // Sort by bulan first (descending)
         const aBulan = a.bulan || 0
@@ -178,7 +178,15 @@ export default function AdminKegiatanPage() {
         // If bulan is the same, sort by minggu (descending)
         const aMinggu = a.minggu || 0
         const bMinggu = b.minggu || 0
-        return bMinggu - aMinggu // descending
+        
+        if (aMinggu !== bMinggu) {
+          return bMinggu - aMinggu // descending
+        }
+        
+        // If bulan and minggu are the same, sort by unit_kerja (ascending)
+        const aUnitKerja = a.unit_kerja || ''
+        const bUnitKerja = b.unit_kerja || ''
+        return aUnitKerja.localeCompare(bUnitKerja) // ascending
       })
     }
 

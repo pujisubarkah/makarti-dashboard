@@ -161,7 +161,7 @@ export default function RencanaAksiPage() {
         pilar: '',
       });
       setIsCreateDialogOpen(false);
-    } catch (err) {
+    } catch {
       alert('Gagal membuat task');
     }
   }

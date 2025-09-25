@@ -124,6 +124,15 @@ export default function RencanaAksiPage() {
     })
       .then((res) => res.json())
       .then((data) => {
+        console.log('Fetched tasks for statistics:', data);
+        console.log('Sample task structure:', data[0] || 'No tasks found');
+        console.log('All task labels:', data.map((t: any) => t.label));
+        console.log('Tasks by label:', {
+          learning: data.filter((t: any) => t.label === 'learning').length,
+          branding: data.filter((t: any) => t.label === 'branding').length, 
+          networking: data.filter((t: any) => t.label === 'networking').length,
+          inovasi: data.filter((t: any) => t.label === 'inovasi').length
+        });
         setTasks(data);
         setFilteredTasks(data);
         setLoading(false);
@@ -331,6 +340,34 @@ export default function RencanaAksiPage() {
     return categories.find(cat => cat.id === categoryId)
   }
 
+  // Helper function untuk mendapatkan warna berdasarkan label
+  const getLabelColorScheme = (label: string) => {
+    const colorSchemes = {
+      'inovasi': {
+        borderColor: 'border-l-purple-500',
+        textColor: 'text-purple-600'
+      },
+      'networking': {
+        borderColor: 'border-l-blue-500',
+        textColor: 'text-blue-600'
+      },
+      'branding': {
+        borderColor: 'border-l-green-500',
+        textColor: 'text-green-600'
+      },
+      'learning': {
+        borderColor: 'border-l-orange-500',
+        textColor: 'text-orange-600'
+      }
+    };
+    
+    return colorSchemes[label as keyof typeof colorSchemes] || {
+      borderColor: 'border-l-gray-500',
+      bgLight: 'bg-gray-50',
+      textColor: 'text-gray-600'
+    };
+  }
+
   const getTasksByStatus = (status: string) => {
     // Map status untuk menampilkan task di kolom yang sesuai
     let result: Task[];
@@ -471,10 +508,23 @@ export default function RencanaAksiPage() {
       {/* Statistik berdasarkan pilar */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
           {categories.map((category, idx) => {
-            const categoryTasks = tasks.filter(task => task.pilar === category.id);
-            const completedTasks = categoryTasks.filter(task => task.status === 'completed');
-            const inProgressTasks = categoryTasks.filter(task => task.status === 'in-progress');
+            // Filter berdasarkan label, bukan pilar
+            const categoryTasks = tasks.filter(task => task.label === category.id);
+            // Gunakan status 'selesai' bukan 'completed'
+            const completedTasks = categoryTasks.filter(task => task.status === 'selesai');
+            // Gunakan status 'proses' bukan 'in-progress'
+            const inProgressTasks = categoryTasks.filter(task => task.status === 'proses');
             const IconComponent = category.icon;
+            
+            // Debug log untuk statistik
+            if (category.id === 'learning') {
+              console.log(`Statistik ${category.name}:`, {
+                total: categoryTasks.length,
+                completed: completedTasks.length,
+                inProgress: inProgressTasks.length,
+                tasks: categoryTasks.map(t => ({ title: t.title, label: t.label, status: t.status }))
+              });
+            }
             
             // Color schemes untuk setiap kategori
             const colorSchemes = [
@@ -657,10 +707,12 @@ export default function RencanaAksiPage() {
                   const categoryData = getCategoryData(task.pilar || 'inovasi');
                   const CategoryIcon = categoryData?.icon || Lightbulb;
                   const isDragging = draggedTask?.id === task.id;
+                  const labelColors = getLabelColorScheme(task.label ?? '');
+                  
                   return (
                     <Card
                       key={task.id}
-                      className={`cursor-move hover:shadow-md transition-all duration-200 ${isDragging ? 'opacity-50 scale-95' : 'hover:scale-[1.02]'}`}
+                      className={`cursor-move hover:shadow-md transition-all duration-200 border-l-4 ${labelColors.borderColor} ${isDragging ? 'opacity-50 scale-95' : 'hover:scale-[1.02]'}`}
                       draggable
                       onDragStart={(e) => handleDragStart(e, task)}
                       onDragEnd={handleDragEnd}
@@ -704,7 +756,7 @@ export default function RencanaAksiPage() {
                             <Calendar className="h-3 w-3 mr-1" />
                             {task.created_at ? new Date(task.created_at).toLocaleDateString('id-ID') : '-'}
                           </span>
-                          <Badge variant="outline">
+                          <Badge variant="outline" className={`${labelColors.textColor} border-current`}>
                             {task.label || '-'}
                           </Badge>
                         </div>

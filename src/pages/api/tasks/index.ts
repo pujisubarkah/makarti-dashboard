@@ -82,22 +82,37 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } else if (req.method === 'PUT') {
     try {
-      const { id, status } = req.body;
+      const { id, status, title, label, pilar, tags, pj_kegiatan } = req.body;
 
       if (!id) {
         return res.status(400).json({ error: 'Task ID is required' });
       }
 
-      if (!status) {
-        return res.status(400).json({ error: 'Status is required' });
+      // Build update data object
+      const updateData: Partial<{
+        status: string;
+        progress: number;
+        title: string;
+        label: string;
+        pilar: string;
+        tags: string;
+        pj_kegiatan: string;
+      }> = {};
+      
+      if (status !== undefined) {
+        updateData.status = status;
+        updateData.progress = status === 'selesai' ? 100 : undefined;
       }
+      
+      if (title !== undefined) updateData.title = title;
+      if (label !== undefined) updateData.label = label;
+      if (pilar !== undefined) updateData.pilar = pilar;
+      if (tags !== undefined) updateData.tags = tags;
+      if (pj_kegiatan !== undefined) updateData.pj_kegiatan = pj_kegiatan;
 
       const updatedTask = await prisma.tasks.update({
         where: { id: parseInt(id) },
-        data: { 
-          status,
-          progress: status === 'selesai' ? 100 : undefined
-        },
+        data: updateData,
         include: {
           subtasks: true,
           users: true,

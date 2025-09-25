@@ -83,6 +83,8 @@ export default function RencanaAksiPage() {
   const [draggedTask, setDraggedTask] = useState<Task | null>(null);
   const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
   const [selectedTask, setSelectedTask] = useState<Task | null>(null); // untuk modal subtask
+  // const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [editingTask, setEditingTask] = useState<Task | null>(null);
 
   // Define newTask state
   const [newTask, setNewTask] = useState({
@@ -124,15 +126,6 @@ export default function RencanaAksiPage() {
     })
       .then((res) => res.json())
       .then((data) => {
-        console.log('Fetched tasks for statistics:', data);
-        console.log('Sample task structure:', data[0] || 'No tasks found');
-        console.log('All task labels:', data.map((t: any) => t.label));
-        console.log('Tasks by label:', {
-          learning: data.filter((t: any) => t.label === 'learning').length,
-          branding: data.filter((t: any) => t.label === 'branding').length, 
-          networking: data.filter((t: any) => t.label === 'networking').length,
-          inovasi: data.filter((t: any) => t.label === 'inovasi').length
-        });
         setTasks(data);
         setFilteredTasks(data);
         setLoading(false);
@@ -253,6 +246,71 @@ export default function RencanaAksiPage() {
       console.error('Error updating task status:', error);
     }
   }
+
+  const handleEditTask = (task: Task) => {
+    setEditingTask(task);
+    setNewTask({
+      title: task.title,
+      label: task.label || 'learning',
+      pilar: task.pilar || 'smarter',
+      tags: task.tags || '',
+      pj_kegiatan: task.pj_kegiatan || ''
+    });
+    // setIsEditDialogOpen(true);
+  };
+
+  const handleUpdateTask = async () => {
+    if (!editingTask) return;
+
+    try {
+      const currentUserId = localStorage.getItem('id');
+      const userId = currentUserId ? parseInt(currentUserId) : null;
+
+      if (!userId) {
+        alert('Gagal mendapatkan informasi user. Silakan login kembali.');
+        return;
+      }
+
+      const response = await fetch('/api/tasks', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId.toString(),
+        },
+        body: JSON.stringify({
+          id: editingTask.id,
+          title: newTask.title,
+          label: newTask.label,
+          pilar: newTask.pilar,
+          tags: newTask.tags,
+          pj_kegiatan: newTask.pj_kegiatan,
+        })
+      });
+
+      if (response.ok) {
+        const updatedTask = await response.json();
+        setTasks(tasks.map(task => 
+          task.id === editingTask.id ? updatedTask : task
+        ));
+        
+        // Reset form
+        setNewTask({
+          title: '',
+          label: 'learning',
+          pilar: 'smarter',
+          tags: '',
+          pj_kegiatan: ''
+        });
+        setEditingTask(null);
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to update task:', errorData);
+        alert(errorData.error || 'Gagal mengupdate rencana aksi');
+      }
+    } catch (error) {
+      console.error('Error updating task:', error);
+    }
+  };
 
   // Drag and Drop handlers
   const handleDragStart = (e: React.DragEvent, task: Task) => {
@@ -737,7 +795,7 @@ export default function RencanaAksiPage() {
                                 <Eye className="h-4 w-4 mr-2" />
                                 Lihat Subtasks
                               </DropdownMenuItem>
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleEditTask(task)}>
                                 <Edit className="h-4 w-4 mr-2" />
                                 Edit
                               </DropdownMenuItem>
@@ -751,6 +809,32 @@ export default function RencanaAksiPage() {
                         <h4 className="font-medium text-gray-900 mb-2 line-clamp-2">
                           {task.title}
                         </h4>
+                        
+                        {/* Tags */}
+                        {task.tags && (
+                          <div className="mb-2">
+                            <div className="flex flex-wrap gap-1">
+                              {task.tags.split(',').map((tag, idx) => (
+                                <Badge 
+                                  key={idx} 
+                                  variant="outline" 
+                                  className="text-xs px-1 py-0 bg-gray-50"
+                                >
+                                  {tag.trim()}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {/* PJ Kegiatan */}
+                        {task.pj_kegiatan && (
+                          <div className="mb-2 text-xs text-gray-600">
+                            <span className="font-medium">PJ: </span>
+                            <span>{task.pj_kegiatan}</span>
+                          </div>
+                        )}
+                        
                         <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
                           <span className="flex items-center">
                             <Calendar className="h-3 w-3 mr-1" />
@@ -838,6 +922,79 @@ export default function RencanaAksiPage() {
                   </div>
                 ))
               )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
+
+      {/* Edit Task Dialog */}
+      {editingTask && (
+        <Dialog open={!!editingTask} onOpenChange={() => setEditingTask(null)}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle>Edit Kegiatan</DialogTitle>
+              <DialogDescription>
+                Ubah informasi kegiatan sesuai kebutuhan
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4">
+              <div>
+                <Label htmlFor="edit-title">Judul Kegiatan</Label>
+                <Input
+                  id="edit-title"
+                  value={editingTask.title}
+                  onChange={(e) => setEditingTask({...editingTask, title: e.target.value})}
+                  className="mt-1"
+                />
+              </div>
+              
+              <div>
+                <Label htmlFor="edit-label">Label</Label>
+                <Select 
+                  value={editingTask.label} 
+                  onValueChange={(value) => setEditingTask({...editingTask, label: value})}
+                >
+                  <SelectTrigger className="mt-1">
+                    <SelectValue placeholder="Pilih label" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="learning">Learning</SelectItem>
+                    <SelectItem value="branding">Branding</SelectItem>
+                    <SelectItem value="networking">Networking</SelectItem>
+                    <SelectItem value="inovasi">Inovasi</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div>
+                <Label htmlFor="edit-tags">Tags</Label>
+                <Input
+                  id="edit-tags"
+                  value={editingTask.tags || ''}
+                  onChange={(e) => setEditingTask({...editingTask, tags: e.target.value})}
+                  placeholder="Pisahkan dengan koma"
+                  className="mt-1"
+                />
+              </div>
+
+              <div>
+                <Label htmlFor="edit-pj">Penanggung Jawab</Label>
+                <Input
+                  id="edit-pj"
+                  value={editingTask.pj_kegiatan || ''}
+                  onChange={(e) => setEditingTask({...editingTask, pj_kegiatan: e.target.value})}
+                  className="mt-1"
+                />
+              </div>
+
+              <div className="flex gap-2 pt-4">
+                <Button onClick={handleUpdateTask} className="flex-1">
+                  Simpan
+                </Button>
+                <Button variant="outline" onClick={() => setEditingTask(null)} className="flex-1">
+                  Batal
+                </Button>
+              </div>
             </div>
           </DialogContent>
         </Dialog>

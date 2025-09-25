@@ -30,20 +30,13 @@ import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, Di
 import { Label } from "@/components/ui/label"
 import { Textarea } from "@/components/ui/textarea"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
+// Update the import path if SubtaskForm is located elsewhere, e.g.:
+import SubtaskForm from "../../../components/SubtaskForm"
+// Or create src/components/SubtaskForm.tsx if it does not exist.
 
-interface Task {
-  id: string
-  title: string
-  description: string
-  category: 'inovasi' | 'networking' | 'branding' | 'learning'
-  priority: 'low' | 'medium' | 'high'
-  status: 'not-started' | 'in-progress' | 'completed' | 'blocked'
-  dueDate: string
-  assignee: string
-  tags: string[]
-  progress: number
-  createdAt: string
-}
+// Remove Task and Subtask interfaces from here.
+// Import them from a shared types file instead:
+import type { Task, Subtask } from "../../../../types/task";
 
 const categories = [
   { 
@@ -76,140 +69,73 @@ const categories = [
   }
 ]
 
-const priorityColors = {
-  low: 'bg-gray-100 text-gray-800',
-  medium: 'bg-yellow-100 text-yellow-800',
-  high: 'bg-red-100 text-red-800'
-}
 
 
 
 export default function RencanaAksiPage() {
-  const [tasks, setTasks] = useState<Task[]>([])
-  const [filteredTasks, setFilteredTasks] = useState<Task[]>([])
-  const [selectedCategory, setSelectedCategory] = useState<string>('all')
-  const [selectedStatus, setSelectedStatus] = useState<string>('all')
-  const [selectedPriority, setSelectedPriority] = useState<string>('all')
-  const [searchTerm, setSearchTerm] = useState('')
-  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
-  const [loading, setLoading] = useState(true)
-  const [draggedTask, setDraggedTask] = useState<Task | null>(null)
-  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [filteredTasks, setFilteredTasks] = useState<Task[]>([]);
+  const [selectedCategory, setSelectedCategory] = useState<string>('all');
+  const [selectedStatus, setSelectedStatus] = useState<string>('all');
+  const [searchTerm, setSearchTerm] = useState('');
+  const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
+  const [loading, setLoading] = useState(true);
+  const [draggedTask, setDraggedTask] = useState<Task | null>(null);
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null);
+  const [selectedTask, setSelectedTask] = useState<Task | null>(null); // untuk modal subtask
 
-  // Form state for new task
+  // Define newTask state
   const [newTask, setNewTask] = useState({
     title: '',
     description: '',
-    category: 'inovasi' as Task['category'],
-    priority: 'medium' as Task['priority'],
+    category: 'inovasi',
+    priority: 'medium',
     dueDate: '',
     assignee: '',
     tags: ''
-  })
+  });
 
   useEffect(() => {
-    // Simulate loading data
-    const sampleTasks: Task[] = [
-      {
-        id: '1',
-        title: 'Implementasi AI Chatbot untuk Pelayanan Publik',
-        description: 'Mengembangkan chatbot berbasis AI untuk meningkatkan kualitas pelayanan publik 24/7',
-        category: 'inovasi',
-        priority: 'high',
-        status: 'in-progress',
-        dueDate: '2025-10-15',
-        assignee: 'Tim IT',
-        tags: ['AI', 'Chatbot', 'Pelayanan'],
-        progress: 60,
-        createdAt: '2025-09-01'
-      },
-      {
-        id: '2',
-        title: 'Kolaborasi dengan Universitas Lokal',
-        description: 'Membangun kemitraan strategis dengan universitas untuk program magang dan penelitian',
-        category: 'networking',
-        priority: 'medium',
-        status: 'not-started',
-        dueDate: '2025-11-30',
-        assignee: 'Tim SDM',
-        tags: ['Kemitraan', 'Universitas', 'Magang'],
-        progress: 0,
-        createdAt: '2025-09-10'
-      },
-      {
-        id: '3',
-        title: 'Campaign Digital Awareness Program',
-        description: 'Meluncurkan kampanye digital untuk meningkatkan awareness program pemerintah',
-        category: 'branding',
-        priority: 'high',
-        status: 'in-progress',
-        dueDate: '2025-10-01',
-        assignee: 'Tim Marketing',
-        tags: ['Digital', 'Campaign', 'Awareness'],
-        progress: 80,
-        createdAt: '2025-08-15'
-      },
-      {
-        id: '4',
-        title: 'Pelatihan Data Analytics untuk Staff',
-        description: 'Program pelatihan komprehensif data analytics untuk meningkatkan kapasitas staff',
-        category: 'learning',
-        priority: 'medium',
-        status: 'completed',
-        dueDate: '2025-09-30',
-        assignee: 'Tim Training',
-        tags: ['Pelatihan', 'Data Analytics', 'Kapasitas'],
-        progress: 100,
-        createdAt: '2025-08-01'
-      }
-    ]
-    
-    setTimeout(() => {
-      setTasks(sampleTasks)
-      setFilteredTasks(sampleTasks)
-      setLoading(false)
-    }, 1000)
-  }, [])
+    // Fetch tasks dari API
+    fetch('/api/tasks')
+      .then((res) => res.json())
+      .then((data) => {
+        setTasks(data);
+        setFilteredTasks(data);
+        setLoading(false);
+      })
+      .catch(() => setLoading(false));
+  }, []);
 
   useEffect(() => {
-    let filtered = tasks
-
+    let filtered = tasks;
     if (selectedCategory !== 'all') {
-      filtered = filtered.filter(task => task.category === selectedCategory)
+      filtered = filtered.filter(task => task.pilar === selectedCategory);
     }
-
     if (selectedStatus !== 'all') {
-      filtered = filtered.filter(task => task.status === selectedStatus)
+      filtered = filtered.filter(task => task.status === selectedStatus);
     }
-
-    if (selectedPriority !== 'all') {
-      filtered = filtered.filter(task => task.priority === selectedPriority)
-    }
-
     if (searchTerm) {
-      filtered = filtered.filter(task => 
+      filtered = filtered.filter(task =>
         task.title.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        task.description.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        task.tags.some(tag => tag.toLowerCase().includes(searchTerm.toLowerCase()))
-      )
+        (task.label?.toLowerCase().includes(searchTerm.toLowerCase()))
+      );
     }
-
-    setFilteredTasks(filtered)
-  }, [tasks, selectedCategory, selectedStatus, selectedPriority, searchTerm])
+    setFilteredTasks(filtered);
+  }, [tasks, selectedCategory, selectedStatus, searchTerm]);
 
   const handleCreateTask = () => {
     const task: Task = {
-      id: Date.now().toString(),
+      id: Date.now(),
       title: newTask.title,
       description: newTask.description,
-      category: newTask.category,
-      priority: newTask.priority,
+      pilar: newTask.category,
       status: 'not-started',
-      dueDate: newTask.dueDate,
-      assignee: newTask.assignee,
-      tags: newTask.tags.split(',').map(tag => tag.trim()).filter(Boolean),
+      label: newTask.priority,
       progress: 0,
-      createdAt: new Date().toISOString()
+      created_at: new Date().toISOString(),
+      subtasks: [],
+      owner: 0
     }
 
     setTasks([...tasks, task])
@@ -227,7 +153,7 @@ export default function RencanaAksiPage() {
 
   const updateTaskStatus = (taskId: string, newStatus: Task['status']) => {
     setTasks(tasks.map(task => 
-      task.id === taskId 
+      String(task.id) === String(taskId) 
         ? { ...task, status: newStatus, progress: newStatus === 'completed' ? 100 : task.progress }
         : task
     ))
@@ -238,7 +164,7 @@ export default function RencanaAksiPage() {
     setDraggedTask(task)
     e.dataTransfer.effectAllowed = 'move'
     e.dataTransfer.setData('text/html', e.currentTarget.outerHTML)
-    e.dataTransfer.setData('text/plain', task.id)
+    e.dataTransfer.setData('text/plain', String(task.id))
     
     // Add drag image styling
     const dragImage = e.currentTarget.cloneNode(true) as HTMLElement
@@ -279,17 +205,17 @@ export default function RencanaAksiPage() {
     setDragOverColumn(null)
     
     if (draggedTask && draggedTask.status !== newStatus) {
-      updateTaskStatus(draggedTask.id, newStatus)
+      updateTaskStatus(String(draggedTask.id), newStatus)
       
       // Visual feedback for successful drop
-      const statusText = {
+      const statusText: Record<Task['status'], string> = {
         'not-started': 'Belum Mulai',
         'in-progress': 'Sedang Berjalan',
         'completed': 'Selesai',
         'blocked': 'Terhambat'
       }
       
-      console.log(`Task "${draggedTask.title}" dipindahkan ke ${statusText[newStatus]}`)
+      console.log(`Task "${draggedTask.title}" dipindahkan ke ${statusText[newStatus as Task['status']]}`)
     }
     setDraggedTask(null)
   }
@@ -298,8 +224,8 @@ export default function RencanaAksiPage() {
     return categories.find(cat => cat.id === categoryId)
   }
 
-  const getTasksByStatus = (status: Task['status']) => {
-    return filteredTasks.filter(task => task.status === status)
+  const getTasksByStatus = (status: string) => {
+    return filteredTasks.filter(task => task.status === status);
   }
 
   if (loading) {
@@ -356,67 +282,36 @@ export default function RencanaAksiPage() {
                     rows={3}
                   />
                 </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="category">Kategori</Label>
-                    <Select value={newTask.category} onValueChange={(value: Task['category']) => setNewTask({ ...newTask, category: value })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {categories.map(category => (
-                          <SelectItem key={category.id} value={category.id}>
-                            <div className="flex items-center">
-                              <category.icon className="h-4 w-4 mr-2" />
-                              {category.name}
-                            </div>
-                          </SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="priority">Prioritas</Label>
-                    <Select value={newTask.priority} onValueChange={(value: Task['priority']) => setNewTask({ ...newTask, priority: value })}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="low">Rendah</SelectItem>
-                        <SelectItem value="medium">Sedang</SelectItem>
-                        <SelectItem value="high">Tinggi</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="grid gap-2">
-                    <Label htmlFor="dueDate">Target Selesai</Label>
-                    <Input
-                      id="dueDate"
-                      type="date"
-                      value={newTask.dueDate}
-                      onChange={(e) => setNewTask({ ...newTask, dueDate: e.target.value })}
-                    />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="assignee">Penanggung Jawab</Label>
-                    <Input
-                      id="assignee"
-                      value={newTask.assignee}
-                      onChange={(e) => setNewTask({ ...newTask, assignee: e.target.value })}
-                      placeholder="Tim/Unit kerja"
-                    />
-                  </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="category">Pilar</Label>
+                  <Select value={newTask.category} onValueChange={(value) => setNewTask({ ...newTask, category: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {categories.map(category => (
+                        <SelectItem key={category.id} value={category.id}>
+                          <div className="flex items-center">
+                            <category.icon className="h-4 w-4 mr-2" />
+                            {category.name}
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="tags">Tags (pisahkan dengan koma)</Label>
-                  <Input
-                    id="tags"
-                    value={newTask.tags}
-                    onChange={(e) => setNewTask({ ...newTask, tags: e.target.value })}
-                    placeholder="AI, Digital, Innovation"
-                  />
+                  <Label htmlFor="priority">Label</Label>
+                  <Select value={newTask.priority} onValueChange={(value) => setNewTask({ ...newTask, priority: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="low">Rendah</SelectItem>
+                      <SelectItem value="medium">Sedang</SelectItem>
+                      <SelectItem value="high">Tinggi</SelectItem>
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
               <div className="flex justify-end gap-2">
@@ -431,110 +326,41 @@ export default function RencanaAksiPage() {
           </Dialog>
         </div>
 
-        {/* Statistics Cards */}
+        {/* Statistik berdasarkan pilar */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
           {categories.map(category => {
-            const categoryTasks = tasks.filter(task => task.category === category.id)
-            const completedTasks = categoryTasks.filter(task => task.status === 'completed')
-            const inProgressTasks = categoryTasks.filter(task => task.status === 'in-progress')
-            const IconComponent = category.icon
-            const completionRate = categoryTasks.length > 0 ? Math.round((completedTasks.length / categoryTasks.length) * 100) : 0
-            
-            // Color mapping for consistency with admin dashboard
-            const colorMap = {
-              'inovasi': {
-                bgGradient: 'from-purple-500 to-purple-600',
-                bgLight: 'bg-purple-100',
-                textColor: 'text-purple-600',
-                textDark: 'text-purple-800',
-                borderColor: 'border-purple-500'
-              },
-              'networking': {
-                bgGradient: 'from-blue-500 to-blue-600',
-                bgLight: 'bg-blue-100',
-                textColor: 'text-blue-600',
-                textDark: 'text-blue-800',
-                borderColor: 'border-blue-500'
-              },
-              'branding': {
-                bgGradient: 'from-green-500 to-green-600',
-                bgLight: 'bg-green-100',
-                textColor: 'text-green-600',
-                textDark: 'text-green-800',
-                borderColor: 'border-green-500'
-              },
-              'learning': {
-                bgGradient: 'from-orange-500 to-orange-600',
-                bgLight: 'bg-orange-100',
-                textColor: 'text-orange-600',
-                textDark: 'text-orange-800',
-                borderColor: 'border-orange-500'
-              }
-            }
-            
-            const colors = colorMap[category.id as keyof typeof colorMap]
-            
+            const categoryTasks = tasks.filter(task => task.pilar === category.id);
+            const completedTasks = categoryTasks.filter(task => task.status === 'completed');
+            const inProgressTasks = categoryTasks.filter(task => task.status === 'in-progress');
+            const IconComponent = category.icon;
             return (
-              <div
-                key={category.id}
-                className={`bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border-l-4 ${colors.borderColor} hover:scale-105 group overflow-hidden`}
-              >
-                <div className="p-6">
-                  <div className="flex items-center justify-between">
-                    <div className="flex-1">
-                      <p className={`text-sm font-medium ${colors.textDark} mb-1`}>
-                        {category.name}
-                      </p>
-                      <p className={`text-3xl font-bold ${colors.textColor} mb-2`}>
-                        {categoryTasks.length}
-                      </p>
-                      <div className="flex items-center">
-                        <CheckCircle2 className="w-4 h-4 text-green-500 mr-1" />
-                        <span className="text-sm font-medium text-green-600">
-                          {completedTasks.length} selesai
-                        </span>
-                        {inProgressTasks.length > 0 && (
-                          <>
-                            <span className="text-xs text-gray-500 mx-2">•</span>
-                            <span className="text-xs text-blue-600">
-                              {inProgressTasks.length} berjalan
-                            </span>
-                          </>
-                        )}
-                      </div>
-                    </div>
-                    <div className={`${colors.bgLight} p-4 rounded-full group-hover:scale-110 transition-transform`}>
-                      <div className={colors.textColor}>
-                        <IconComponent className="w-6 h-6" />
-                      </div>
+              <div key={category.id} className="bg-white rounded-xl shadow-lg border-l-4 p-6">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-medium mb-1">{category.name}</p>
+                    <p className="text-3xl font-bold mb-2">{categoryTasks.length}</p>
+                    <div className="flex items-center">
+                      <CheckCircle2 className="w-4 h-4 text-green-500 mr-1" />
+                      <span className="text-sm font-medium text-green-600">{completedTasks.length} selesai</span>
+                      {inProgressTasks.length > 0 && (
+                        <>
+                          <span className="text-xs text-gray-500 mx-2">•</span>
+                          <span className="text-xs text-blue-600">{inProgressTasks.length} berjalan</span>
+                        </>
+                      )}
                     </div>
                   </div>
-                  
-                  {/* Progress Bar */}
-                  <div className="mt-4">
-                    <div className="w-full bg-gray-200 rounded-full h-2">
-                      <div 
-                        className={`bg-gradient-to-r ${colors.bgGradient} h-2 rounded-full transition-all duration-500`}
-                        style={{ width: `${completionRate}%` }}
-                      ></div>
-                    </div>
-                    <div className="flex items-center justify-between text-xs text-gray-600 mt-2">
-                      <span>Completion Rate</span>
-                      <span className={`font-medium ${colors.textColor} flex items-center`}>
-                        {completionRate >= 80 ? '🏆' : 
-                         completionRate >= 50 ? '📈' : 
-                         completionRate > 0 ? '⏳' : '📋'} {completionRate}%
-                      </span>
-                    </div>
+                  <div className="bg-gray-100 p-4 rounded-full">
+                    <IconComponent className="w-6 h-6" />
                   </div>
                 </div>
               </div>
-            )
+            );
           })}
         </div>
       </div>
 
-      {/* Filters and Search */}
+      {/* Filter dan Search hanya berdasarkan pilar dan status */}
       <div className="flex flex-wrap gap-4 mb-6">
         <div className="flex-1 min-w-[200px]">
           <div className="relative">
@@ -549,10 +375,10 @@ export default function RencanaAksiPage() {
         </div>
         <Select value={selectedCategory} onValueChange={setSelectedCategory}>
           <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Kategori" />
+            <SelectValue placeholder="Pilar" />
           </SelectTrigger>
           <SelectContent>
-            <SelectItem value="all">Semua Kategori</SelectItem>
+            <SelectItem value="all">Semua Pilar</SelectItem>
             {categories.map(category => (
               <SelectItem key={category.id} value={category.id}>
                 {category.name}
@@ -570,17 +396,6 @@ export default function RencanaAksiPage() {
             <SelectItem value="in-progress">Sedang Berjalan</SelectItem>
             <SelectItem value="completed">Selesai</SelectItem>
             <SelectItem value="blocked">Terhambat</SelectItem>
-          </SelectContent>
-        </Select>
-        <Select value={selectedPriority} onValueChange={setSelectedPriority}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Prioritas" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua Prioritas</SelectItem>
-            <SelectItem value="high">Tinggi</SelectItem>
-            <SelectItem value="medium">Sedang</SelectItem>
-            <SelectItem value="low">Rendah</SelectItem>
           </SelectContent>
         </Select>
       </div>
@@ -620,16 +435,13 @@ export default function RencanaAksiPage() {
               
               <div className="space-y-3 min-h-[200px]">
                 {columnTasks.map(task => {
-                  const categoryData = getCategoryData(task.category)
-                  const CategoryIcon = categoryData?.icon || Lightbulb
-                  const isDragging = draggedTask?.id === task.id
-                  
+                  const categoryData = getCategoryData(task.pilar || 'inovasi');
+                  const CategoryIcon = categoryData?.icon || Lightbulb;
+                  const isDragging = draggedTask?.id === task.id;
                   return (
-                    <Card 
-                      key={task.id} 
-                      className={`cursor-move hover:shadow-md transition-all duration-200 ${
-                        isDragging ? 'opacity-50 scale-95' : 'hover:scale-[1.02]'
-                      }`}
+                    <Card
+                      key={task.id}
+                      className={`cursor-move hover:shadow-md transition-all duration-200 ${isDragging ? 'opacity-50 scale-95' : 'hover:scale-[1.02]'}`}
                       draggable
                       onDragStart={(e) => handleDragStart(e, task)}
                       onDragEnd={handleDragEnd}
@@ -650,9 +462,9 @@ export default function RencanaAksiPage() {
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end">
-                              <DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => setSelectedTask(task)}>
                                 <Eye className="h-4 w-4 mr-2" />
-                                Lihat Detail
+                                Lihat Subtasks
                               </DropdownMenuItem>
                               <DropdownMenuItem>
                                 <Edit className="h-4 w-4 mr-2" />
@@ -665,53 +477,33 @@ export default function RencanaAksiPage() {
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </div>
-                        
                         <h4 className="font-medium text-gray-900 mb-2 line-clamp-2">
                           {task.title}
                         </h4>
-                        
-                        <p className="text-sm text-gray-600 mb-3 line-clamp-2">
-                          {task.description}
-                        </p>
-                        
                         <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
                           <span className="flex items-center">
                             <Calendar className="h-3 w-3 mr-1" />
-                            {new Date(task.dueDate).toLocaleDateString('id-ID')}
+                            {task.created_at ? new Date(task.created_at).toLocaleDateString('id-ID') : '-'}
                           </span>
-                          <Badge className={priorityColors[task.priority]} variant="outline">
-                            {task.priority === 'high' ? 'Tinggi' : task.priority === 'medium' ? 'Sedang' : 'Rendah'}
+                          <Badge variant="outline">
+                            {task.label || '-'}
                           </Badge>
                         </div>
-                        
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-gray-500 flex items-center">
                             <Users className="h-3 w-3 mr-1" />
-                            {task.assignee}
+                            {task.users?.name || '-'}
                           </span>
-                          <div className="flex gap-1">
-                            {task.tags.slice(0, 2).map(tag => (
-                              <Badge key={tag} variant="outline" className="text-xs">
-                                {tag}
-                              </Badge>
-                            ))}
-                            {task.tags.length > 2 && (
-                              <Badge variant="outline" className="text-xs">
-                                +{task.tags.length - 2}
-                              </Badge>
-                            )}
-                          </div>
                         </div>
-                        
-                        {task.progress > 0 && (
+                        {typeof task.progress === 'number' && (
                           <div className="mt-3">
                             <div className="flex justify-between text-xs text-gray-500 mb-1">
                               <span>Progress</span>
                               <span>{task.progress}%</span>
                             </div>
                             <div className="w-full bg-gray-200 rounded-full h-2">
-                              <div 
-                                className="bg-blue-600 h-2 rounded-full transition-all duration-300" 
+                              <div
+                                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
                                 style={{ width: `${task.progress}%` }}
                               ></div>
                             </div>
@@ -719,7 +511,7 @@ export default function RencanaAksiPage() {
                         )}
                       </CardContent>
                     </Card>
-                  )
+                  );
                 })}
                 
                 {columnTasks.length === 0 && (
@@ -743,7 +535,41 @@ export default function RencanaAksiPage() {
             </div>
           )
         })}
+      {/* Modal Subtasks */}
+      {selectedTask && (
+        <Dialog open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
+          <DialogContent className="sm:max-w-[500px]">
+            <DialogHeader>
+              <DialogTitle>Subtasks untuk: {selectedTask.title}</DialogTitle>
+            </DialogHeader>
+            <SubtaskForm selectedTask={selectedTask} setTasks={setTasks} tasks={tasks} />
+            <div className="space-y-3 mt-4">
+              {selectedTask.subtasks.length === 0 ? (
+                <div className="text-gray-500">Belum ada subtask.</div>
+              ) : (
+                selectedTask.subtasks.map((subtask: Subtask) => (
+                  <div key={subtask.id} className="flex items-center justify-between p-2 border rounded">
+                    <div>
+                      <span className={subtask.is_done ? 'line-through text-gray-400' : ''}>{subtask.title}</span>
+                      {subtask.assigned_to && (
+                        <span className="ml-2 text-xs text-blue-600">({subtask.assigned_to})</span>
+                      )}
+                    </div>
+                    <div>
+                      {subtask.is_done ? (
+                        <Badge variant="outline" className="bg-green-100 text-green-700">Selesai</Badge>
+                      ) : (
+                        <Badge variant="outline" className="bg-yellow-100 text-yellow-700">Belum</Badge>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </DialogContent>
+        </Dialog>
+      )}
       </div>
     </div>
-  )
+  );
 }

@@ -1,4 +1,5 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
+import useSWR from 'swr';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
 
@@ -19,15 +20,13 @@ const SubtaskForm: React.FC<SubtaskFormProps> = ({ selectedTask, setTasks, tasks
   const [title, setTitle] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
   const [loading, setLoading] = useState(false);
-  const [employees, setEmployees] = useState<Employee[]>([]);
-  const unitKerjaId = selectedTask.owner; // Unit kerja ID dari task owner
-
-  useEffect(() => {
-    fetch(`/api/employee/unit/${unitKerjaId}`)
-      .then(res => res.json())
-      .then(data => setEmployees(data))
-      .catch(() => setEmployees([]));
-  }, [unitKerjaId]);
+  const unitKerjaId = typeof window !== "undefined" ? localStorage.getItem('id') : undefined;
+  const fetcher = (url: string) => fetch(url).then(res => res.json());
+  const { data: employeesData } = useSWR(
+    unitKerjaId ? `/api/employee/unit/${unitKerjaId}` : null,
+    fetcher
+  );
+  const employees: Employee[] = employeesData || [];
 
   const handleAddSubtask = () => {
     if (!title) return;
@@ -108,7 +107,6 @@ const SubtaskForm: React.FC<SubtaskFormProps> = ({ selectedTask, setTasks, tasks
           </span>
         </Button>
       </div>
-      {/* Tidak perlu animasi, fokus pada visual yang jelas dan mudah diinput */}
     </div>
   );
 };

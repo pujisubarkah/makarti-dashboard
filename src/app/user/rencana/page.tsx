@@ -124,8 +124,6 @@ export default function RencanaAksiPage() {
     })
       .then((res) => res.json())
       .then((data) => {
-        console.log('Fetched tasks:', data);
-        console.log('Tasks with rencana status:', data.filter((task: any) => task.status === 'rencana'));
         setTasks(data);
         setFilteredTasks(data);
         setLoading(false);

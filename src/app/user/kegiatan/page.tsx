@@ -20,7 +20,6 @@ import {
   SelectValue
 } from "@/components/ui/select";
 import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
-import Image from 'next/image'
 
 interface RencanaMingguan {
   id: number

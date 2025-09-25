@@ -223,12 +223,16 @@ export default function RencanaAksiPage() {
       updateTaskStatus(String(draggedTask.id), newStatus)
       
       // Visual feedback for successful drop
-      const statusText: Record<Task['status'], string> = {
+      const statusText = {
         'not-started': 'Belum Mulai',
         'in-progress': 'Sedang Berjalan',
         'completed': 'Selesai',
         'blocked': 'Terhambat',
-      }
+        'selesai': 'Selesai',
+        'rencana': 'Rencana',
+        'proses': 'Proses',
+        'terhambat': 'Terhambat',
+      } as Record<string, string>;
       
       console.log(`Task "${draggedTask.title}" dipindahkan ke ${statusText[newStatus as Task['status']]}`)
     }

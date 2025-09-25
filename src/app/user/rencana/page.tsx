@@ -227,7 +227,7 @@ export default function RencanaAksiPage() {
         'not-started': 'Belum Mulai',
         'in-progress': 'Sedang Berjalan',
         'completed': 'Selesai',
-        'blocked': 'Terhambat'
+        'blocked': 'Terhambat',
       }
       
       console.log(`Task "${draggedTask.title}" dipindahkan ke ${statusText[newStatus as Task['status']]}`)

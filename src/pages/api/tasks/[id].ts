@@ -33,7 +33,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (!title || !owner || !status) {
         return res.status(400).json({ error: 'title, owner, and status are required' });
       }
-      const data: any = {
+      const data: Record<string, unknown> = {
         title,
         owner: Number(owner),
         status,

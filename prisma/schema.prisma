@@ -503,16 +503,18 @@ model subtasks {
 }
 
 model tasks {
-  id         Int        @id @default(autoincrement())
-  title      String
-  owner      Int
-  status     String     @db.VarChar(20)
-  label      String?    @db.VarChar(50)
-  progress   Int?       @default(0)
-  pilar      String?    @db.VarChar(50)
-  created_at DateTime?  @default(now()) @db.Timestamp(6)
-  subtasks   subtasks[]
-  users      users      @relation(fields: [owner], references: [id], onUpdate: NoAction)
+  id          Int        @id @default(autoincrement())
+  title       String
+  owner       Int
+  status      String     @db.VarChar(20)
+  label       String?    @db.VarChar(50)
+  progress    Int?       @default(0)
+  pilar       String?    @db.VarChar(50)
+  created_at  DateTime?  @default(now()) @db.Timestamp(6)
+  tags        String?    @db.VarChar(255)
+  pj_kegiatan String?    @db.VarChar(255)
+  subtasks    subtasks[]
+  users       users      @relation(fields: [owner], references: [id], onUpdate: NoAction)
 
   @@schema("makarti")
 }

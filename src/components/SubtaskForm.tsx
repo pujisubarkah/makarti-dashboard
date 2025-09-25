@@ -20,7 +20,7 @@ const SubtaskForm: React.FC<SubtaskFormProps> = ({ selectedTask, setTasks, tasks
   const [assignedTo, setAssignedTo] = useState('');
   const [loading, setLoading] = useState(false);
   const [employees, setEmployees] = useState<Employee[]>([]);
-  const unitKerjaId = selectedTask.owner || 1; // default 1 jika tidak ada
+  const unitKerjaId = selectedTask.owner; // Unit kerja ID dari task owner
 
   useEffect(() => {
     fetch(`/api/employee/unit/${unitKerjaId}`)

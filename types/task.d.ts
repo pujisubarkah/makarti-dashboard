@@ -11,9 +11,11 @@ export interface Task {
   title: string;
   description?: string;
   pilar?: string;
-  status: 'not-started' | 'in-progress' | 'completed' | 'blocked';
+  status: 'not-started' | 'in-progress' | 'completed' | 'blocked' | 'rencana' | 'proses' | 'selesai' | 'terhambat';
   label?: string;
   progress?: number;
+  tags?: string;
+  pj_kegiatan?: string;
   created_at?: string;
   subtasks: Subtask[];
   owner?: number;

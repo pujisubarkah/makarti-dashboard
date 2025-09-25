@@ -18,7 +18,8 @@ import {
   Edit,
   Trash2,
   Eye,
-  GripVertical
+  GripVertical,
+  Filter
 } from 'lucide-react'
 import { Button } from "@/components/ui/button"
 import { Card, CardContent } from "@/components/ui/card"
@@ -28,7 +29,6 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Label } from "@/components/ui/label"
-import { Textarea } from "@/components/ui/textarea"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 // Update the import path if SubtaskForm is located elsewhere, e.g.:
 import SubtaskForm from "../../../components/SubtaskForm"
@@ -87,24 +87,53 @@ export default function RencanaAksiPage() {
   // Define newTask state
   const [newTask, setNewTask] = useState({
     title: '',
-    description: '',
-    category: 'inovasi',
-    priority: 'medium',
-    dueDate: '',
-    assignee: '',
-    tags: ''
+    label: 'learning',
+    pilar: 'smarter',
+    tags: '',
+    pj_kegiatan: ''
   });
+
+  // Auto-fill pilar based on label
+  const handleLabelChange = (value: string) => {
+    let pilar = 'smarter'; // default
+    if (value === 'learning' || value === 'inovasi') {
+      pilar = 'smarter';
+    } else if (value === 'networking' || value === 'branding') {
+      pilar = 'bigger';
+    }
+    setNewTask({ ...newTask, label: value, pilar: pilar });
+  };
 
   useEffect(() => {
     // Fetch tasks dari API
-    fetch('/api/tasks')
+    const currentUserId = localStorage.getItem('id');
+    console.log('Frontend - User ID from localStorage:', currentUserId);
+    
+    const headers: HeadersInit = {
+      'Content-Type': 'application/json',
+    };
+    
+    // Add user ID to headers if available
+    if (currentUserId) {
+      headers['x-user-id'] = currentUserId;
+      console.log('Frontend - Sending x-user-id header:', currentUserId);
+    }
+    
+    fetch('/api/tasks', {
+      headers: headers,
+    })
       .then((res) => res.json())
       .then((data) => {
+        console.log('Fetched tasks:', data);
+        console.log('Tasks with rencana status:', data.filter((task: any) => task.status === 'rencana'));
         setTasks(data);
         setFilteredTasks(data);
         setLoading(false);
       })
-      .catch(() => setLoading(false));
+      .catch((error) => {
+        console.error('Error fetching tasks:', error);
+        setLoading(false);
+      });
   }, []);
 
   useEffect(() => {
@@ -113,7 +142,22 @@ export default function RencanaAksiPage() {
       filtered = filtered.filter(task => task.pilar === selectedCategory);
     }
     if (selectedStatus !== 'all') {
-      filtered = filtered.filter(task => task.status === selectedStatus);
+      // Map filter status to include both old and new status names
+      const statusToFilter = (status: string) => {
+        switch (status) {
+          case 'not-started':
+            return (task: Task) => task.status === 'not-started' || task.status === 'rencana';
+          case 'in-progress':
+            return (task: Task) => task.status === 'in-progress' || task.status === 'proses';
+          case 'completed':
+            return (task: Task) => task.status === 'completed' || task.status === 'selesai';
+          case 'blocked':
+            return (task: Task) => task.status === 'blocked' || task.status === 'terhambat';
+          default:
+            return (task: Task) => task.status === status;
+        }
+      };
+      filtered = filtered.filter(statusToFilter(selectedStatus));
     }
     if (searchTerm) {
       filtered = filtered.filter(task =>
@@ -124,39 +168,83 @@ export default function RencanaAksiPage() {
     setFilteredTasks(filtered);
   }, [tasks, selectedCategory, selectedStatus, searchTerm]);
 
-  const handleCreateTask = () => {
-    const task: Task = {
-      id: Date.now(),
-      title: newTask.title,
-      description: newTask.description,
-      pilar: newTask.category,
-      status: 'not-started',
-      label: newTask.priority,
-      progress: 0,
-      created_at: new Date().toISOString(),
-      subtasks: [],
-      owner: 0
-    }
+  const handleCreateTask = async () => {
+    try {
+      // Get current user ID from localStorage
+      const currentUserId = localStorage.getItem('id');
+      const userId = currentUserId ? parseInt(currentUserId) : null;
 
-    setTasks([...tasks, task])
-    setNewTask({
-      title: '',
-      description: '',
-      category: 'inovasi',
-      priority: 'medium',
-      dueDate: '',
-      assignee: '',
-      tags: ''
-    })
-    setIsCreateDialogOpen(false)
+      if (!userId) {
+        alert('Gagal mendapatkan informasi user. Silakan login kembali.');
+        return;
+      }
+
+      const response = await fetch('/api/tasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-user-id': userId.toString(), // Send user ID in header
+        },
+        body: JSON.stringify({
+          title: newTask.title,
+          label: newTask.label,
+          pilar: newTask.pilar,
+          tags: newTask.tags,
+          pj_kegiatan: newTask.pj_kegiatan,
+          owner: userId // Dynamic owner based on current user
+        })
+      });
+
+      if (response.ok) {
+        const createdTask = await response.json();
+        setTasks([...tasks, createdTask]);
+        
+        // Reset form
+        setNewTask({
+          title: '',
+          label: 'learning',
+          pilar: 'smarter',
+          tags: '',
+          pj_kegiatan: ''
+        });
+        setIsCreateDialogOpen(false);
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to create task:', errorData);
+        alert(errorData.error || 'Gagal membuat rencana aksi');
+      }
+    } catch (error) {
+      console.error('Error creating task:', error);
+    }
   }
 
-  const updateTaskStatus = (taskId: string, newStatus: Task['status']) => {
-    setTasks(tasks.map(task => 
-      String(task.id) === String(taskId) 
-        ? { ...task, status: newStatus, progress: newStatus === 'completed' ? 100 : task.progress }
-        : task
-    ))
+  const updateTaskStatus = async (taskId: string, newStatus: Task['status']) => {
+    try {
+      const response = await fetch('/api/tasks', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: taskId,
+          status: newStatus
+        })
+      });
+
+      if (response.ok) {
+        const updatedTask = await response.json();
+        setTasks(tasks.map(task => 
+          String(task.id) === String(taskId) 
+            ? updatedTask
+            : task
+        ));
+      } else {
+        console.error('Failed to update task status');
+        // Optionally show error message to user
+      }
+    } catch (error) {
+      console.error('Error updating task status:', error);
+    }
   }
 
   // Drag and Drop handlers
@@ -200,22 +288,43 @@ export default function RencanaAksiPage() {
     }
   }
 
-  const handleDrop = (e: React.DragEvent, newStatus: Task['status']) => {
+  const handleDrop = (e: React.DragEvent, columnStatus: string) => {
     e.preventDefault()
     setDragOverColumn(null)
     
-    if (draggedTask && draggedTask.status !== newStatus) {
-      updateTaskStatus(String(draggedTask.id), newStatus)
+    if (!draggedTask) return;
+    
+    // Map column status to actual task status
+    let newStatus: string;
+    switch (columnStatus) {
+      case 'not-started':
+        newStatus = 'rencana';
+        break;
+      case 'in-progress':
+        newStatus = 'proses';
+        break;
+      case 'completed':
+        newStatus = 'selesai';
+        break;
+      case 'blocked':
+        newStatus = 'terhambat';
+        break;
+      default:
+        newStatus = columnStatus;
+    }
+    
+    if (draggedTask.status !== newStatus) {
+      updateTaskStatus(String(draggedTask.id), newStatus as Task['status'])
       
       // Visual feedback for successful drop
-      const statusText: Record<Task['status'], string> = {
-        'not-started': 'Belum Mulai',
-        'in-progress': 'Sedang Berjalan',
-        'completed': 'Selesai',
-        'blocked': 'Terhambat'
+      const statusText: Record<string, string> = {
+        'rencana': 'Belum Mulai',
+        'proses': 'Sedang Berjalan', 
+        'selesai': 'Selesai',
+        'terhambat': 'Terhambat'
       }
       
-      console.log(`Task "${draggedTask.title}" dipindahkan ke ${statusText[newStatus as Task['status']]}`)
+      console.log(`Task "${draggedTask.title}" dipindahkan ke ${statusText[newStatus]}`)
     }
     setDraggedTask(null)
   }
@@ -225,7 +334,31 @@ export default function RencanaAksiPage() {
   }
 
   const getTasksByStatus = (status: string) => {
-    return filteredTasks.filter(task => task.status === status);
+    // Map status untuk menampilkan task di kolom yang sesuai
+    let result: Task[];
+    switch (status) {
+      case 'not-started':
+        result = filteredTasks.filter(task => task.status === 'rencana' || task.status === 'not-started');
+        break;
+      case 'in-progress':
+        result = filteredTasks.filter(task => task.status === 'proses' || task.status === 'in-progress');
+        break;
+      case 'completed':
+        result = filteredTasks.filter(task => task.status === 'selesai' || task.status === 'completed');
+        break;
+      case 'blocked':
+        result = filteredTasks.filter(task => task.status === 'terhambat' || task.status === 'blocked');
+        break;
+      default:
+        result = filteredTasks.filter(task => task.status === status);
+    }
+    
+    if (status === 'not-started') {
+      console.log('Tasks for not-started column:', result);
+      console.log('All filtered tasks:', filteredTasks);
+    }
+    
+    return result;
   }
 
   if (loading) {
@@ -236,30 +369,29 @@ export default function RencanaAksiPage() {
           <span className="ml-3 text-blue-600">Loading rencana aksi...</span>
         </div>
       </div>
-    )
+    );
   }
 
   return (
-    <div className="p-6 max-w-7xl mx-auto">
+    <div className="p-6 space-y-6 bg-gray-50 min-h-screen">
       {/* Header */}
-      <div className="mb-8">
-        <div className="flex items-center justify-between mb-4">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">Rencana Aksi</h1>
-            <p className="text-gray-600 mt-2">Kelola rencana aksi inovasi, networking, branding, dan learning</p>
-          </div>
-          <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-            <DialogTrigger asChild>
-              <Button className="bg-blue-600 hover:bg-blue-700">
-                <Plus className="h-4 w-4 mr-2" />
-                Tambah Rencana
-              </Button>
-            </DialogTrigger>
-            <DialogContent className="sm:max-w-[500px]">
+      <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-lg border border-gray-200">
+        <div>
+          <h1 className="text-3xl font-bold text-gray-800 mb-2">Rencana Aksi</h1>
+          <p className="text-gray-600">Kelola rencana aksi inovasi, networking, branding, dan learning</p>
+        </div>
+        <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+          <DialogTrigger asChild>
+            <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-300">
+              <Plus className="h-4 w-4 mr-2" />
+              Tambah Rencana
+            </Button>
+          </DialogTrigger>
+          <DialogContent className="sm:max-w-[500px]">
               <DialogHeader>
                 <DialogTitle>Buat Rencana Aksi Baru</DialogTitle>
                 <DialogDescription>
-                  Tambahkan rencana aksi baru untuk mencapai tujuan strategis
+                  Tambahkan rencana aksi baru. Pilar akan otomatis terisi berdasarkan label yang dipilih, dan progress dimulai dari 0%.
                 </DialogDescription>
               </DialogHeader>
               <div className="grid gap-4 py-4">
@@ -273,131 +405,220 @@ export default function RencanaAksiPage() {
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="description">Deskripsi</Label>
-                  <Textarea
-                    id="description"
-                    value={newTask.description}
-                    onChange={(e) => setNewTask({ ...newTask, description: e.target.value })}
-                    placeholder="Jelaskan detail rencana aksi"
-                    rows={3}
+                  <Label htmlFor="label">Pilar Makarti</Label>
+                  <Select value={newTask.label} onValueChange={handleLabelChange}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="learning">
+                        <div className="flex items-center">
+                          <GraduationCap className="h-4 w-4 mr-2 text-orange-500" />
+                          Learning
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="inovasi">
+                        <div className="flex items-center">
+                          <Lightbulb className="h-4 w-4 mr-2 text-purple-500" />
+                          Inovasi
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="networking">
+                        <div className="flex items-center">
+                          <Network className="h-4 w-4 mr-2 text-blue-500" />
+                          Networking
+                        </div>
+                      </SelectItem>
+                      <SelectItem value="branding">
+                        <div className="flex items-center">
+                          <Megaphone className="h-4 w-4 mr-2 text-green-500" />
+                          Branding
+                        </div>
+                      </SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid gap-2">
+                  <Label htmlFor="tags">Tags</Label>
+                  <Input
+                    id="tags"
+                    value={newTask.tags}
+                    onChange={(e) => setNewTask({ ...newTask, tags: e.target.value })}
+                    placeholder="Masukkan tags (pisahkan dengan koma)"
                   />
                 </div>
                 <div className="grid gap-2">
-                  <Label htmlFor="category">Pilar</Label>
-                  <Select value={newTask.category} onValueChange={(value) => setNewTask({ ...newTask, category: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {categories.map(category => (
-                        <SelectItem key={category.id} value={category.id}>
-                          <div className="flex items-center">
-                            <category.icon className="h-4 w-4 mr-2" />
-                            {category.name}
-                          </div>
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="priority">Label</Label>
-                  <Select value={newTask.priority} onValueChange={(value) => setNewTask({ ...newTask, priority: value })}>
-                    <SelectTrigger>
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="low">Rendah</SelectItem>
-                      <SelectItem value="medium">Sedang</SelectItem>
-                      <SelectItem value="high">Tinggi</SelectItem>
-                    </SelectContent>
-                  </Select>
+                  <Label htmlFor="pj_kegiatan">Tim Kerja PJ Kegiatan</Label>
+                  <Input
+                    id="pj_kegiatan"
+                    value={newTask.pj_kegiatan}
+                    onChange={(e) => setNewTask({ ...newTask, pj_kegiatan: e.target.value })}
+                    placeholder="Masukkan tim kerja penanggungjawab kegiatan"
+                  />
                 </div>
               </div>
               <div className="flex justify-end gap-2">
                 <Button variant="outline" onClick={() => setIsCreateDialogOpen(false)}>
                   Batal
                 </Button>
-                <Button onClick={handleCreateTask} disabled={!newTask.title}>
+                <Button onClick={handleCreateTask} disabled={!newTask.title || !newTask.pj_kegiatan}>
                   Buat Rencana
                 </Button>
               </div>
             </DialogContent>
           </Dialog>
         </div>
+      
 
-        {/* Statistik berdasarkan pilar */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-6">
-          {categories.map(category => {
+      {/* Statistik berdasarkan pilar */}
+      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+          {categories.map((category, idx) => {
             const categoryTasks = tasks.filter(task => task.pilar === category.id);
             const completedTasks = categoryTasks.filter(task => task.status === 'completed');
             const inProgressTasks = categoryTasks.filter(task => task.status === 'in-progress');
             const IconComponent = category.icon;
+            
+            // Color schemes untuk setiap kategori
+            const colorSchemes = [
+              {
+                bgGradient: 'from-purple-500 to-purple-600',
+                bgLight: 'bg-purple-100',
+                textColor: 'text-purple-600',
+                textDark: 'text-purple-800',
+                borderColor: 'border-purple-500'
+              },
+              {
+                bgGradient: 'from-blue-500 to-blue-600',
+                bgLight: 'bg-blue-100',
+                textColor: 'text-blue-600',
+                textDark: 'text-blue-800',
+                borderColor: 'border-blue-500'
+              },
+              {
+                bgGradient: 'from-green-500 to-green-600',
+                bgLight: 'bg-green-100',
+                textColor: 'text-green-600',
+                textDark: 'text-green-800',
+                borderColor: 'border-green-500'
+              },
+              {
+                bgGradient: 'from-orange-500 to-orange-600',
+                bgLight: 'bg-orange-100',
+                textColor: 'text-orange-600',
+                textDark: 'text-orange-800',
+                borderColor: 'border-orange-500'
+              }
+            ];
+            
+            const colorScheme = colorSchemes[idx % colorSchemes.length];
+            
             return (
-              <div key={category.id} className="bg-white rounded-xl shadow-lg border-l-4 p-6">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-sm font-medium mb-1">{category.name}</p>
-                    <p className="text-3xl font-bold mb-2">{categoryTasks.length}</p>
-                    <div className="flex items-center">
-                      <CheckCircle2 className="w-4 h-4 text-green-500 mr-1" />
-                      <span className="text-sm font-medium text-green-600">{completedTasks.length} selesai</span>
-                      {inProgressTasks.length > 0 && (
-                        <>
-                          <span className="text-xs text-gray-500 mx-2">•</span>
-                          <span className="text-xs text-blue-600">{inProgressTasks.length} berjalan</span>
-                        </>
-                      )}
+              <div
+                key={category.id}
+                className={`bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border-l-4 ${colorScheme.borderColor} hover:scale-105 group overflow-hidden`}
+              >
+                <div className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex-1">
+                      <p className={`text-sm font-medium ${colorScheme.textDark} mb-1`}>
+                        {category.name}
+                      </p>
+                      <p className={`text-2xl font-bold ${colorScheme.textColor} mb-2`}>
+                        {categoryTasks.length}
+                      </p>
+                      <div className="flex items-center">
+                        <CheckCircle2 className="w-4 h-4 text-green-500 mr-1" />
+                        <span className="text-sm font-medium text-green-600">{completedTasks.length} selesai</span>
+                        {inProgressTasks.length > 0 && (
+                          <>
+                            <span className="text-xs text-gray-500 mx-2">•</span>
+                            <span className="text-xs text-blue-600">{inProgressTasks.length} berjalan</span>
+                          </>
+                        )}
+                      </div>
                     </div>
-                  </div>
-                  <div className="bg-gray-100 p-4 rounded-full">
-                    <IconComponent className="w-6 h-6" />
+                    <div className={`${colorScheme.bgLight} p-4 rounded-full group-hover:scale-110 transition-transform`}>
+                      <IconComponent className="w-6 h-6" />
+                    </div>
                   </div>
                 </div>
               </div>
             );
           })}
-        </div>
       </div>
 
-      {/* Filter dan Search hanya berdasarkan pilar dan status */}
-      <div className="flex flex-wrap gap-4 mb-6">
-        <div className="flex-1 min-w-[200px]">
-          <div className="relative">
-            <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 h-4 w-4" />
-            <Input
-              placeholder="Cari rencana aksi..."
-              value={searchTerm}
-              onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-10"
-            />
+      {/* Filter dan Search */}
+      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
+        <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
+          <h3 className="text-lg font-semibold text-gray-800">Filter & Pencarian</h3>
+          
+          <div className="flex flex-col sm:flex-row gap-3">
+            {/* Search */}
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+              <Input
+                placeholder="Cari rencana aksi..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="pl-10 w-64"
+              />
+            </div>
+
+            {/* Filter Pilar */}
+            <Select value={selectedCategory} onValueChange={setSelectedCategory}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Pilar" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Pilar</SelectItem>
+                {categories.map(category => (
+                  <SelectItem key={category.id} value={category.id}>
+                    <div className="flex items-center">
+                      <category.icon className="h-4 w-4 mr-2" />
+                      {category.name}
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Filter Status */}
+            <Select value={selectedStatus} onValueChange={setSelectedStatus}>
+              <SelectTrigger className="w-40">
+                <SelectValue placeholder="Status" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all">Semua Status</SelectItem>
+                <SelectItem value="not-started">Belum Mulai</SelectItem>
+                <SelectItem value="in-progress">Sedang Berjalan</SelectItem>
+                <SelectItem value="completed">Selesai</SelectItem>
+                <SelectItem value="blocked">Terhambat</SelectItem>
+              </SelectContent>
+            </Select>
+
+            {/* Clear Filters */}
+            <Button
+              variant="outline"
+              onClick={() => {
+                setSearchTerm('');
+                setSelectedCategory('all');
+                setSelectedStatus('all');
+              }}
+              className="px-3"
+              title="Bersihkan filter"
+            >
+              <Filter className="w-4 h-4" />
+            </Button>
           </div>
         </div>
-        <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Pilar" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua Pilar</SelectItem>
-            {categories.map(category => (
-              <SelectItem key={category.id} value={category.id}>
-                {category.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-          <SelectTrigger className="w-[150px]">
-            <SelectValue placeholder="Status" />
-          </SelectTrigger>
-          <SelectContent>
-            <SelectItem value="all">Semua Status</SelectItem>
-            <SelectItem value="not-started">Belum Mulai</SelectItem>
-            <SelectItem value="in-progress">Sedang Berjalan</SelectItem>
-            <SelectItem value="completed">Selesai</SelectItem>
-            <SelectItem value="blocked">Terhambat</SelectItem>
-          </SelectContent>
-        </Select>
+
+        {/* Results Info */}
+        <div className="mt-4 text-sm text-gray-600">
+          Menampilkan {filteredTasks.length} dari {tasks.length} rencana aksi
+          {(searchTerm || (selectedCategory !== 'all') || (selectedStatus !== 'all')) && (
+            <span className="ml-2 text-blue-600">(dengan filter)</span>
+          )}
+        </div>
       </div>
 
       {/* Board View */}
@@ -540,14 +761,16 @@ export default function RencanaAksiPage() {
         <Dialog open={!!selectedTask} onOpenChange={() => setSelectedTask(null)}>
           <DialogContent className="sm:max-w-[500px]">
             <DialogHeader>
-              <DialogTitle>Subtasks untuk: {selectedTask.title}</DialogTitle>
+              <DialogTitle>Subtasks untuk: {selectedTask?.title ?? ''}</DialogTitle>
             </DialogHeader>
-            <SubtaskForm selectedTask={selectedTask} setTasks={setTasks} tasks={tasks} />
+            {selectedTask && (
+              <SubtaskForm selectedTask={selectedTask!} setTasks={setTasks} tasks={tasks} />
+            )}
             <div className="space-y-3 mt-4">
-              {selectedTask.subtasks.length === 0 ? (
+              {!selectedTask || selectedTask?.subtasks.length === 0 ? (
                 <div className="text-gray-500">Belum ada subtask.</div>
               ) : (
-                selectedTask.subtasks.map((subtask: Subtask) => (
+                selectedTask?.subtasks.map((subtask: Subtask) => (
                   <div key={subtask.id} className="flex items-center justify-between p-2 border rounded">
                     <div>
                       <span className={subtask.is_done ? 'line-through text-gray-400' : ''}>{subtask.title}</span>
@@ -569,7 +792,7 @@ export default function RencanaAksiPage() {
           </DialogContent>
         </Dialog>
       )}
-      </div>
+    </div>
     </div>
   );
 }

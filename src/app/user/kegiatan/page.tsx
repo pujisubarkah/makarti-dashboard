@@ -818,22 +818,6 @@ export default function RencanaKegiatanPage() {
                       <DollarSign className="w-4 h-4 text-green-400" />
                       <span>Realisasi: <span className="font-semibold text-gray-700">Rp {item.anggaran_cair.toLocaleString('id-ID')}</span></span>
                     </div>
-                  </div>
-                  {/* Assigned to avatar */}
-                  <div className="flex items-center gap-2 mt-2">
-                    <div className="flex items-center gap-2">
-                      {/* Avatar assigned_to, gunakan avatar default jika tidak ada foto */}
-                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden border border-blue-400">
-                        <Image 
-                          src="/avatar.png" 
-                          alt={item.assigned_to || "Assigned"} 
-                          width={32} 
-                          height={32} 
-                          className="w-full h-full object-cover"
-                        />
-                      </div>
-                      <span className="text-sm font-semibold text-blue-700">{item.assigned_to || "-"}</span>
-                    </div>
                     <div className="flex justify-end gap-2 flex-1">
                       <Button
                         variant="outline"
@@ -852,6 +836,11 @@ export default function RencanaKegiatanPage() {
                         <Trash2 className="w-4 h-4" />
                       </Button>
                     </div>
+                  </div>
+                  {/* Assigned to name only, avatar removed */}
+                  <div className="flex items-center gap-2 mt-2">
+                    {/* ...existing code... */}
+                  
                   </div>
                 </div>
               ))

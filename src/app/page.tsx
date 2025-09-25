@@ -16,15 +16,24 @@ export default function Home() {
         {/* Title Section - Centered */}
         <div className="text-center mb-2 md:mb-3 mt-8 md:mt-12 lg:mt-16 group-hover:opacity-0 transition-all duration-500 px-6 md:px-8">
           <div className="space-y-2 md:space-y-3">
-            <h1 className="text-lg md:text-2xl lg:text-4xl font-light text-white leading-tight tracking-wide">
+            <h1
+              className="text-lg md:text-2xl lg:text-4xl font-light text-white leading-tight tracking-wide"
+              style={{ textShadow: "0 2px 8px #269DD8, 0 0px 2px #fff" }}
+            >
               Selamat Datang di
             </h1>
             <div className="inline-block">
-              <span className="text-xl md:text-3xl lg:text-5xl font-bold bg-gradient-to-r from-white to-blue-100 bg-clip-text text-transparent px-3 md:px-5 py-1 md:py-2 rounded-lg md:rounded-xl backdrop-blur-sm bg-white/10 border border-white/20 shadow-xl">
+              <span
+                className="text-xl md:text-3xl lg:text-5xl font-bold bg-gradient-to-r from-yellow-300 via-yellow-500 to-yellow-700 bg-clip-text text-transparent px-3 md:px-5 py-1 md:py-2 rounded-lg md:rounded-xl backdrop-blur-sm bg-white/10 border border-yellow-400/40 shadow-xl"
+                style={{ textShadow: "0 2px 10px #FFD700, 0 0px 2px #fff" }}
+              >
                 MAKARTI 5.0
               </span>
             </div>
-            <p className="text-xs md:text-sm lg:text-base text-white/90 max-w-xs md:max-w-lg lg:max-w-2xl mx-auto leading-relaxed font-light px-3 md:px-4">
+            <p
+              className="text-xs md:text-sm lg:text-base text-white/90 max-w-xs md:max-w-lg lg:max-w-2xl mx-auto leading-relaxed font-light px-3 md:px-4"
+              style={{ textShadow: "0 1px 6px #269DD8, 0 0px 2px #fff" }}
+            >
               ASN LAN: Satu Gerbang Pembelajaran dan Reputasi<br/>BIGGER, SMARTTER, BETTER
             </p>
             <div className="inline-block mt-2 md:mt-3">

@@ -11,37 +11,16 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
+import { Calendar, DollarSign, CheckCircle, BarChart3, PieChart as PieChartIcon, ChevronLeft, ChevronRight, Edit, Trash2, Plus, TrendingUp, Search, Filter } from "lucide-react";
 import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
-import {
-  Calendar,
-  DollarSign,
-  CheckCircle,
-  Clock,
-  XCircle,
-  BarChart3,
-  PieChart as PieChartIcon,
-  ChevronLeft,
-  ChevronRight,
-  Edit,
-  Trash2,
-  Plus,
-  TrendingUp,
-  AlertTriangle,
-  Search,
-  Filter,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown
-} from "lucide-react"
-import { PieChart, Pie, Cell, BarChart,Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+  Select,
+  SelectTrigger,
+  SelectContent,
+  SelectItem,
+  SelectValue
+} from "@/components/ui/select";
+import { PieChart, Pie, Cell, BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+import Image from 'next/image'
 
 interface RencanaMingguan {
   id: number
@@ -54,6 +33,7 @@ interface RencanaMingguan {
   created_at: string
   bulan: number
   status: string
+  assigned_to?: string // Tambahkan properti assigned_to dengan tipe opsional
 }
 
 interface SerapanData {
@@ -89,7 +69,7 @@ const mingguOptions = [
   { value: 6, label: 'Minggu ke-6' }
 ]
 
-const statusOptions = ["Direncanakan","Dilaksanakan", "Dibatalkan", "Ditunda", "Reschedule"]
+const statusOptions = ["Direncanakan", "Dilaksanakan", "Dibatalkan", "Ditunda", "Reschedule"]
 
 const jenisBelanjaOptions = [
   { value: '51', label: '51 - Belanja Pegawai' },
@@ -141,38 +121,29 @@ export default function RencanaKegiatanPage() {
   useEffect(() => {
     const fetchData = async () => {
       try {
-        setLoading(true)
-        const unitKerjaId = localStorage.getItem('id')
-        
-        if (!unitKerjaId) {
-          throw new Error('Unit kerja ID tidak ditemukan. Silakan login ulang.')
+        const unitKerjaId = localStorage.getItem('id');
+        if (!unitKerjaId) throw new Error('Unit kerja ID tidak ditemukan. Silakan login ulang.');
+        // Fetch kegiatan data
+        const kegiatanResponse = await fetch(`/api/rencana-mingguan/${unitKerjaId}`);
+        if (kegiatanResponse.ok) {
+          const kegiatanResult = await kegiatanResponse.json();
+          setData(kegiatanResult.data || []);
         }
-        
-        // Fetch rencana mingguan data
-        const rencanaResponse = await fetch(`/api/rencana-mingguan/${unitKerjaId}`)
-        if (!rencanaResponse.ok) {
-          throw new Error('Failed to fetch rencana data')
-        }
-        const rencanaResult = await rencanaResponse.json()
-        setData(rencanaResult.data || [])
-
         // Fetch serapan anggaran data
-        const serapanResponse = await fetch(`/api/serapan/${unitKerjaId}`)
+        const serapanResponse = await fetch(`/api/serapan/${unitKerjaId}`);
         if (serapanResponse.ok) {
-          const serapanResult = await serapanResponse.json()
-          setSerapanData(serapanResult)
+          const serapanResult = await serapanResponse.json();
+          setSerapanData(serapanResult);
         }
-        
       } catch (error) {
-        console.error('Error fetching data:', error)
-        alert('Gagal memuat data rencana kegiatan')
+        console.error('Error fetching data:', error);
+        alert('Gagal memuat data rencana kegiatan');
       } finally {
-        setLoading(false)
+        setLoading(false);
       }
-    }
-
-    fetchData()
-  }, [])
+    };
+    fetchData();
+  }, []);
 
   // Calculate statistics
   const totalKegiatan = data.length
@@ -247,9 +218,14 @@ export default function RencanaKegiatanPage() {
     }
     
     if (sortDirection === 'asc') {
-      return aValue < bValue ? -1 : aValue > bValue ? 1 : 0
+      // Provide default values if undefined
+      const aComp = aValue ?? '';
+      const bComp = bValue ?? '';
+      return aComp < bComp ? -1 : aComp > bComp ? 1 : 0;
     } else {
-      return aValue > bValue ? -1 : aValue < bValue ? 1 : 0
+      const aComp = aValue ?? '';
+      const bComp = bValue ?? '';
+      return aComp > bComp ? -1 : aComp < bComp ? 1 : 0;
     }
   })
 
@@ -260,17 +236,6 @@ export default function RencanaKegiatanPage() {
   const totalPages = Math.ceil(sortedData.length / itemsPerPage)
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber)
-
-  // Handle sort
-  const handleSort = (field: keyof RencanaMingguan) => {
-    if (sortField === field) {
-      setSortDirection(sortDirection === 'asc' ? 'desc' : 'asc')
-    } else {
-      setSortField(field)
-      setSortDirection('asc')
-    }
-    setCurrentPage(1) // Reset to first page when sorting
-  }
 
   // Clear all filters
   const clearFilters = () => {
@@ -451,21 +416,6 @@ export default function RencanaKegiatanPage() {
   const getJenisBelanjaLabel = (jenisKode: string) => {
     const jenisObj = jenisBelanjaOptions.find(j => j.value === jenisKode)
     return jenisObj ? jenisObj.label : jenisKode
-  }
-
-  const getStatusIcon = (status: string) => {
-    switch (status) {
-      case 'Direncanakan':
-        return <CheckCircle className="w-4 h-4 text-blue-500" />
-      case 'Dibatalkan':
-        return <XCircle className="w-4 h-4 text-red-500" />
-      case 'Ditunda':
-        return <Clock className="w-4 h-4 text-yellow-500" />
-      case 'Reschedule':
-        return <AlertTriangle className="w-4 h-4 text-pink-500" />
-      default:
-        return null
-    }
   }
 
   if (loading) {
@@ -840,159 +790,77 @@ export default function RencanaKegiatanPage() {
             )}
           </div>
         </div>
-        <div className="overflow-x-auto">
-          <Table>
-            <TableHeader>
-              <TableRow className="bg-gray-50">
-                <TableHead className="font-semibold text-gray-700">
-                  <button
-                    onClick={() => handleSort('bulan')}
-                    className="flex items-center gap-1 hover:text-blue-600 transition-colors"
-                  >
-                    Bulan
-                    {sortField === 'bulan' ? (
-                      sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-                    ) : (
-                      <ArrowUpDown className="w-4 h-4 opacity-50" />
-                    )}
-                  </button>
-                </TableHead>
-                <TableHead className="font-semibold text-gray-700">
-                  <button
-                    onClick={() => handleSort('minggu')}
-                    className="flex items-center gap-1 hover:text-blue-600 transition-colors"
-                  >
-                    Minggu
-                    {sortField === 'minggu' ? (
-                      sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-                    ) : (
-                      <ArrowUpDown className="w-4 h-4 opacity-50" />
-                    )}
-                  </button>
-                </TableHead>
-                <TableHead className="font-semibold text-gray-700">
-                  <button
-                    onClick={() => handleSort('kegiatan')}
-                    className="flex items-center gap-1 hover:text-blue-600 transition-colors"
-                  >
-                    Kegiatan
-                    {sortField === 'kegiatan' ? (
-                      sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-                    ) : (
-                      <ArrowUpDown className="w-4 h-4 opacity-50" />
-                    )}
-                  </button>
-                </TableHead>
-                <TableHead className="font-semibold text-gray-700">
-                  <button
-                    onClick={() => handleSort('jenis_belanja')}
-                    className="flex items-center gap-1 hover:text-blue-600 transition-colors"
-                  >
-                    Jenis Belanja
-                    {sortField === 'jenis_belanja' ? (
-                      sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-                    ) : (
-                      <ArrowUpDown className="w-4 h-4 opacity-50" />
-                    )}
-                  </button>
-                </TableHead>
-                <TableHead className="font-semibold text-gray-700">
-                  <button
-                    onClick={() => handleSort('anggaran_rencana')}
-                    className="flex items-center gap-1 hover:text-blue-600 transition-colors"
-                  >
-                    Anggaran Rencana
-                    {sortField === 'anggaran_rencana' ? (
-                      sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-                    ) : (
-                      <ArrowUpDown className="w-4 h-4 opacity-50" />
-                    )}
-                  </button>
-                </TableHead>
-                <TableHead className="font-semibold text-gray-700">
-                  <button
-                    onClick={() => handleSort('anggaran_cair')}
-                    className="flex items-center gap-1 hover:text-blue-600 transition-colors"
-                  >
-                    Anggaran Realisasi
-                    {sortField === 'anggaran_cair' ? (
-                      sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-                    ) : (
-                      <ArrowUpDown className="w-4 h-4 opacity-50" />
-                    )}
-                  </button>
-                </TableHead>
-                <TableHead className="font-semibold text-gray-700">
-                  <button
-                    onClick={() => handleSort('status')}
-                    className="flex items-center gap-1 hover:text-blue-600 transition-colors"
-                  >
-                    Status
-                    {sortField === 'status' ? (
-                      sortDirection === 'asc' ? <ArrowUp className="w-4 h-4" /> : <ArrowDown className="w-4 h-4" />
-                    ) : (
-                      <ArrowUpDown className="w-4 h-4 opacity-50" />
-                    )}
-                  </button>
-                </TableHead>
-                <TableHead className="font-semibold text-gray-700 text-center">Aksi</TableHead>
-              </TableRow>
-            </TableHeader>
-            <TableBody>
-              {currentItems.length > 0 ? (
-                currentItems.map((item) => (
-                  <TableRow key={item.id} className="hover:bg-gray-50 transition-colors">
-                    <TableCell className="font-medium">{getBulanLabel(item.bulan)}</TableCell>
-                    <TableCell>Minggu ke-{item.minggu}</TableCell>
-                    <TableCell className="whitespace-normal break-words max-w-xs">{item.kegiatan}</TableCell>
-                    <TableCell>{getJenisBelanjaLabel(item.jenis_belanja)}</TableCell>
-                    <TableCell>Rp {item.anggaran_rencana.toLocaleString('id-ID')}</TableCell>
-                    <TableCell>Rp {item.anggaran_cair.toLocaleString('id-ID')}</TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        {getStatusIcon(item.status)}
-                        <span className={`text-sm font-medium ${
-                          item.status === 'Direncanakan' ? 'text-blue-600' :
-                          item.status === 'Dilaksanakan' ? 'text-green-600' :
-                          item.status === 'Dibatalkan' ? 'text-red-600' :
-                          item.status === 'Ditunda' ? 'text-yellow-600' :
-                          item.status === 'Reschedule' ? 'text-pink-600' : 'text-gray-600'
-                        }`}>
-                          {item.status}
-                        </span>
+        <div className="p-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            {currentItems.length > 0 ? (
+              currentItems.map((item) => (
+                <div key={item.id} className="bg-white rounded-xl shadow-lg border-2 border-blue-400 p-6 flex flex-col gap-3 hover:shadow-xl transition-all duration-200">
+                  <div className="flex items-center justify-between mb-2">
+                    <span className="text-sm font-semibold text-blue-600">{getBulanLabel(item.bulan)} - Minggu ke-{item.minggu}</span>
+                    <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                      item.status === 'Direncanakan' ? 'bg-blue-100 text-blue-600' :
+                      item.status === 'Dilaksanakan' ? 'bg-green-100 text-green-600' :
+                      item.status === 'Dibatalkan' ? 'bg-red-100 text-red-600' :
+                      item.status === 'Ditunda' ? 'bg-yellow-100 text-yellow-600' :
+                      item.status === 'Reschedule' ? 'bg-pink-100 text-pink-600' : 'bg-gray-100 text-gray-600'
+                    }`}>
+                      {item.status}
+                    </span>
+                  </div>
+                  <div className="font-bold text-lg text-gray-800 mb-1 break-words">{item.kegiatan}</div>
+                  <div className="text-sm text-gray-500 mb-1">{getJenisBelanjaLabel(item.jenis_belanja)}</div>
+                  <div className="flex flex-wrap gap-4 text-sm mb-2">
+                    <div className="flex items-center gap-1">
+                      <DollarSign className="w-4 h-4 text-blue-400" />
+                      <span>Rencana: <span className="font-semibold text-gray-700">Rp {item.anggaran_rencana.toLocaleString('id-ID')}</span></span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <DollarSign className="w-4 h-4 text-green-400" />
+                      <span>Realisasi: <span className="font-semibold text-gray-700">Rp {item.anggaran_cair.toLocaleString('id-ID')}</span></span>
+                    </div>
+                  </div>
+                  {/* Assigned to avatar */}
+                  <div className="flex items-center gap-2 mt-2">
+                    <div className="flex items-center gap-2">
+                      {/* Avatar assigned_to, gunakan avatar default jika tidak ada foto */}
+                      <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center overflow-hidden border border-blue-400">
+                        <Image 
+                          src="/avatar.png" 
+                          alt={item.assigned_to || "Assigned"} 
+                          width={32} 
+                          height={32} 
+                          className="w-full h-full object-cover"
+                        />
                       </div>
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex justify-center gap-2">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleEdit(item)}
-                          className="hover:bg-blue-50 hover:border-blue-300"
-                        >
-                          <Edit className="w-4 h-4" />
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleDelete(item.id)}
-                          className="hover:bg-red-50 hover:border-red-300 text-red-600"
-                        >
-                          <Trash2 className="w-4 h-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={8} className="text-center py-8 text-gray-500">
-                    Belum ada data rencana kegiatan
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                      <span className="text-sm font-semibold text-blue-700">{item.assigned_to || "-"}</span>
+                    </div>
+                    <div className="flex justify-end gap-2 flex-1">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleEdit(item)}
+                        className="hover:bg-blue-50 hover:border-blue-300"
+                      >
+                        <Edit className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => handleDelete(item.id)}
+                        className="hover:bg-red-50 hover:border-red-300 text-red-600"
+                      >
+                        <Trash2 className="w-4 h-4" />
+                      </Button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            ) : (
+              <div className="col-span-full text-center py-8 text-gray-500">
+                Belum ada data rencana kegiatan
+              </div>
+            )}
+          </div>
         </div>
 
         {/* Pagination */}

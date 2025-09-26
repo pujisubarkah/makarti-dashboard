@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Calendar, DollarSign, CheckCircle, BarChart3, PieChart as PieChartIcon, ChevronLeft, ChevronRight, Edit, Trash2, Plus, TrendingUp, Search, Filter } from "lucide-react";
+import { Calendar, DollarSign, CheckCircle, BarChart3, PieChart as PieChartIcon, Edit, Trash2, Plus, TrendingUp, Search, Filter, Clock } from "lucide-react";
 import {
   Select,
   SelectTrigger,
@@ -68,7 +68,7 @@ const mingguOptions = [
   { value: 6, label: 'Minggu ke-6' }
 ]
 
-const statusOptions = ["Direncanakan", "Dilaksanakan", "Dibatalkan", "Ditunda", "Reschedule"]
+const statusOptions = ["Direncanakan", "Dilaksanakan", "Dibatalkan", "Reschedule"]
 
 const jenisBelanjaOptions = [
   { value: '51', label: '51 - Belanja Pegawai' },
@@ -80,11 +80,13 @@ export default function RencanaKegiatanPage() {
   const [showModal, setShowModal] = useState(false)
   const [data, setData] = useState<RencanaMingguan[]>([])
   const [editingId, setEditingId] = useState<number | null>(null)
-  const [currentPage, setCurrentPage] = useState(1)
-  const [itemsPerPage] = useState(50)
   const [loading, setLoading] = useState(true)
   const [mounted, setMounted] = useState(false)
   const [serapanData, setSerapanData] = useState<SerapanData | null>(null)
+
+  // Drag and drop states
+  const [draggedItem, setDraggedItem] = useState<RencanaMingguan | null>(null)
+  const [dragOverColumn, setDragOverColumn] = useState<string | null>(null)
 
   // Search, Filter, and Sort states
   const [searchTerm, setSearchTerm] = useState("")
@@ -111,7 +113,7 @@ export default function RencanaKegiatanPage() {
 
   // Effect untuk mengubah anggaran_cair ketika status berubah
   useEffect(() => {
-    if (['Dibatalkan', 'Ditunda', 'Reschedule'].includes(formData.status)) {
+    if (['Dibatalkan', 'Reschedule'].includes(formData.status)) {
       setFormData(prev => ({ ...prev, anggaran_cair: '0' }))
     }
   }, [formData.status])
@@ -149,8 +151,7 @@ export default function RencanaKegiatanPage() {
   const direncanakan = data.filter(item => item.status === 'Direncanakan').length
   const dilaksanakan = data.filter(item => item.status === 'Dilaksanakan').length
   const dibatalkan = data.filter(item => item.status === 'Dibatalkan').length
-  const ditunda = data.filter(item => item.status === 'Ditunda').length
-  const reschedule = data.filter(item => item.status === 'Reschedule').length
+  const reschedule = data.filter(item => item.status === 'Reschedule' || item.status === 'Ditunda').length
 
   // Get latest Pagu Anggaran and total realisasi from serapan data
   const getPaguAnggaranTerbaru = () => {
@@ -171,7 +172,6 @@ export default function RencanaKegiatanPage() {
     { name: 'Direncanakan', value: direncanakan, color: '#60a5fa' },
     { name: 'Dilaksanakan', value: dilaksanakan, color: '#34d399' },
     { name: 'Dibatalkan', value: dibatalkan, color: '#ef4444' },
-    { name: 'Ditunda', value: ditunda, color: '#fbbf24' },
     { name: 'Reschedule', value: reschedule, color: '#f472b6' }
   ].filter(item => item.value > 0)
 
@@ -228,13 +228,7 @@ export default function RencanaKegiatanPage() {
     }
   })
 
-  // Pagination logic
-  const indexOfLastItem = currentPage * itemsPerPage
-  const indexOfFirstItem = indexOfLastItem - itemsPerPage
-  const currentItems = sortedData.slice(indexOfFirstItem, indexOfLastItem)
-  const totalPages = Math.ceil(sortedData.length / itemsPerPage)
 
-  const paginate = (pageNumber: number) => setCurrentPage(pageNumber)
 
   // Clear all filters
   const clearFilters = () => {
@@ -244,7 +238,6 @@ export default function RencanaKegiatanPage() {
     setFilterJenisBelanja("all")
     setSortField("bulan")
     setSortDirection("desc")
-    setCurrentPage(1)
   }
 
   const summaryCards = [
@@ -407,6 +400,110 @@ export default function RencanaKegiatanPage() {
     }
   }
 
+  // Update kegiatan status
+  const updateKegiatanStatus = async (kegiatanId: number, newStatus: string) => {
+    try {
+      const unitKerjaId = localStorage.getItem('id')
+      const response = await fetch(`/api/rencana-mingguan/${unitKerjaId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: kegiatanId,
+          status: newStatus
+        }),
+      })
+
+      if (response.ok) {
+        // const updatedItem = await response.json()
+        setData(prev => prev.map(item => 
+          item.id === kegiatanId ? { ...item, status: newStatus } : item
+        ))
+      } else {
+        console.error('Failed to update kegiatan status')
+        alert('Gagal mengupdate status kegiatan')
+      }
+    } catch (error) {
+      console.error('Error updating kegiatan status:', error)
+      alert('Gagal mengupdate status kegiatan')
+    }
+  }
+
+  // Drag and Drop handlers
+  const handleDragStart = (e: React.DragEvent, item: RencanaMingguan) => {
+    setDraggedItem(item)
+    e.dataTransfer.effectAllowed = 'move'
+    e.dataTransfer.setData('text/html', e.currentTarget.outerHTML)
+    e.dataTransfer.setData('text/plain', String(item.id))
+    
+    // Add drag image styling
+    const dragImage = e.currentTarget.cloneNode(true) as HTMLElement
+    dragImage.style.transform = 'rotate(2deg)'
+    dragImage.style.opacity = '0.8'
+    document.body.appendChild(dragImage)
+    dragImage.style.position = 'absolute'
+    dragImage.style.top = '-1000px'
+    e.dataTransfer.setDragImage(dragImage, 0, 0)
+    
+    setTimeout(() => document.body.removeChild(dragImage), 0)
+  }
+
+  const handleDragEnd = () => {
+    setDraggedItem(null)
+    setDragOverColumn(null)
+  }
+
+  const handleDragOver = (e: React.DragEvent) => {
+    e.preventDefault()
+    e.dataTransfer.dropEffect = 'move'
+  }
+
+  const handleDragEnter = (e: React.DragEvent, status: string) => {
+    e.preventDefault()
+    setDragOverColumn(status)
+  }
+
+  const handleDragLeave = (e: React.DragEvent) => {
+    // Only remove highlight if we're leaving the column container
+    if (!e.currentTarget.contains(e.relatedTarget as Node)) {
+      setDragOverColumn(null)
+    }
+  }
+
+  const handleDrop = (e: React.DragEvent, columnStatus: string) => {
+    e.preventDefault()
+    setDragOverColumn(null)
+    
+    if (!draggedItem) return;
+    
+    if (draggedItem.status !== columnStatus) {
+      updateKegiatanStatus(draggedItem.id, columnStatus)
+      
+      // Visual feedback for successful drop
+      const statusText: Record<string, string> = {
+        'Direncanakan': 'Direncanakan',
+        'Dilaksanakan': 'Dilaksanakan', 
+        'Dibatalkan': 'Dibatalkan',
+        'Reschedule': 'Reschedule'
+      }
+      
+      console.log(`Kegiatan "${draggedItem.kegiatan}" dipindahkan ke ${statusText[columnStatus]}`)
+    }
+    setDraggedItem(null)
+  }
+
+  // Get kegiatan by status
+  const getKegiatanByStatus = (status: string) => {
+    return sortedData.filter(item => {
+      // Handle legacy "Ditunda" status as "Reschedule"
+      if (status === 'Reschedule') {
+        return item.status === 'Reschedule' || item.status === 'Ditunda'
+      }
+      return item.status === status
+    })
+  }
+
   const getBulanLabel = (bulan: number) => {
     const bulanObj = bulanOptions.find(b => b.value === bulan)
     return bulanObj ? bulanObj.label : `Bulan ${bulan}`
@@ -557,9 +654,9 @@ export default function RencanaKegiatanPage() {
                   value={formData.anggaran_cair}
                   onChange={(e) => setFormData({...formData, anggaran_cair: e.target.value})}
                   placeholder="Masukkan anggaran realisasi"
-                  disabled={['Dibatalkan', 'Ditunda', 'Reschedule'].includes(formData.status)}
+                  disabled={['Dibatalkan', 'Reschedule'].includes(formData.status)}
                 />
-                {['Dibatalkan', 'Ditunda', 'Reschedule'].includes(formData.status) && (
+                {['Dibatalkan', 'Reschedule'].includes(formData.status) && (
                   <p className="text-xs text-gray-500 mt-1">
                     Anggaran realisasi otomatis 0 untuk status ini
                   </p>
@@ -707,19 +804,13 @@ export default function RencanaKegiatanPage() {
                 <Input
                   placeholder="Cari kegiatan atau jenis belanja..."
                   value={searchTerm}
-                  onChange={(e) => {
-                    setSearchTerm(e.target.value)
-                    setCurrentPage(1)
-                  }}
+                  onChange={(e) => setSearchTerm(e.target.value)}
                   className="pl-10 w-64"
                 />
               </div>
 
               {/* Filter Status */}
-              <Select value={filterStatus} onValueChange={(value) => {
-                setFilterStatus(value)
-                setCurrentPage(1)
-              }}>
+              <Select value={filterStatus} onValueChange={(value) => setFilterStatus(value)}>
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Status" />
                 </SelectTrigger>
@@ -734,10 +825,7 @@ export default function RencanaKegiatanPage() {
               </Select>
 
               {/* Filter Bulan */}
-              <Select value={filterBulan} onValueChange={(value) => {
-                setFilterBulan(value)
-                setCurrentPage(1)
-              }}>
+              <Select value={filterBulan} onValueChange={(value) => setFilterBulan(value)}>
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Bulan" />
                 </SelectTrigger>
@@ -752,10 +840,7 @@ export default function RencanaKegiatanPage() {
               </Select>
 
               {/* Filter Jenis Belanja */}
-              <Select value={filterJenisBelanja} onValueChange={(value) => {
-                setFilterJenisBelanja(value)
-                setCurrentPage(1)
-              }}>
+              <Select value={filterJenisBelanja} onValueChange={(value) => setFilterJenisBelanja(value)}>
                 <SelectTrigger className="w-40">
                   <SelectValue placeholder="Jenis Belanja" />
                 </SelectTrigger>
@@ -789,110 +874,150 @@ export default function RencanaKegiatanPage() {
             )}
           </div>
         </div>
-        <div className="p-6">
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-            {currentItems.length > 0 ? (
-              currentItems.map((item) => (
-                <div key={item.id} className="bg-white rounded-xl shadow-lg border-2 border-blue-400 p-6 flex flex-col gap-3 hover:shadow-xl transition-all duration-200">
-                  <div className="flex items-center justify-between mb-2">
-                    <span className="text-sm font-semibold text-blue-600">{getBulanLabel(item.bulan)} - Minggu ke-{item.minggu}</span>
-                    <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                      item.status === 'Direncanakan' ? 'bg-blue-100 text-blue-600' :
-                      item.status === 'Dilaksanakan' ? 'bg-green-100 text-green-600' :
-                      item.status === 'Dibatalkan' ? 'bg-red-100 text-red-600' :
-                      item.status === 'Ditunda' ? 'bg-yellow-100 text-yellow-600' :
-                      item.status === 'Reschedule' ? 'bg-pink-100 text-pink-600' : 'bg-gray-100 text-gray-600'
-                    }`}>
-                      {item.status}
-                    </span>
+        {/* Board/Column View */}
+        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+          {[
+            { status: 'Direncanakan', title: 'Direncanakan', icon: Calendar, color: 'blue' },
+            { status: 'Dilaksanakan', title: 'Dilaksanakan', icon: CheckCircle, color: 'green' },
+            { status: 'Reschedule', title: 'Reschedule', icon: Clock, color: 'yellow' },
+            { status: 'Dibatalkan', title: 'Dibatalkan', icon: Trash2, color: 'red' }
+          ].map(column => {
+            const columnItems = getKegiatanByStatus(column.status)
+            const IconComponent = column.icon
+            const isDragOver = dragOverColumn === column.status
+            
+            return (
+              <div 
+                key={column.status} 
+                className={`bg-gray-50 rounded-lg p-4 transition-all duration-200 ${
+                  isDragOver ? 'bg-blue-50 border-2 border-blue-300 border-dashed scale-[1.02]' : ''
+                }`}
+                onDragOver={handleDragOver}
+                onDragEnter={(e) => handleDragEnter(e, column.status)}
+                onDragLeave={handleDragLeave}
+                onDrop={(e) => handleDrop(e, column.status)}
+              >
+                <div className="flex items-center justify-between mb-4">
+                  <div className="flex items-center">
+                    <IconComponent className={`h-5 w-5 mr-2 ${
+                      column.color === 'blue' ? 'text-blue-600' :
+                      column.color === 'green' ? 'text-green-600' :
+                      column.color === 'yellow' ? 'text-yellow-600' :
+                      column.color === 'red' ? 'text-red-600' : 'text-gray-600'
+                    }`} />
+                    <h3 className="font-semibold text-gray-900">{column.title}</h3>
                   </div>
-                  <div className="font-bold text-lg text-gray-800 mb-1 break-words">{item.kegiatan}</div>
-                  <div className="text-sm text-gray-500 mb-1">{getJenisBelanjaLabel(item.jenis_belanja)}</div>
-                  <div className="flex flex-wrap gap-4 text-sm mb-2">
-                    <div className="flex items-center gap-1">
-                      <DollarSign className="w-4 h-4 text-blue-400" />
-                      <span>Rencana: <span className="font-semibold text-gray-700">Rp {item.anggaran_rencana.toLocaleString('id-ID')}</span></span>
-                    </div>
-                    <div className="flex items-center gap-1">
-                      <DollarSign className="w-4 h-4 text-green-400" />
-                      <span>Realisasi: <span className="font-semibold text-gray-700">Rp {item.anggaran_cair.toLocaleString('id-ID')}</span></span>
-                    </div>
-                    <div className="flex justify-end gap-2 flex-1">
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleEdit(item)}
-                        className="hover:bg-blue-50 hover:border-blue-300"
-                      >
-                        <Edit className="w-4 h-4" />
-                      </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => handleDelete(item.id)}
-                        className="hover:bg-red-50 hover:border-red-300 text-red-600"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  </div>
-                  {/* Assigned to name only, avatar removed */}
-                  <div className="flex items-center gap-2 mt-2">
-                    {/* ...existing code... */}
-                  
-                  </div>
+                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                    column.color === 'blue' ? 'bg-blue-100 text-blue-600' :
+                    column.color === 'green' ? 'bg-green-100 text-green-600' :
+                    column.color === 'yellow' ? 'bg-yellow-100 text-yellow-600' :
+                    column.color === 'red' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
+                  }`}>
+                    {columnItems.length}
+                  </span>
                 </div>
-              ))
-            ) : (
-              <div className="col-span-full text-center py-8 text-gray-500">
-                Belum ada data rencana kegiatan
+                
+                <div className="space-y-3 min-h-[300px]">
+                  {columnItems.map(item => {
+                    const isBeingDragged = draggedItem?.id === item.id
+                    
+                    return (
+                      <div
+                        key={item.id}
+                        draggable
+                        onDragStart={(e) => handleDragStart(e, item)}
+                        onDragEnd={handleDragEnd}
+                        className={`bg-white rounded-lg shadow-md border border-gray-200 p-4 cursor-move hover:shadow-lg transition-all duration-200 group ${
+                          isBeingDragged ? 'opacity-50 rotate-2' : 'hover:scale-[1.02]'
+                        }`}
+                      >
+                        <div className="flex items-center justify-between mb-2">
+                          <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                            {getBulanLabel(item.bulan)} - Minggu {item.minggu}
+                          </span>
+                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleEdit(item)
+                              }}
+                              className="h-6 w-6 p-0 hover:bg-blue-50"
+                            >
+                              <Edit className="w-3 h-3 text-blue-600" />
+                            </Button>
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              onClick={(e) => {
+                                e.stopPropagation()
+                                handleDelete(item.id)
+                              }}
+                              className="h-6 w-6 p-0 hover:bg-red-50"
+                            >
+                              <Trash2 className="w-3 h-3 text-red-600" />
+                            </Button>
+                          </div>
+                        </div>
+                        
+                        <h4 className="font-semibold text-sm text-gray-800 mb-2 line-clamp-2 break-words">
+                          {item.kegiatan}
+                        </h4>
+                        
+                        <div className="text-xs text-gray-500 mb-2">
+                          {getJenisBelanjaLabel(item.jenis_belanja)}
+                        </div>
+                        
+                        <div className="space-y-1 text-xs">
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-600">Rencana:</span>
+                            <span className="font-medium text-blue-600">
+                              Rp {(item.anggaran_rencana / 1000000).toFixed(1)}M
+                            </span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <span className="text-gray-600">Realisasi:</span>
+                            <span className="font-medium text-green-600">
+                              Rp {(item.anggaran_cair / 1000000).toFixed(1)}M
+                            </span>
+                          </div>
+                        </div>
+                        
+                        {/* Progress bar */}
+                        {item.anggaran_rencana > 0 && (
+                          <div className="mt-3">
+                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                              <div 
+                                className="bg-green-500 h-1.5 rounded-full transition-all duration-300" 
+                                style={{ 
+                                  width: `${Math.min((item.anggaran_cair / item.anggaran_rencana) * 100, 100)}%` 
+                                }}
+                              ></div>
+                            </div>
+                            <div className="flex justify-between text-xs text-gray-500 mt-1">
+                              <span>Progress</span>
+                              <span>{Math.round((item.anggaran_cair / item.anggaran_rencana) * 100)}%</span>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )
+                  })}
+                  
+                  {columnItems.length === 0 && (
+                    <div className="text-center py-8 text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-lg">
+                      <IconComponent className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                      Belum ada kegiatan {column.title.toLowerCase()}
+                    </div>
+                  )}
+                </div>
               </div>
-            )}
-          </div>
+            )
+          })}
         </div>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="p-4 border-t border-gray-200 flex justify-between items-center">
-            <div className="text-sm text-gray-600">
-              Menampilkan {indexOfFirstItem + 1}-{Math.min(indexOfLastItem, sortedData.length)} dari {sortedData.length} data
-              {sortedData.length !== data.length && (
-                <span className="text-gray-500"> (difilter dari {data.length} total)</span>
-              )}
-            </div>
-            <div className="flex gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => paginate(currentPage - 1)}
-                disabled={currentPage === 1}
-                className="hover:bg-gray-50"
-              >
-                <ChevronLeft className="w-4 h-4" />
-              </Button>
-              {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
-                <Button
-                  key={page}
-                  variant={page === currentPage ? "default" : "outline"}
-                  size="sm"
-                  onClick={() => paginate(page)}
-                  className={page === currentPage ? "bg-blue-600 hover:bg-blue-700" : "hover:bg-gray-50"}
-                >
-                  {page}
-                </Button>
-              ))}
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => paginate(currentPage + 1)}
-                disabled={currentPage === totalPages}
-                className="hover:bg-gray-50"
-              >
-                <ChevronRight className="w-4 h-4" />
-              </Button>
-            </div>
-          </div>
-        )}
+
       </div>
     </div>
   )

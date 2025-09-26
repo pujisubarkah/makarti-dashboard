@@ -813,14 +813,6 @@ export default function RencanaAksiPage() {
                           </div>
                         )}
                         
-                        {/* PJ Kegiatan */}
-                        {task.pj_kegiatan && (
-                          <div className="mb-2 text-xs text-gray-600">
-                            <span className="font-medium">PJ: </span>
-                            <span>{task.pj_kegiatan}</span>
-                          </div>
-                        )}
-                        
                         <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
                           <span className="flex items-center">
                             <Calendar className="h-3 w-3 mr-1" />
@@ -833,7 +825,7 @@ export default function RencanaAksiPage() {
                         <div className="flex items-center justify-between">
                           <span className="text-xs text-gray-500 flex items-center">
                             <Users className="h-3 w-3 mr-1" />
-                            {task.users?.name || '-'}
+                            {task.pj_kegiatan || '-'}
                           </span>
                         </div>
                         {typeof task.progress === 'number' && (

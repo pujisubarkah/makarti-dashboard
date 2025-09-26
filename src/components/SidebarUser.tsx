@@ -50,14 +50,14 @@ const menuItems: MenuItem[] = [
     label: 'RENCANA AKSI',
   },
   {
-    label: 'Rencana Aksi',
+    label: 'Aksi Makarti',
     href: '/user/rencana',
     icon: UserCheck,
-    status: 'maintenance',
+    status: 'ready',
     type: 'item',
   },
   {
-    label: 'Rencana Mingguan',
+    label: 'Kegiatan Mingguan',
     href: '/user/kegiatan',
     icon: Coins,
     status: 'ready',

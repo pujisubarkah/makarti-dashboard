@@ -2,8 +2,13 @@ export interface Subtask {
   id: number;
   title: string;
   is_done: boolean;
-  assigned_to?: string;
+  assigned_to?: number; // ID pegawai
   created_at?: string;
+  pegawai?: {
+    id: number;
+    nama: string;
+    jabatan?: string;
+  };
 }
 
 export interface Task {

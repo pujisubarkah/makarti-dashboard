@@ -2,6 +2,8 @@ import React, { useState } from 'react';
 import useSWR from 'swr';
 import { Label } from '@/components/ui/label';
 import { Button } from '@/components/ui/button';
+import { Checkbox } from './ui/checkbox';
+import { Trash2, User, Calendar, CheckCircle } from 'lucide-react';
 
 interface Employee {
   id: number;
@@ -16,43 +18,169 @@ interface SubtaskFormProps {
   tasks: Task[];
 }
 
+// Helper function to refresh task data from API
+async function refreshTaskProgress(taskId: number): Promise<Task | null> {
+  try {
+    const response = await fetch(`/api/tasks/${taskId}`);
+    if (response.ok) {
+      const updatedTask = await response.json();
+      return updatedTask;
+    }
+  } catch (error) {
+    console.error('Error refreshing task progress:', error);
+  }
+  return null;
+}
+
 const SubtaskForm: React.FC<SubtaskFormProps> = ({ selectedTask, setTasks, tasks }) => {
   const [title, setTitle] = useState('');
   const [assignedTo, setAssignedTo] = useState('');
   const [loading, setLoading] = useState(false);
   const unitKerjaId = typeof window !== "undefined" ? localStorage.getItem('id') : undefined;
   const fetcher = (url: string) => fetch(url).then(res => res.json());
+  
   const { data: employeesData } = useSWR(
     unitKerjaId ? `/api/employee/unit/${unitKerjaId}` : null,
     fetcher
   );
   const employees: Employee[] = employeesData || [];
 
-  const handleAddSubtask = () => {
+  // Fetch subtasks for the selected task
+  const { data: subtasksData, mutate: mutateSubtasks } = useSWR(
+    selectedTask ? `/api/subtasks?task_id=${selectedTask.id}` : null,
+    fetcher
+  );
+  const subtasks: Subtask[] = subtasksData || [];
+
+  const handleAddSubtask = async () => {
     if (!title) return;
     setLoading(true);
-    const selectedEmployee = employees.find(emp => String(emp.id) === assignedTo);
-    const newSubtask: Subtask = {
-      id: Date.now(),
-      title,
-      is_done: false,
-      assigned_to: selectedEmployee ? selectedEmployee.nama : '',
-      created_at: new Date().toISOString(),
-    };
-    setTasks(
-      tasks.map(task =>
-        task.id === selectedTask.id
-          ? { ...task, subtasks: [...task.subtasks, newSubtask] }
-          : task
-      )
-    );
-    setTitle('');
-    setAssignedTo('');
-    setLoading(false);
+
+    try {
+      const response = await fetch('/api/subtasks', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          task_id: selectedTask.id,
+          title,
+          assigned_to: assignedTo || null,
+        })
+      });
+
+      if (response.ok) {
+        const newSubtask = await response.json();
+        console.log('Subtask created successfully:', newSubtask);
+        
+        // Refresh subtasks list
+        mutateSubtasks();
+        
+        // Refresh task progress from API
+        const updatedTask = await refreshTaskProgress(selectedTask.id);
+        if (updatedTask) {
+          setTasks(tasks.map(task =>
+            task.id === selectedTask.id ? { ...task, progress: updatedTask.progress } : task
+          ));
+        }
+        
+        // Reset form
+        setTitle('');
+        setAssignedTo('');
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to create subtask:', errorData);
+        alert(errorData.error || 'Gagal membuat subtask');
+      }
+    } catch (error) {
+      console.error('Error creating subtask:', error);
+      alert('Terjadi kesalahan saat membuat subtask');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleToggleSubtask = async (subtaskId: number, currentStatus: boolean) => {
+    try {
+      const response = await fetch('/api/subtasks', {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          id: subtaskId,
+          is_done: !currentStatus,
+        })
+      });
+
+      if (response.ok) {
+        console.log('Subtask status updated successfully');
+        mutateSubtasks();
+        
+        // Refresh task progress from API after toggle
+        const updatedTask = await refreshTaskProgress(selectedTask.id);
+        if (updatedTask) {
+          setTasks(tasks.map(task =>
+            task.id === selectedTask.id ? { ...task, progress: updatedTask.progress } : task
+          ));
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to update subtask:', errorData);
+        alert(errorData.error || 'Gagal mengupdate status subtask');
+      }
+    } catch (error) {
+      console.error('Error updating subtask:', error);
+      alert('Terjadi kesalahan saat mengupdate subtask');
+    }
+  };
+
+  const handleDeleteSubtask = async (subtaskId: number) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus subtask ini?')) {
+      return;
+    }
+
+    try {
+      const response = await fetch(`/api/subtasks?id=${subtaskId}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        console.log('Subtask deleted successfully');
+        mutateSubtasks();
+        
+        // Refresh task progress from API after delete
+        const updatedTask = await refreshTaskProgress(selectedTask.id);
+        if (updatedTask) {
+          setTasks(tasks.map(task =>
+            task.id === selectedTask.id 
+              ? { ...task, progress: updatedTask.progress, subtasks: task.subtasks.filter(s => s.id !== subtaskId) }
+              : task
+          ));
+        } else {
+          // Fallback: just remove subtask from local state
+          setTasks(
+            tasks.map(task =>
+              task.id === selectedTask.id
+                ? { ...task, subtasks: task.subtasks.filter(s => s.id !== subtaskId) }
+                : task
+            )
+          );
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to delete subtask:', errorData);
+        alert(errorData.error || 'Gagal menghapus subtask');
+      }
+    } catch (error) {
+      console.error('Error deleting subtask:', error);
+      alert('Terjadi kesalahan saat menghapus subtask');
+    }
   };
 
   return (
-    <div className="mb-6">
+    <div className="space-y-6">
+      {/* Form tambah subtask */}
       <div className="bg-white rounded-xl shadow-lg p-6 flex flex-col gap-6 border border-blue-200 w-full max-w-xl mx-auto">
         {/* Judul Subtask */}
         <div className="flex flex-col gap-2">
@@ -103,9 +231,101 @@ const SubtaskForm: React.FC<SubtaskFormProps> = ({ selectedTask, setTasks, tasks
         >
           <span className="inline-flex items-center gap-2 justify-center">
             <svg width="20" height="20" fill="none" stroke="currentColor" strokeWidth="2" viewBox="0 0 24 24"><path d="M12 5v14M5 12h14"/></svg>
-            Tambah Subtask
+            {loading ? 'Menambahkan...' : 'Tambah Subtask'}
           </span>
         </Button>
+      </div>
+
+      {/* List Subtasks */}
+      <div className="bg-white rounded-xl shadow-lg p-6 border border-gray-200 w-full max-w-xl mx-auto">
+        <div className="flex items-center gap-2 mb-4">
+          <CheckCircle className="w-5 h-5 text-blue-500" />
+          <h3 className="font-semibold text-gray-800">Daftar Subtasks</h3>
+          <span className="bg-blue-100 text-blue-600 px-2 py-1 rounded-full text-xs font-medium">
+            {subtasks.length} item
+          </span>
+        </div>
+
+        {subtasks.length === 0 ? (
+          <div className="text-center py-8 text-gray-500">
+            <CheckCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
+            <p className="text-sm">Belum ada subtask</p>
+            <p className="text-xs text-gray-400 mt-1">Tambahkan subtask untuk memecah tugas menjadi bagian kecil</p>
+          </div>
+        ) : (
+          <div className="space-y-3">
+            {subtasks.map((subtask) => (
+              <div
+                key={subtask.id}
+                className={`flex items-start gap-3 p-4 rounded-lg border transition-all duration-200 ${
+                  subtask.is_done 
+                    ? 'bg-green-50 border-green-200 text-green-800' 
+                    : 'bg-gray-50 border-gray-200 hover:border-blue-300'
+                }`}
+              >
+                <Checkbox
+                  checked={subtask.is_done}
+                  onCheckedChange={() => handleToggleSubtask(subtask.id, subtask.is_done)}
+                  className="mt-1"
+                />
+                
+                <div className="flex-1 min-w-0">
+                  <div className={`font-medium ${subtask.is_done ? 'line-through text-green-600' : 'text-gray-800'}`}>
+                    {subtask.title}
+                  </div>
+                  
+                  <div className="flex items-center gap-4 mt-2 text-xs text-gray-500">
+                    {subtask.pegawai && (
+                      <div className="flex items-center gap-1">
+                        <User className="w-3 h-3" />
+                        <span>{subtask.pegawai.nama}</span>
+                        {subtask.pegawai.jabatan && (
+                          <span className="text-gray-400">• {subtask.pegawai.jabatan}</span>
+                        )}
+                      </div>
+                    )}
+                    {subtask.created_at && (
+                      <div className="flex items-center gap-1">
+                        <Calendar className="w-3 h-3" />
+                        <span>{new Date(subtask.created_at).toLocaleDateString('id-ID')}</span>
+                      </div>
+                    )}
+                  </div>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => handleDeleteSubtask(subtask.id)}
+                  className="text-red-500 hover:text-red-700 hover:bg-red-50 p-1 h-8 w-8"
+                  title="Hapus subtask"
+                >
+                  <Trash2 className="w-4 h-4" />
+                </Button>
+              </div>
+            ))}
+          </div>
+        )}
+
+        {subtasks.length > 0 && (
+          <div className="mt-4 pt-4 border-t border-gray-200">
+            <div className="flex items-center justify-between text-sm text-gray-600">
+              <span>Progress:</span>
+              <span className="font-medium">
+                {subtasks.filter(s => s.is_done).length} dari {subtasks.length} selesai
+                ({Math.round((subtasks.filter(s => s.is_done).length / subtasks.length) * 100)}%)
+              </span>
+            </div>
+            <div className="mt-2 w-full bg-gray-200 rounded-full h-2">
+              <div
+                className="bg-blue-600 h-2 rounded-full transition-all duration-300"
+                style={{
+                  width: `${(subtasks.filter(s => s.is_done).length / subtasks.length) * 100}%`
+                }}
+              />
+            </div>
+          </div>
+        )}
       </div>
     </div>
   );

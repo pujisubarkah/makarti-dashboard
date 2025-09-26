@@ -11,7 +11,7 @@ export interface Task {
   title: string;
   description?: string;
   pilar?: string;
-  status: 'not-started' | 'in-progress' | 'completed' | 'blocked' | 'rencana' | 'proses' | 'selesai' | 'terhambat';
+  status: 'rencana' | 'proses' | 'selesai' | 'terhambat';
   label?: string;
   progress?: number;
   tags?: string;

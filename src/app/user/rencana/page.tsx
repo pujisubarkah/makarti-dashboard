@@ -377,22 +377,26 @@ export default function Page() {
 
   // --- Tab UI ---
   return (
-    <div className="p-6 min-h-screen bg-gray-50">
-      <div className="flex gap-4 mb-6">
-        <button
-          className={`px-4 py-2 rounded-lg font-semibold transition-colors ${activeTab === 'rencana' ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 border border-blue-600'}`}
-          onClick={() => setActiveTab('rencana')}
-        >
-          Rencana Aksi
-        </button>
-        <button
-          className={`px-4 py-2 rounded-lg font-semibold transition-colors ${activeTab === 'peta' ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 border border-blue-600'}`}
-          onClick={() => setActiveTab('peta')}
-        >
-          Peta Kinerja Pegawai
-        </button>
-      </div>
-      <div>
+    <div className="min-h-screen bg-gray-50">
+      {/* Container dengan padding yang konsisten */}
+      <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-8">
+        {/* Tab Navigation */}
+        <div className="flex gap-4 mb-2">
+          <button
+            className={`px-6 py-3 rounded-lg font-semibold transition-colors ${activeTab === 'rencana' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-blue-600 border border-blue-600 hover:bg-blue-50'}`}
+            onClick={() => setActiveTab('rencana')}
+          >
+            Rencana Aksi
+          </button>
+          <button
+            className={`px-6 py-3 rounded-lg font-semibold transition-colors ${activeTab === 'peta' ? 'bg-blue-600 text-white shadow-md' : 'bg-white text-blue-600 border border-blue-600 hover:bg-blue-50'}`}
+            onClick={() => setActiveTab('peta')}
+          >
+            Peta Kinerja Pegawai
+          </button>
+        </div>
+        
+        {/* Content Section */}
         {activeTab === 'rencana' ? (
           <>
             {/* --- Board and features --- */}
@@ -406,18 +410,18 @@ export default function Page() {
             ) : (
               <>
                 {/* Header */}
-                <div className="flex justify-between items-center bg-white p-6 rounded-xl shadow-lg border border-gray-200">
-                  <div>
-                    <h1 className="text-3xl font-bold text-gray-800 mb-2">Rencana Aksi</h1>
-                    <p className="text-gray-600">Kelola rencana aksi inovasi, networking, branding, dan learning</p>
+                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-6 bg-white p-8 rounded-xl shadow-lg border border-gray-200">
+                  <div className="flex-1">
+                    <h1 className="text-3xl font-bold text-gray-800 mb-3">Rencana Aksi</h1>
+                    <p className="text-gray-600 text-lg">Kelola rencana aksi inovasi, networking, branding, dan learning</p>
                   </div>
-                  <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
-                    <DialogTrigger asChild>
-                      <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-300">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Tambah Rencana
-                      </Button>
-                    </DialogTrigger>
+                    <Dialog open={isCreateDialogOpen} onOpenChange={setIsCreateDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button className="bg-blue-600 hover:bg-blue-700 shadow-lg hover:shadow-xl transition-all duration-300 px-6 py-3">
+                          <Plus className="h-5 w-5 mr-2" />
+                          Tambah Rencana
+                        </Button>
+                      </DialogTrigger>
                     <DialogContent className="sm:max-w-[500px]">
                         <DialogHeader>
                           <DialogTitle>Buat Rencana Aksi Baru</DialogTitle>
@@ -542,13 +546,13 @@ export default function Page() {
                           key={category.id}
                           className={`bg-white rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 border-l-4 ${colorScheme.borderColor} hover:scale-105 group overflow-hidden`}
                         >
-                          <div className="p-6">
+                          <div className="p-8">
                             <div className="flex items-center justify-between">
                               <div className="flex-1">
-                                <p className={`text-sm font-medium ${colorScheme.textDark} mb-1`}>
+                                <p className={`text-sm font-medium ${colorScheme.textDark} mb-2`}>
                                   {category.name}
                                 </p>
-                                <p className={`text-2xl font-bold ${colorScheme.textColor} mb-2`}>
+                                <p className={`text-3xl font-bold ${colorScheme.textColor} mb-3`}>
                                   {categoryTasks.length}
                                 </p>
                                 <div className="flex items-center">
@@ -562,8 +566,8 @@ export default function Page() {
                                   )}
                                 </div>
                               </div>
-                              <div className={`${colorScheme.bgLight} p-4 rounded-full group-hover:scale-110 transition-transform`}>
-                                <IconComponent className="w-6 h-6" />
+                              <div className={`${colorScheme.bgLight} p-5 rounded-full group-hover:scale-110 transition-transform`}>
+                                <IconComponent className="w-7 h-7" />
                               </div>
                             </div>
                           </div>
@@ -572,21 +576,21 @@ export default function Page() {
                     })}
                 </div>
                 {/* Filter dan Search */}
-                <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-4">
-                    <h3 className="text-lg font-semibold text-gray-800">Filter & Pencarian</h3>
-                    <div className="flex flex-col sm:flex-row gap-3">
+                <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8">
+                  <div className="flex flex-col lg:flex-row lg:items-center lg:justify-between gap-6">
+                    <h3 className="text-xl font-semibold text-gray-800">Filter & Pencarian</h3>
+                    <div className="flex flex-col sm:flex-row gap-4">
                       <div className="relative">
-                        <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                        <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400 w-5 h-5" />
                         <Input
                           placeholder="Cari rencana aksi..."
                           value={searchTerm}
                           onChange={(e) => setSearchTerm(e.target.value)}
-                          className="pl-10 w-64"
+                          className="pl-12 pr-4 py-3 w-72 text-base"
                         />
                       </div>
                       <Select value={selectedCategory} onValueChange={setSelectedCategory}>
-                        <SelectTrigger className="w-40">
+                        <SelectTrigger className="w-48 h-12">
                           <SelectValue placeholder="Pilar" />
                         </SelectTrigger>
                         <SelectContent>
@@ -602,7 +606,7 @@ export default function Page() {
                         </SelectContent>
                       </Select>
                       <Select value={selectedStatus} onValueChange={setSelectedStatus}>
-                        <SelectTrigger className="w-40">
+                        <SelectTrigger className="w-48 h-12">
                           <SelectValue placeholder="Status" />
                         </SelectTrigger>
                         <SelectContent>
@@ -620,22 +624,22 @@ export default function Page() {
                           setSelectedCategory('all');
                           setSelectedStatus('all');
                         }}
-                        className="px-3"
+                        className="px-4 py-3 h-12"
                         title="Bersihkan filter"
                       >
-                        <Filter className="w-4 h-4" />
+                        <Filter className="w-5 h-5" />
                       </Button>
                     </div>
                   </div>
-                  <div className="mt-4 text-sm text-gray-600">
-                    Menampilkan {filteredTasks.length} dari {tasks.length} rencana aksi
+                  <div className="mt-6 text-base text-gray-600 bg-gray-50 p-4 rounded-lg">
+                    Menampilkan <span className="font-semibold">{filteredTasks.length}</span> dari <span className="font-semibold">{tasks.length}</span> rencana aksi
                     {(searchTerm || (selectedCategory !== 'all') || (selectedStatus !== 'all')) && (
-                      <span className="ml-2 text-blue-600">(dengan filter)</span>
+                      <span className="ml-2 text-blue-600 font-medium">(dengan filter aktif)</span>
                     )}
                   </div>
                 </div>
                 {/* Board View */}
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
                   {[
                     { status: 'not-started', title: 'Belum Mulai', icon: Clock },
                     { status: 'in-progress', title: 'Sedang Berjalan', icon: Star },
@@ -648,7 +652,7 @@ export default function Page() {
                     return (
                       <div 
                         key={column.status} 
-                        className={`bg-gray-50 rounded-lg p-4 transition-all duration-200 ${
+                        className={`bg-gray-50 rounded-xl p-6 transition-all duration-200 ${
                           isDragOver ? 'bg-blue-50 border-2 border-blue-300 border-dashed scale-[1.02]' : ''
                         }`}
                         onDragOver={handleDragOver}
@@ -656,16 +660,16 @@ export default function Page() {
                         onDragLeave={handleDragLeave}
                         onDrop={(e) => handleDrop(e, column.status as Task['status'])}
                       >
-                        <div className="flex items-center justify-between mb-4">
+                        <div className="flex items-center justify-between mb-6">
                           <div className="flex items-center">
-                            <IconComponent className="h-5 w-5 mr-2 text-gray-600" />
-                            <h3 className="font-semibold text-gray-900">{column.title}</h3>
+                            <IconComponent className="h-6 w-6 mr-3 text-gray-600" />
+                            <h3 className="font-semibold text-gray-900 text-lg">{column.title}</h3>
                           </div>
-                          <Badge variant="secondary" className="bg-gray-200">
+                          <Badge variant="secondary" className="bg-gray-200 px-3 py-1 font-semibold">
                             {columnTasks.length}
                           </Badge>
                         </div>
-                        <div className="space-y-3 min-h-[200px]">
+                        <div className="space-y-4 min-h-[250px]">
                           {columnTasks.map(task => {
                             const categoryData = getCategoryData(task.pilar || 'inovasi');
                             const CategoryIcon = categoryData?.icon || Lightbulb;
@@ -679,12 +683,12 @@ export default function Page() {
                                 onDragStart={(e) => handleDragStart(e, task)}
                                 onDragEnd={handleDragEnd}
                               >
-                                <CardContent className="p-4">
-                                  <div className="flex items-start justify-between mb-2">
+                                <CardContent className="p-5">
+                                  <div className="flex items-start justify-between mb-3">
                                     <div className="flex items-center gap-2">
-                                      <GripVertical className="h-4 w-4 text-gray-400 cursor-move" />
+                                      <GripVertical className="h-5 w-5 text-gray-400 cursor-move" />
                                       <Badge className={categoryData?.color}>
-                                        <CategoryIcon className="h-3 w-3 mr-1" />
+                                        <CategoryIcon className="h-4 w-4 mr-1" />
                                         {categoryData?.name}
                                       </Badge>
                                     </div>
@@ -710,17 +714,17 @@ export default function Page() {
                                       </DropdownMenuContent>
                                     </DropdownMenu>
                                   </div>
-                                  <h4 className="font-medium text-gray-900 mb-2 line-clamp-2">
+                                  <h4 className="font-medium text-gray-900 mb-3 line-clamp-2 text-base">
                                     {task.title}
                                   </h4>
                                   {task.tags && (
-                                    <div className="mb-2">
-                                      <div className="flex flex-wrap gap-1">
+                                    <div className="mb-3">
+                                      <div className="flex flex-wrap gap-2">
                                         {task.tags.split(',').map((tag, idx) => (
                                           <Badge 
                                             key={idx} 
                                             variant="outline" 
-                                            className="text-xs px-1 py-0 bg-gray-50"
+                                            className="text-xs px-2 py-1 bg-gray-50"
                                           >
                                             {tag.trim()}
                                           </Badge>
@@ -728,18 +732,18 @@ export default function Page() {
                                       </div>
                                     </div>
                                   )}
-                                  <div className="flex items-center justify-between text-xs text-gray-500 mb-2">
+                                  <div className="flex items-center justify-between text-sm text-gray-500 mb-3">
                                     <span className="flex items-center">
-                                      <Calendar className="h-3 w-3 mr-1" />
+                                      <Calendar className="h-4 w-4 mr-2" />
                                       {task.created_at ? new Date(task.created_at).toLocaleDateString('id-ID') : '-'}
                                     </span>
                                     <Badge variant="outline" className={`${labelColors.textColor} border-current`}>
                                       {task.label || '-'}
                                     </Badge>
                                   </div>
-                                  <div className="flex items-center justify-between">
-                                    <span className="text-xs text-gray-500 flex items-center">
-                                      <Users className="h-3 w-3 mr-1" />
+                                  <div className="flex items-center justify-between mb-3">
+                                    <span className="text-sm text-gray-500 flex items-center">
+                                      <Users className="h-4 w-4 mr-2" />
                                       {task.pj_kegiatan || '-'}
                                     </span>
                                   </div>

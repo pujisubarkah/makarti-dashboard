@@ -28,6 +28,7 @@ type PegawaiDetail = {
   nm_goldar?: string | null;
   peg_cpns_tmt?: string;
   nip?: string;
+  photo_url?: string;
 };
 
 type Pegawai = {
@@ -227,21 +228,35 @@ const PegawaiUserPage: React.FC = () => {
           </tr>
         </thead>
         <tbody>
-          {filteredPegawai.map((pegawai, idx) => (
-            <tr key={pegawai.id} className="hover:bg-gray-100">
-              <td className="py-2 px-4 border text-center">{idx + 1}</td>
-              <td className="py-2 px-4 border">
-                <a
-                  href={`/user/pegawai/${pegawai.id}`}
-                  className="text-blue-600 underline hover:text-blue-800 cursor-pointer"
-                >
-                  {pegawai.nama}
-                </a>
-              </td>
-              <td className="py-2 px-4 border">{pegawai.jabatan}</td>
-              <td className="py-2 px-4 border">{pegawai.golongan}</td>
-            </tr>
-          ))}
+          {filteredPegawai.map((pegawai, idx) => {
+            const detail = pegawai.pegawai_detail && pegawai.pegawai_detail.length > 0 ? pegawai.pegawai_detail[0] : undefined;
+            return (
+              <tr key={pegawai.id} className="hover:bg-gray-100">
+                <td className="py-2 px-4 border text-center">{idx + 1}</td>
+                <td className="py-2 px-4 border">
+                  <div className="flex items-center gap-2">
+                    {detail?.photo_url ? (
+                      <img
+                        src={detail.photo_url}
+                        alt={pegawai.nama}
+                        className="w-8 h-8 rounded-full object-cover border"
+                      />
+                    ) : (
+                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center border text-gray-500 text-xs">-</div>
+                    )}
+                    <a
+                      href={`/user/pegawai/${pegawai.id}`}
+                      className="text-blue-600 underline hover:text-blue-800 cursor-pointer"
+                    >
+                      {pegawai.nama}
+                    </a>
+                  </div>
+                </td>
+                <td className="py-2 px-4 border">{pegawai.jabatan}</td>
+                <td className="py-2 px-4 border">{pegawai.golongan}</td>
+              </tr>
+            );
+          })}
         </tbody>
       </table>
     </div>

@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
-import Link from "next/link";
 import Image from "next/image";
+import Link from "next/link";
 import { useParams } from "next/navigation";
 
 // Komponen untuk rekomendasi pelatihan AI
@@ -51,7 +51,6 @@ export default function PegawaiDetailPage() {
   const [loadingPelatihan, setLoadingPelatihan] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState<PegawaiDetailItem>({});
-  const [showStatusInfo, setShowStatusInfo] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -126,10 +125,12 @@ export default function PegawaiDetailPage() {
       <h2 className="text-2xl font-bold text-blue-600 mb-6">Informasi Profil</h2>
       <div className="flex items-start space-x-6">
         <div className="w-48 h-48 bg-gray-200 flex items-center justify-center overflow-hidden border border-gray-300 rounded-full">
-          <img
+          <Image
             alt="Profile"
-            className="w-full h-full object-cover"
             src={detail.photo_url || "/avatar.png"}
+            width={192}
+            height={192}
+            className="w-full h-full object-cover"
           />
         </div>
         <div className="flex-1">

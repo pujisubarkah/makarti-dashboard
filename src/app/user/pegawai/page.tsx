@@ -68,6 +68,31 @@ const PegawaiUserPage: React.FC = () => {
   // const unitOptions = Array.from(new Set(pegawaiList.map((p) => p.users?.unit_kerja).filter(Boolean)));
   const filteredPegawai = pegawaiList;
 
+  // Data untuk piramida penduduk: kelompok umur dan jenis kelamin
+  const ageGroups = [
+    { label: "<25", min: 0, max: 24 },
+    { label: "25-34", min: 25, max: 34 },
+    { label: "35-44", min: 35, max: 44 },
+    { label: "45-54", min: 45, max: 54 },
+    { label: "55-64", min: 55, max: 64 },
+    { label: ">=65", min: 65, max: 200 }
+  ];
+  const pyramidData = ageGroups.map(group => {
+    let male = 0, female = 0;
+    filteredPegawai.forEach((pegawai: Pegawai) => {
+      const detail = pegawai.pegawai_detail && pegawai.pegawai_detail.length > 0 ? pegawai.pegawai_detail[0] : undefined;
+      if (!detail?.tanggal_lahir) return;
+      const birthYear = parseInt(detail.tanggal_lahir.slice(0, 4));
+      const age = new Date().getFullYear() - birthYear;
+      if (age >= group.min && age <= group.max) {
+        if (detail.jenis_kelamin === "L") male++;
+        else if (detail.jenis_kelamin === "P") female++;
+      }
+    });
+    // Always return both bars, even if zero, and ensure correct sign
+    return { ageGroup: group.label, male: -Math.abs(male), female: Math.abs(female) };
+  });
+
   const golonganData = Array.from(
     filteredPegawai.reduce((map: Map<string, number>, pegawai: Pegawai) => {
       const golongan = pegawai.golongan;
@@ -103,8 +128,24 @@ const PegawaiUserPage: React.FC = () => {
     <div className="p-6">
       <h2 className="text-2xl font-bold mb-4 text-blue-700">Daftar Pegawai</h2>
       <div className="mb-8 flex flex-wrap gap-8 items-start">
+      <div className="flex-1 min-w-[300px]">
+        <h3 className="text-lg font-semibold mb-2 text-gray-700">Pegawai Berdasarkan Jenis Kelamin & Kelompok Umur</h3>
+        <div className="bg-white border rounded shadow mb-6 p-4 flex items-center justify-center" style={{ width: "100%", height: 300 }}>
+          <ResponsiveContainer width="100%" height={250}>
+            <BarChart data={pyramidData} layout="vertical">
+              <CartesianGrid strokeDasharray="3 3" />
+              <XAxis type="number" tickFormatter={(v) => Math.abs(v).toString()} />
+              <YAxis type="category" dataKey="ageGroup" />
+              <Tooltip formatter={(value: number, name: string) => [`${Math.abs(value)} pegawai`, name === "male" ? "Laki-laki" : name === "female" ? "Perempuan" : name]} />
+              <Legend formatter={v => v === "male" ? "Laki-laki" : v === "female" ? "Perempuan" : v} />
+              <Bar dataKey="male" fill="#3b82f6" name="Laki-laki" />
+              <Bar dataKey="female" fill="#f472b6" name="Perempuan" />
+            </BarChart>
+          </ResponsiveContainer>
+        </div>
+      </div>
         <div className="flex-1 min-w-[300px]">
-          <h3 className="text-lg font-semibold mb-2 text-gray-700">Grafik Pegawai Berdasarkan Golongan</h3>
+          <h3 className="text-lg font-semibold mb-2 text-gray-700">Pegawai Berdasarkan Golongan</h3>
           <div className="bg-white border rounded shadow mb-6 p-4 flex items-center justify-center" style={{ width: "100%", height: 300 }}>
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>
@@ -130,7 +171,7 @@ const PegawaiUserPage: React.FC = () => {
           </div>
         </div>
         <div className="flex-1 min-w-[300px]">
-          <h3 className="text-lg font-semibold mb-2 text-gray-700">Grafik Pegawai Berdasarkan Generasi</h3>
+          <h3 className="text-lg font-semibold mb-2 text-gray-700">Pegawai Berdasarkan Generasi</h3>
           <div className="bg-white border rounded shadow mb-6 p-4" style={{ width: "100%", height: 300 }}>
             <ResponsiveContainer width="100%" height={250}>
               <BarChart data={generasiData}>
@@ -149,7 +190,7 @@ const PegawaiUserPage: React.FC = () => {
           </div>
         </div>
         <div className="flex-1 min-w-[300px]">
-          <h3 className="text-lg font-semibold mb-2 text-gray-700">Grafik Pegawai Berdasarkan Jenis Kelamin</h3>
+          <h3 className="text-lg font-semibold mb-2 text-gray-700">Pegawai Berdasarkan Jenis Kelamin</h3>
           <div className="bg-white border rounded shadow mb-6 p-4 flex items-center justify-center" style={{ width: "100%", height: 300 }}>
             <ResponsiveContainer width="100%" height={250}>
               <PieChart>

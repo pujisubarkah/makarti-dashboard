@@ -1,6 +1,8 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e42", "#ef4444", "#6366f1", "#f472b6", "#22d3ee"];
@@ -287,7 +289,7 @@ const PegawaiUserPage: React.FC = () => {
                   label={{ value: "Agama", angle: 0, position: "insideLeft", offset: 0 }}
                   tick={{ fontSize: 12 }}
                 />
-                <Tooltip formatter={(value, name, props) => [`${value} pegawai`, "Agama"]} />
+                <Tooltip formatter={(value) => [`${value} pegawai`, "Agama"]} />
                 <Legend formatter={() => "Agama"} />
                 <Bar dataKey="jumlah" fill="#f59e42" name="Jumlah Pegawai" label={{ position: "right", fontSize: 12 }}>
                   {agamaData.map((entry, idx) => (
@@ -318,9 +320,11 @@ const PegawaiUserPage: React.FC = () => {
                 <td className="py-2 px-4 border">
                   <div className="flex items-center gap-2">
                     {detail?.photo_url ? (
-                      <img
+                      <Image
                         src={detail.photo_url}
                         alt={pegawai.nama}
+                        width={32}
+                        height={32}
                         className="w-8 h-8 rounded-full object-cover"
                       />
                     ) : (

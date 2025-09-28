@@ -1,6 +1,8 @@
+
 "use client";
 
 import React, { useState, useEffect } from "react";
+import Image from "next/image";
 import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, BarChart, Bar, XAxis, YAxis, CartesianGrid } from "recharts";
 
 const COLORS = ["#3b82f6", "#10b981", "#f59e42", "#ef4444", "#6366f1", "#f472b6", "#22d3ee"];
@@ -29,6 +31,8 @@ type PegawaiDetail = {
   peg_cpns_tmt?: string;
   nip?: string;
   photo_url?: string;
+  tingkat_pendidikan?: string;
+  agama?: string;
 };
 
 type Pegawai = {
@@ -94,6 +98,16 @@ const PegawaiUserPage: React.FC = () => {
     return { ageGroup: group.label, male: -Math.abs(male), female: Math.abs(female) };
   });
 
+
+  // Chart Pie agama
+  const agamaMap = new Map<string, number>();
+  filteredPegawai.forEach((pegawai: Pegawai) => {
+    const detail = pegawai.pegawai_detail && pegawai.pegawai_detail.length > 0 ? pegawai.pegawai_detail[0] : undefined;
+    const agama = detail?.agama || "Tidak diketahui";
+    agamaMap.set(agama, (agamaMap.get(agama) || 0) + 1);
+  });
+  const agamaData = Array.from(agamaMap.entries()).map(([agama, jumlah]) => ({ agama, jumlah }));
+
   const golonganData = Array.from(
     filteredPegawai.reduce((map: Map<string, number>, pegawai: Pegawai) => {
       const golongan = pegawai.golongan;
@@ -125,26 +139,37 @@ const PegawaiUserPage: React.FC = () => {
   });
   const genderData = Array.from(genderMap.entries()).map(([jenis_kelamin, jumlah]) => ({ jenis_kelamin, jumlah }));
 
+  // Hitung jumlah pegawai berdasarkan tingkat pendidikan
+  const pendidikanMap = new Map<string, number>();
+  filteredPegawai.forEach((pegawai: Pegawai) => {
+    const detail = pegawai.pegawai_detail && pegawai.pegawai_detail.length > 0 ? pegawai.pegawai_detail[0] : undefined;
+    const tingkat = detail?.tingkat_pendidikan || "Tidak diketahui";
+    pendidikanMap.set(tingkat, (pendidikanMap.get(tingkat) || 0) + 1);
+  });
+  const pendidikanData = Array.from(pendidikanMap.entries()).map(([tingkat_pendidikan, jumlah]) => ({ tingkat_pendidikan, jumlah }));
+
   return (
     <div className="p-6">
       <h2 className="text-2xl font-bold mb-4 text-blue-700">Daftar Pegawai</h2>
       <div className="mb-8 flex flex-wrap gap-8 items-start">
-      <div className="flex-1 min-w-[300px]">
-        <h3 className="text-lg font-semibold mb-2 text-gray-700">Pegawai Berdasarkan Jenis Kelamin & Kelompok Umur</h3>
-        <div className="bg-white border rounded shadow mb-6 p-4 flex items-center justify-center" style={{ width: "100%", height: 300 }}>
-          <ResponsiveContainer width="100%" height={250}>
-            <BarChart data={pyramidData} layout="vertical">
-              <CartesianGrid strokeDasharray="3 3" />
-              <XAxis type="number" tickFormatter={(v) => Math.abs(v).toString()} />
-              <YAxis type="category" dataKey="ageGroup" />
-              <Tooltip formatter={(value: number, name: string) => [`${Math.abs(value)} pegawai`, name === "male" ? "Laki-laki" : name === "female" ? "Perempuan" : name]} />
-              <Legend formatter={v => v === "male" ? "Laki-laki" : v === "female" ? "Perempuan" : v} />
-              <Bar dataKey="male" fill="#3b82f6" name="Laki-laki" />
-              <Bar dataKey="female" fill="#f472b6" name="Perempuan" />
-            </BarChart>
-          </ResponsiveContainer>
+        {/* Chart Jenis Kelamin & Kelompok Umur */}
+        <div className="flex-1 min-w-[300px]">
+          <h3 className="text-lg font-semibold mb-2 text-gray-700">Pegawai Berdasarkan Jenis Kelamin & Kelompok Umur</h3>
+          <div className="bg-white border rounded shadow mb-6 p-4 flex items-center justify-center" style={{ width: "100%", height: 300 }}>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={pyramidData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis type="number" tickFormatter={(v) => Math.abs(v).toString()} />
+                <YAxis type="category" dataKey="ageGroup" />
+                <Tooltip formatter={(value: number, name: string) => [`${Math.abs(value)} pegawai`, name === "male" ? "Laki-laki" : name === "female" ? "Perempuan" : name]} />
+                <Legend formatter={v => v === "male" ? "Laki-laki" : v === "female" ? "Perempuan" : v} />
+                <Bar dataKey="male" fill="#3b82f6" name="Laki-laki" />
+                <Bar dataKey="female" fill="#f472b6" name="Perempuan" />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
         </div>
-      </div>
+        {/* Chart Golongan */}
         <div className="flex-1 min-w-[300px]">
           <h3 className="text-lg font-semibold mb-2 text-gray-700">Pegawai Berdasarkan Golongan</h3>
           <div className="bg-white border rounded shadow mb-6 p-4 flex items-center justify-center" style={{ width: "100%", height: 300 }}>
@@ -159,7 +184,7 @@ const PegawaiUserPage: React.FC = () => {
                   innerRadius={60}
                   outerRadius={100}
                   fill="#3b82f6"
-                  label={(entry: { golongan: string; jumlah: number }) => entry.golongan}
+                  label={({ golongan }) => `${golongan}`}
                 >
                   {golonganData.map((entry, idx) => (
                     <Cell key={`cell-${idx}`} fill={COLORS[idx % COLORS.length]} />
@@ -171,6 +196,7 @@ const PegawaiUserPage: React.FC = () => {
             </ResponsiveContainer>
           </div>
         </div>
+        {/* Chart Generasi */}
         <div className="flex-1 min-w-[300px]">
           <h3 className="text-lg font-semibold mb-2 text-gray-700">Pegawai Berdasarkan Generasi</h3>
           <div className="bg-white border rounded shadow mb-6 p-4" style={{ width: "100%", height: 300 }}>
@@ -190,6 +216,7 @@ const PegawaiUserPage: React.FC = () => {
             </ResponsiveContainer>
           </div>
         </div>
+        {/* Chart Jenis Kelamin */}
         <div className="flex-1 min-w-[300px]">
           <h3 className="text-lg font-semibold mb-2 text-gray-700">Pegawai Berdasarkan Jenis Kelamin</h3>
           <div className="bg-white border rounded shadow mb-6 p-4 flex items-center justify-center" style={{ width: "100%", height: 300 }}>
@@ -204,7 +231,7 @@ const PegawaiUserPage: React.FC = () => {
                   innerRadius={60}
                   outerRadius={100}
                   fill="#ef4444"
-                  label={(entry: { jenis_kelamin: string; jumlah: number }) => entry.jenis_kelamin}
+                  label={({ jenis_kelamin }) => `${jenis_kelamin}`}
                 >
                   {genderData.map((entry, idx) => (
                     <Cell key={`cell-gender-${idx}`} fill={COLORS[idx % COLORS.length]} />
@@ -213,6 +240,63 @@ const PegawaiUserPage: React.FC = () => {
                 <Tooltip />
                 <Legend />
               </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        {/* Chart Tingkat Pendidikan */}
+        <div className="flex-1 min-w-[300px]">
+          <h3 className="text-lg font-semibold mb-2 text-gray-700">Pegawai Berdasarkan Tingkat Pendidikan</h3>
+          <div className="bg-white border rounded shadow mb-6 p-4 flex items-center justify-center" style={{ width: "100%", height: 300 }}>
+            <ResponsiveContainer width="100%" height={250}>
+              <PieChart>
+                <Pie
+                  data={pendidikanData}
+                  dataKey="jumlah"
+                  nameKey="tingkat_pendidikan"
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={100}
+                  fill="#6366f1"
+                  label={({ tingkat_pendidikan }) => `${tingkat_pendidikan}`}
+                >
+                  {pendidikanData.map((entry, idx) => (
+                    <Cell key={`cell-pendidikan-${idx}`} fill={COLORS[idx % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip />
+                <Legend />
+              </PieChart>
+            </ResponsiveContainer>
+          </div>
+        </div>
+        {/* Chart Agama */}
+        <div className="flex-1 min-w-[300px]">
+          <h3 className="text-lg font-semibold mb-2 text-gray-700">Pegawai Berdasarkan Agama</h3>
+          <div className="bg-white border rounded shadow mb-6 p-4 flex items-center justify-center" style={{ width: "100%", height: 300 }}>
+            <ResponsiveContainer width="100%" height={250}>
+              <BarChart data={agamaData} layout="vertical">
+                <CartesianGrid strokeDasharray="3 3" />
+                <XAxis
+                  type="number"
+                  label={{ value: "Jumlah Pegawai", position: "insideBottom", offset: 0 }}
+                  allowDecimals={false}
+                  tick={{ fontSize: 12 }}
+                />
+                <YAxis
+                  type="category"
+                  dataKey="agama"
+                  label={{ value: "Agama", angle: 0, position: "insideLeft", offset: 0 }}
+                  tick={{ fontSize: 12 }}
+                />
+                <Tooltip formatter={(value) => [`${value} pegawai`, "Agama"]} />
+                <Legend formatter={() => "Agama"} />
+                <Bar dataKey="jumlah" fill="#f59e42" name="Jumlah Pegawai" label={{ position: "right", fontSize: 12 }}>
+                  {agamaData.map((entry, idx) => (
+                    <Cell key={`bar-cell-agama-${idx}`} fill={COLORS[idx % COLORS.length]} />
+                  ))}
+                </Bar>
+              </BarChart>
             </ResponsiveContainer>
           </div>
         </div>
@@ -236,13 +320,17 @@ const PegawaiUserPage: React.FC = () => {
                 <td className="py-2 px-4 border">
                   <div className="flex items-center gap-2">
                     {detail?.photo_url ? (
-                      <img
+                      <Image
                         src={detail.photo_url}
                         alt={pegawai.nama}
-                        className="w-8 h-8 rounded-full object-cover border"
+                        width={32}
+                        height={32}
+                        className="w-8 h-8 rounded-full object-cover"
                       />
                     ) : (
-                      <div className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center border text-gray-500 text-xs">-</div>
+                      <span className="w-8 h-8 rounded-full bg-gray-200 flex items-center justify-center text-gray-500">
+                        {pegawai.nama.charAt(0)}
+                      </span>
                     )}
                     <a
                       href={`/user/pegawai/${pegawai.id}`}

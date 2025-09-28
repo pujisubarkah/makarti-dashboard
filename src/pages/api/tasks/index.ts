@@ -8,19 +8,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       // Get user ID for filtering tasks
       const userId = getUserIdFromRequest(req);
       
-      console.log('API GET /tasks - User ID from request:', userId);
-      
       // Only return tasks if user is authenticated and has valid userId
       if (!userId) {
-        console.log('API GET /tasks - No user ID found, returning empty array');
         return res.status(200).json([]);
       }
       
       // Filter tasks based on user's owner/unit kerja
       const whereClause = { owner: userId };
-      
-      console.log('API GET /tasks - Where clause:', whereClause);
-      console.log('API GET /tasks - Filtering tasks for user ID:', userId);
       
       const tasks = await prisma.tasks.findMany({
         where: whereClause,
@@ -30,12 +24,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
       
-      console.log('API GET /tasks - Found tasks:', tasks.length);
-      console.log('API GET /tasks - Tasks with rencana status:', tasks.filter(task => task.status === 'rencana').length);
-      
       res.status(200).json(tasks);
-    } catch (error) {
-      console.error('API GET /tasks - Error:', error);
+    } catch {
       res.status(500).json({ error: 'Internal server error' });
     }
   } else if (req.method === 'POST') {
@@ -71,16 +61,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
       
       res.status(201).json(task);
-    } catch (error) {
-      console.error('Error creating task:', error);
+    } catch {
       res.status(500).json({ error: 'Internal server error' });
     }
   } else if (req.method === 'PUT') {
     try {
       const { id, status, title, label, pilar, tags, pj_kegiatan } = req.body;
-
-      console.log('API PUT /tasks - Request body:', req.body);
-      console.log('API PUT /tasks - Extracted fields:', { id, status, title, label, pilar, tags, pj_kegiatan });
 
       if (!id) {
         return res.status(400).json({ error: 'Task ID is required' });
@@ -113,8 +99,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       if (tags !== undefined) updateData.tags = tags;
       if (pj_kegiatan !== undefined) updateData.pj_kegiatan = pj_kegiatan;
 
-      console.log('API PUT /tasks - Update data object:', updateData);
-
       const updatedTask = await prisma.tasks.update({
         where: { id: parseInt(id) },
         data: updateData,
@@ -124,10 +108,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
 
-      console.log('API PUT /tasks - Updated task:', updatedTask);
       res.status(200).json(updatedTask);
-    } catch (error) {
-      console.error('Error updating task:', error);
+    } catch {
       res.status(500).json({ error: 'Internal server error' });
     }
   } else {

@@ -8,27 +8,30 @@ export const runtime = 'edge'; // opsional, tapi disarankan untuk upload
 export default async function handler(req: NextRequest) {
   try {
     // 1. Ambil data form
-  const formData = await req.formData();
-  const file = formData.get('photo') as File | null;
-  const nip = formData.get('id') as string | null;
-
+    const formData = await req.formData();
+    const file = formData.get('photo') as File | null;
+    const nip = formData.get('id') as string | null;
 
     if (!file) {
+      console.log('File tidak ditemukan');
       return NextResponse.json({ error: 'File tidak ditemukan' }, { status: 400 });
     }
 
     if (!nip) {
+      console.log('NIP wajib diisi');
       return NextResponse.json({ error: 'NIP wajib diisi' }, { status: 400 });
     }
 
     // 2. Validasi file
     const validTypes = ['image/jpeg', 'image/png', 'image/jpg'];
     if (!validTypes.includes(file.type)) {
+      console.log('File type tidak valid:', file.type);
       return NextResponse.json({ error: 'Hanya file JPG/PNG yang diizinkan' }, { status: 400 });
     }
 
     const MAX_SIZE = 2 * 1024 * 1024; // 2 MB
     if (file.size > MAX_SIZE) {
+      console.log('File terlalu besar:', file.size);
       return NextResponse.json({ error: 'Ukuran file maksimal 2 MB' }, { status: 400 });
     }
 
@@ -52,7 +55,8 @@ export default async function handler(req: NextRequest) {
       });
 
     if (uploadError) {
-      return NextResponse.json({ error: 'Gagal mengunggah foto' }, { status: 500 });
+      console.log('Supabase upload error:', uploadError);
+      return NextResponse.json({ error: 'Gagal mengunggah foto', detail: uploadError }, { status: 500 });
     }
 
     // 6. Dapatkan public URL
@@ -61,8 +65,11 @@ export default async function handler(req: NextRequest) {
       .from('foto_pegawai')
       .getPublicUrl(filePath);
 
+    console.log('Upload berhasil, publicUrl:', publicUrl);
     return NextResponse.json({ photo_url: publicUrl }, { status: 200 });
-  } catch {
-    return NextResponse.json({ error: 'Terjadi kesalahan internal' }, { status: 500 });
+  } catch (err) {
+    const errorMessage = err instanceof Error ? err.message : String(err);
+    console.log('Internal error:', err);
+    return NextResponse.json({ error: 'Terjadi kesalahan internal', detail: errorMessage }, { status: 500 });
   }
 }

@@ -378,6 +378,7 @@ export default function Page() {
   // --- Tab UI ---
   return (
     <div className="p-6 min-h-screen bg-gray-50">
+      <div className="px-4 sm:px-6 lg:px-8 py-6 space-y-8">
       <div className="flex gap-4 mb-6">
         <button
           className={`px-4 py-2 rounded-lg font-semibold transition-colors ${activeTab === 'rencana' ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 border border-blue-600'}`}
@@ -392,7 +393,6 @@ export default function Page() {
           Peta Kinerja Pegawai
         </button>
       </div>
-      <div>
         {activeTab === 'rencana' ? (
           <>
             {/* --- Board and features --- */}

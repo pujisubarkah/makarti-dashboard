@@ -63,9 +63,21 @@ const menuItems: MenuItem[] = [
     status: 'ready',
     type: 'item',
   },
+  // Tambahan group SKP GENERIK dan item Input SKP
   {
     type: 'group',
-    label: 'PILAR MAKARTI',
+    label: 'SKP GENERIK',
+  },
+  {
+    label: 'Input SKP',
+    href: '/user/skp-generik',
+    icon: FileSearch,
+    status: 'ready',
+    type: 'item',
+  },
+  {
+    type: 'group',
+    label: 'SKP TRANSFORMASI',
   },
   {
     label: 'Publikasi Media',

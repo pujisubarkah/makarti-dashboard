@@ -1,13 +1,23 @@
 "use client";
 import React, { useState } from "react";
 import { Pencil, Trash2 } from "lucide-react";
-import { ChartContainer } from "@/components/ui/chart";
+// ChartContainer dihapus karena tidak digunakan
+type SKPItem = {
+  tanggal: string;
+  pilar: string;
+  indikator: string;
+  targetVolume: number;
+  targetSatuan: string;
+  updateVolume: number;
+  updateSatuan: string;
+  kendala: string;
+};
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 export default function SKPGenerikPage() {
   const [showModal, setShowModal] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
-  const [skpList, setSkpList] = useState<any[]>([
+  const [skpList, setSkpList] = useState<SKPItem[]>([
     {
       tanggal: "2025-10-01",
       pilar: "BIGGER",
@@ -50,24 +60,34 @@ export default function SKPGenerikPage() {
     },
   ]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.target as HTMLFormElement);
-    const newItem: any = Object.fromEntries(formData.entries());
-
+    const formData = new FormData(e.currentTarget);
+    const newItem: Partial<SKPItem> = Object.fromEntries(formData.entries());
     if (editIndex !== null) {
       // edit mode
       const updatedList = [...skpList];
-      updatedList[editIndex] = newItem;
+      updatedList[editIndex] = {
+        ...updatedList[editIndex],
+        ...newItem,
+        targetVolume: Number(newItem.targetVolume),
+        updateVolume: Number(newItem.updateVolume),
+      } as SKPItem;
       setSkpList(updatedList);
       setEditIndex(null);
     } else {
       // add mode
-      setSkpList([...skpList, newItem]);
+      setSkpList([
+        ...skpList,
+        {
+          ...newItem,
+          targetVolume: Number(newItem.targetVolume),
+          updateVolume: Number(newItem.updateVolume),
+        } as SKPItem,
+      ]);
     }
-
     setShowModal(false);
-    (e.target as HTMLFormElement).reset();
+    e.currentTarget.reset();
   };
 
   const handleEdit = (index: number) => {
@@ -85,7 +105,9 @@ export default function SKPGenerikPage() {
   };
 
   return (
-    <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
+    <div className="p-6 space-y-8 bg-gray-50 min-h-screen relative">
+      {/* Watermark Data Dummy */}
+      <div className="pointer-events-none select-none absolute top-10 right-10 opacity-30 text-5xl font-extrabold text-blue-400 z-10" style={{transform: 'rotate(-20deg)'}}>DATA DUMMY</div>
       {/* Header */}
       <div className="flex justify-between items-center mb-8">
         <div>

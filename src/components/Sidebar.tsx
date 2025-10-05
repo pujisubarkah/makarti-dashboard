@@ -22,6 +22,13 @@ const menuItems = [
       { title: "Report MAKARTI", href: "/admin/dashboard/report" },
     ],
   },
+   {
+    title: "SKP Generik",
+    icon: LayoutDashboard,
+    children: [
+      { title: "Dashboard SKP Generik", href: "/admin/skp-generik" },
+    ],
+  },
   {
     title: "Inovasi",
     icon: Lightbulb,
@@ -73,6 +80,7 @@ const menuItems = [
       { title: "Rencana Mingguan", href: "/admin/kegiatan" },
     ],
   },
+ 
   {
     title: "Panduan",
     icon: PieChart,

@@ -22,7 +22,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
                 summary[pilar].update_volume += item.update_volume;
             }
             return res.status(200).json(summary);
-        } catch (error) {
+        } catch {
             return res.status(500).json({ error: 'Failed to fetch summary' });
         }
     }

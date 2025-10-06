@@ -12,7 +12,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				where: { unit_kerja_id },
 			});
 			return res.status(200).json(data);
-		} catch (error) {
+		} catch {
 			return res.status(500).json({ error: 'Failed to fetch data' });
 		}
 	}
@@ -35,7 +35,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 				},
 			});
 			return res.status(201).json(newSKP);
-		} catch (error) {
+		} catch {
 			return res.status(500).json({ error: 'Failed to create data' });
 		}
 	}

@@ -7,7 +7,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     try {
       const data = await prisma.skp_generik.findMany();
       return res.status(200).json(data);
-    } catch (error) {
+    } catch {
       return res.status(500).json({ error: 'Failed to fetch data' });
     }
   }
@@ -30,7 +30,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
       return res.status(201).json(newSKP);
-    } catch (error) {
+    } catch {
       return res.status(500).json({ error: 'Failed to create data' });
     }
   }

@@ -421,6 +421,23 @@ model serapan_anggaran {
   @@schema("makarti")
 }
 
+model skp_generik {
+  id            Int       @id @default(autoincrement())
+  unit_kerja_id Int
+  tanggal       DateTime  @db.Date
+  pilar         String    @db.VarChar(50)
+  indikator     String
+  target_volume Int
+  target_satuan String    @db.VarChar(50)
+  update_volume Int
+  update_satuan String    @db.VarChar(50)
+  kendala       String?
+  created_at    DateTime? @default(now()) @db.Timestamp(6)
+  users         users     @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("makarti")
+}
+
 model skptransformational {
   id            Int      @id(map: "SkpTransformasional_pkey") @default(autoincrement())
   pegawai       String
@@ -518,6 +535,7 @@ model users {
   rekap_skor_unit_kerja rekap_skor_unit_kerja[]
   rencana_mingguan      rencana_mingguan[]
   serapan_anggaran      serapan_anggaran[]
+  skp_generik           skp_generik[]
   skptransformational   skptransformational[]
   sosialisasi           sosialisasi[]
   tasks                 tasks[]

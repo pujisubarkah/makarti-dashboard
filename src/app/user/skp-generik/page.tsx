@@ -1,5 +1,5 @@
 "use client";
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { Pencil, Trash2 } from "lucide-react";
 // ChartContainer dihapus karena tidak digunakan
 type SKPItem = {
@@ -15,50 +15,56 @@ type SKPItem = {
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
 
 export default function SKPGenerikPage() {
+
   const [showModal, setShowModal] = useState(false);
   const [editIndex, setEditIndex] = useState<number | null>(null);
-  const [skpList, setSkpList] = useState<SKPItem[]>([
-    {
-      tanggal: "2025-10-01",
-      pilar: "BIGGER",
-      indikator: "Jumlah Produk Pembelajaran dalam Corpu LAN",
-      targetVolume: 2,
-      targetSatuan: "produk",
-      updateVolume: 1,
-      updateSatuan: "produk",
-      kendala: "Belum ada modul pembelajaran terbaru."
-    },
-    {
-      tanggal: "2025-10-02",
-      pilar: "SMARTER",
-      indikator: "Jumlah Produk hukum yang ditetapkan oleh Kepala LAN",
-      targetVolume: 19,
-      targetSatuan: "produk hukum",
-      updateVolume: 10,
-      updateSatuan: "produk hukum",
-      kendala: "Proses legalisasi masih berjalan."
-    },
-    {
-      tanggal: "2025-10-03",
-      pilar: "BETTER",
-      indikator: "Jumlah Mitra Kerja yang berkaitan dengan layanan Biro HOS",
-      targetVolume: 30,
-      targetSatuan: "mitra kerja",
-      updateVolume: 20,
-      updateSatuan: "mitra kerja",
-      kendala: "Beberapa mitra belum konfirmasi kerjasama."
-    },
-    {
-      tanggal: "2025-10-04",
-      pilar: "BETTER",
-      indikator: "Jumlah Mitra Kerja yang berkaitan dengan layanan Biro HOS",
-      targetVolume: 40,
-      targetSatuan: "mitra kerja",
-      updateVolume: 25,
-      updateSatuan: "mitra kerja",
-      kendala: "Kendala komunikasi dengan mitra baru."
-    },
-  ]);
+  const [skpList, setSkpList] = useState<SKPItem[]>([]);
+  // Mapping data chart agar X adalah tanggal dan tiap pilar jadi line
+  const chartData = React.useMemo(() => {
+    // Group by tanggal dan pilar, untuk 3 chart terpisah
+    const bigger: { tanggal: string; target: number; update: number; percent: number }[] = [];
+    const smarter: { tanggal: string; target: number; update: number; percent: number }[] = [];
+    const better: { tanggal: string; target: number; update: number; percent: number }[] = [];
+    const byPilar: Record<string, { [tgl: string]: { tanggal: string; target: number; update: number; percent: number } }> = {
+      BIGGER: {}, SMARTER: {}, BETTER: {}
+    };
+    skpList.forEach(item => {
+      const tgl = item.tanggal.slice(0, 10);
+      const pilar = item.pilar.toUpperCase();
+      if (pilar === "BIGGER" || pilar === "SMARTER" || pilar === "BETTER") {
+        if (!byPilar[pilar][tgl]) byPilar[pilar][tgl] = { tanggal: tgl, target: 0, update: 0, percent: 0 };
+        byPilar[pilar][tgl].target = item.targetVolume;
+        byPilar[pilar][tgl].update = item.updateVolume;
+        byPilar[pilar][tgl].percent = item.targetVolume > 0 ? Math.round((item.updateVolume / item.targetVolume) * 100) : 0;
+      }
+    });
+    bigger.push(...Object.values(byPilar.BIGGER).sort((a, b) => a.tanggal.localeCompare(b.tanggal)));
+    smarter.push(...Object.values(byPilar.SMARTER).sort((a, b) => a.tanggal.localeCompare(b.tanggal)));
+    better.push(...Object.values(byPilar.BETTER).sort((a, b) => a.tanggal.localeCompare(b.tanggal)));
+    return { bigger, smarter, better };
+  }, [skpList]);
+
+  useEffect(() => {
+    const unitKerjaId = localStorage.getItem("id");
+    if (!unitKerjaId) return;
+    fetch(`/api/skp_generik/${unitKerjaId}`)
+      .then(res => res.json())
+      .then(data => {
+        const mapped = Array.isArray(data)
+          ? data.map((item: { [key: string]: unknown }) => ({
+              tanggal: typeof item.tanggal === "string" ? item.tanggal : "",
+              pilar: typeof item.pilar === "string" ? item.pilar : "",
+              indikator: typeof item.indikator === "string" ? item.indikator : "",
+              targetVolume: typeof item.target_volume === "number" ? item.target_volume : Number(item.target_volume) || 0,
+              targetSatuan: typeof item.target_satuan === "string" ? item.target_satuan : "",
+              updateVolume: typeof item.update_volume === "number" ? item.update_volume : Number(item.update_volume) || 0,
+              updateSatuan: typeof item.update_satuan === "string" ? item.update_satuan : "",
+              kendala: typeof item.kendala === "string" ? item.kendala : "",
+            }))
+          : [];
+        setSkpList(mapped);
+      });
+  }, []);
 
   const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -126,20 +132,52 @@ export default function SKPGenerikPage() {
       </div>
 
       {/* Chart Line Perbandingan Target dan Realisasi */}
-      <div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-        <h2 className="text-xl font-bold mb-4 text-blue-600 flex items-center">
-          <svg className="w-6 h-6 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3v18h18" /></svg>
-          Perbandingan Target & Realisasi
-        </h2>
-        <div className="h-[300px]">
-          <ResponsiveContainer width="100%" height="100%">
-            <LineChart data={skpList} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-              <XAxis dataKey="pilar" tick={{ fontSize: 14 }} />
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        {/* Chart BIGGER */}
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-lg font-bold mb-2 text-blue-700">BIGGER</h2>
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={chartData.bigger} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+              <XAxis dataKey="tanggal" tick={{ fontSize: 12 }} />
               <YAxis tick={{ fontSize: 12 }} />
-              <Tooltip contentStyle={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }} />
-              <Legend />
-              <Line type="monotone" dataKey="targetVolume" name="Target" stroke="#2563eb" strokeWidth={2} />
-              <Line type="monotone" dataKey="updateVolume" name="Realisasi" stroke="#22c55e" strokeWidth={2} />
+              <Tooltip />
+              <Legend wrapperStyle={{ fontWeight: 'bold', fontSize: 13 }} />
+              <Line type="monotone" dataKey="target" name="Target" stroke="#1d4ed8" strokeWidth={2} connectNulls strokeDasharray="6 3" />
+              <Line type="monotone" dataKey="update" name="Update" stroke="#3b82f6" strokeWidth={3} connectNulls />
+              <Line type="monotone" dataKey="percent" name="% Capaian" stroke="#f43f5e" strokeWidth={2} connectNulls yAxisId="right" />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} domain={[0, 100]} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        {/* Chart SMARTER */}
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-lg font-bold mb-2 text-green-700">SMARTER</h2>
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={chartData.smarter} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+              <XAxis dataKey="tanggal" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip />
+              <Legend wrapperStyle={{ fontWeight: 'bold', fontSize: 13 }} />
+              <Line type="monotone" dataKey="target" name="Target" stroke="#059669" strokeWidth={2} connectNulls strokeDasharray="6 3" />
+              <Line type="monotone" dataKey="update" name="Update" stroke="#22c55e" strokeWidth={3} connectNulls />
+              <Line type="monotone" dataKey="percent" name="% Capaian" stroke="#f43f5e" strokeWidth={2} connectNulls yAxisId="right" />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} domain={[0, 100]} />
+            </LineChart>
+          </ResponsiveContainer>
+        </div>
+        {/* Chart BETTER */}
+        <div className="bg-white rounded-xl shadow-lg p-6">
+          <h2 className="text-lg font-bold mb-2 text-yellow-700">BETTER</h2>
+          <ResponsiveContainer width="100%" height={250}>
+            <LineChart data={chartData.better} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+              <XAxis dataKey="tanggal" tick={{ fontSize: 12 }} />
+              <YAxis tick={{ fontSize: 12 }} />
+              <Tooltip />
+              <Legend wrapperStyle={{ fontWeight: 'bold', fontSize: 13 }} />
+              <Line type="monotone" dataKey="target" name="Target" stroke="#b45309" strokeWidth={2} connectNulls strokeDasharray="6 3" />
+              <Line type="monotone" dataKey="update" name="Update" stroke="#f59e42" strokeWidth={3} connectNulls />
+              <Line type="monotone" dataKey="percent" name="% Capaian" stroke="#f43f5e" strokeWidth={2} connectNulls yAxisId="right" />
+              <YAxis yAxisId="right" orientation="right" tick={{ fontSize: 12 }} domain={[0, 100]} />
             </LineChart>
           </ResponsiveContainer>
         </div>
@@ -167,8 +205,10 @@ export default function SKPGenerikPage() {
                 <th className="px-4 py-2 border">Tanggal</th>
                 <th className="px-4 py-2 border">Pilar</th>
                 <th className="px-4 py-2 border">Indikator</th>
-                <th className="px-4 py-2 border">Target</th>
-                <th className="px-4 py-2 border">Update</th>
+                <th className="px-4 py-2 border">Target Volume</th>
+                <th className="px-4 py-2 border">Target Satuan</th>
+                <th className="px-4 py-2 border">Update Volume</th>
+                <th className="px-4 py-2 border">Update Satuan</th>
                 <th className="px-4 py-2 border">Kendala</th>
                 <th className="px-4 py-2 border">Progress</th>
                 <th className="px-4 py-2 border">Aksi</th>
@@ -177,7 +217,7 @@ export default function SKPGenerikPage() {
             <tbody>
               {skpList.length === 0 ? (
                 <tr>
-                  <td colSpan={7} className="text-center py-4 text-gray-500 italic">Belum ada data</td>
+                  <td colSpan={10} className="text-center py-4 text-gray-500 italic">Belum ada data</td>
                 </tr>
               ) : (
                 skpList.map((item, index) => {
@@ -189,8 +229,10 @@ export default function SKPGenerikPage() {
                       <td className="px-4 py-2 border">{item.tanggal}</td>
                       <td className="px-4 py-2 border">{item.pilar}</td>
                       <td className="px-4 py-2 border">{item.indikator}</td>
-                      <td className="px-4 py-2 border">{target} {item.targetSatuan}</td>
-                      <td className="px-4 py-2 border">{update} {item.updateSatuan}</td>
+                      <td className="px-4 py-2 border">{target}</td>
+                      <td className="px-4 py-2 border">{item.targetSatuan}</td>
+                      <td className="px-4 py-2 border">{update}</td>
+                      <td className="px-4 py-2 border">{item.updateSatuan}</td>
                       <td className="px-4 py-2 border">{item.kendala || '-'}</td>
                       <td className="px-4 py-2 border">
                         <div className="w-full bg-gray-200 rounded-full h-2">
@@ -248,7 +290,7 @@ export default function SKPGenerikPage() {
                   name="tanggal"
                   className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
                   defaultValue={
-                    editIndex !== null ? skpList[editIndex].tanggal : ""
+                    editIndex !== null && skpList[editIndex] ? skpList[editIndex].tanggal : ""
                   }
                 />
               </div>
@@ -265,7 +307,7 @@ export default function SKPGenerikPage() {
                   name="pilar"
                   className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
                   defaultValue={
-                    editIndex !== null ? skpList[editIndex].pilar : "BIGGER"
+                    editIndex !== null && skpList[editIndex] ? skpList[editIndex].pilar : "BIGGER"
                   }
                 >
                   <option value="BIGGER">BIGGER</option>
@@ -288,7 +330,7 @@ export default function SKPGenerikPage() {
                   className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
                   placeholder="Masukkan indikator kinerja..."
                   defaultValue={
-                    editIndex !== null ? skpList[editIndex].indikator : ""
+                    editIndex !== null && skpList[editIndex] ? skpList[editIndex].indikator : ""
                   }
                 />
               </div>
@@ -306,7 +348,7 @@ export default function SKPGenerikPage() {
                   className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
                   placeholder="Masukkan kendala (jika ada)..."
                   defaultValue={
-                    editIndex !== null ? skpList[editIndex].kendala : ""
+                    editIndex !== null && skpList[editIndex] ? skpList[editIndex].kendala : ""
                   }
                 />
               </div>
@@ -325,7 +367,7 @@ export default function SKPGenerikPage() {
                     name="targetVolume"
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
                     defaultValue={
-                      editIndex !== null ? skpList[editIndex].targetVolume : ""
+                      editIndex !== null && skpList[editIndex] ? skpList[editIndex].targetVolume : ""
                     }
                   />
                 </div>
@@ -342,7 +384,7 @@ export default function SKPGenerikPage() {
                     name="targetSatuan"
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
                     defaultValue={
-                      editIndex !== null ? skpList[editIndex].targetSatuan : ""
+                      editIndex !== null && skpList[editIndex] ? skpList[editIndex].targetSatuan : ""
                     }
                   />
                 </div>
@@ -362,7 +404,7 @@ export default function SKPGenerikPage() {
                     name="updateVolume"
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
                     defaultValue={
-                      editIndex !== null ? skpList[editIndex].updateVolume : ""
+                      editIndex !== null && skpList[editIndex] ? skpList[editIndex].updateVolume : ""
                     }
                   />
                 </div>
@@ -379,7 +421,7 @@ export default function SKPGenerikPage() {
                     name="updateSatuan"
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
                     defaultValue={
-                      editIndex !== null ? skpList[editIndex].updateSatuan : ""
+                      editIndex !== null && skpList[editIndex] ? skpList[editIndex].updateSatuan : ""
                     }
                   />
                 </div>

@@ -87,26 +87,57 @@ async function handlePut(unit_id: number, req: NextApiRequest, res: NextApiRespo
       return res.status(400).json({ error: 'Missing id for update' });
     }
 
-    // Logic untuk anggaran_cair berdasarkan status
-    let finalAnggaranCair = anggaran_cair || anggaran_rencana;
-    if (['Dibatalkan', 'Ditunda', 'Reschedule'].includes(status)) {
-      finalAnggaranCair = 0;
-    }
+    // Check if this is a status-only update (drag and drop)
+    const isStatusOnlyUpdate = status && !bulan && !minggu && !kegiatan && !jenis_belanja && !anggaran_rencana && anggaran_cair === undefined;
+    
+    if (isStatusOnlyUpdate) {
+      // For status-only updates, fetch existing data first
+      const existingData = await prisma.rencana_mingguan.findUnique({
+        where: { id: parseInt(id) }
+      });
 
-    const updatedData = await prisma.rencana_mingguan.update({
-      where: { id: parseInt(id) },
-      data: {
-        bulan: parseInt(bulan),
-        minggu: parseInt(minggu),
-        kegiatan,
-        jenis_belanja,
-        anggaran_rencana: parseFloat(anggaran_rencana),
-        anggaran_cair: parseFloat(finalAnggaranCair),
-        status
+      if (!existingData) {
+        return res.status(404).json({ error: 'Data not found' });
       }
-    });
 
-    return res.status(200).json({ data: updatedData });
+      // Logic untuk anggaran_cair berdasarkan status
+      let finalAnggaranCair = existingData.anggaran_cair;
+      if (['Dibatalkan', 'Ditunda', 'Reschedule'].includes(status)) {
+        finalAnggaranCair = 0;
+      }
+
+      const updatedData = await prisma.rencana_mingguan.update({
+        where: { id: parseInt(id) },
+        data: {
+          status,
+          anggaran_cair: finalAnggaranCair
+        }
+      });
+
+      return res.status(200).json({ data: updatedData });
+    } else {
+      // For complete updates (form submissions)
+      // Logic untuk anggaran_cair berdasarkan status
+      let finalAnggaranCair = anggaran_cair || anggaran_rencana;
+      if (['Dibatalkan', 'Ditunda', 'Reschedule'].includes(status)) {
+        finalAnggaranCair = 0;
+      }
+
+      const updatedData = await prisma.rencana_mingguan.update({
+        where: { id: parseInt(id) },
+        data: {
+          bulan: parseInt(bulan),
+          minggu: parseInt(minggu),
+          kegiatan,
+          jenis_belanja,
+          anggaran_rencana: parseFloat(anggaran_rencana),
+          anggaran_cair: parseFloat(finalAnggaranCair),
+          status
+        }
+      });
+
+      return res.status(200).json({ data: updatedData });
+    }
   } catch (error) {
     console.error('Error updating rencana mingguan:', error);
     return res.status(500).json({ error: 'Failed to update data' });

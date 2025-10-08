@@ -11,7 +11,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Calendar, DollarSign, CheckCircle, BarChart3, PieChart as PieChartIcon, Edit, Trash2, Plus, TrendingUp, Search, Filter, Clock } from "lucide-react";
+import { Calendar, DollarSign, CheckCircle, BarChart3, PieChart as PieChartIcon, Edit, Trash2, Plus, TrendingUp, Search, Filter, Clock, ChevronDown, ChevronUp, Eye, EyeOff, ChevronLeft, ChevronRight } from "lucide-react";
 import {
   Select,
   SelectTrigger,
@@ -95,6 +95,14 @@ export default function RencanaKegiatanPage() {
   const [filterJenisBelanja, setFilterJenisBelanja] = useState("all")
   const [sortField, setSortField] = useState<keyof RencanaMingguan | "">("bulan")
   const [sortDirection, setSortDirection] = useState<"asc" | "desc">("desc")
+
+  // Collapsible weeks state
+  const [collapsedWeeks, setCollapsedWeeks] = useState<Set<string>>(new Set())
+  const [showOnlyRecentWeeks, setShowOnlyRecentWeeks] = useState(true)
+  
+  // Pagination state for older weeks
+  const [currentOlderWeekPage, setCurrentOlderWeekPage] = useState(1)
+  const olderWeeksPerPage = 10
 
   // Handle client-side mounting
   useEffect(() => {
@@ -416,13 +424,14 @@ export default function RencanaKegiatanPage() {
       })
 
       if (response.ok) {
-        // const updatedItem = await response.json()
+        const updatedItem = await response.json()
         setData(prev => prev.map(item => 
-          item.id === kegiatanId ? { ...item, status: newStatus } : item
+          item.id === kegiatanId ? updatedItem.data : item
         ))
       } else {
-        console.error('Failed to update kegiatan status')
-        alert('Gagal mengupdate status kegiatan')
+        const errorData = await response.json()
+        console.error('Failed to update kegiatan status:', errorData)
+        alert(`Gagal mengupdate status kegiatan: ${errorData.error || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('Error updating kegiatan status:', error)
@@ -491,6 +500,102 @@ export default function RencanaKegiatanPage() {
       console.log(`Kegiatan "${draggedItem.kegiatan}" dipindahkan ke ${statusText[columnStatus]}`)
     }
     setDraggedItem(null)
+  }
+
+  // Group kegiatan by week for organized display
+  const getKegiatanGroupedByWeek = (status: string) => {
+    const kegiatanByStatus = sortedData.filter(item => {
+      // Handle legacy "Ditunda" status as "Reschedule"
+      if (status === 'Reschedule') {
+        return item.status === 'Reschedule' || item.status === 'Ditunda'
+      }
+      return item.status === status
+    })
+
+    // Group by week (bulan + minggu combination)
+    const groupedByWeek = kegiatanByStatus.reduce((acc, item) => {
+      const weekKey = `${item.bulan}-${item.minggu}`
+      if (!acc[weekKey]) {
+        acc[weekKey] = {
+          weekInfo: { bulan: item.bulan, minggu: item.minggu },
+          items: []
+        }
+      }
+      acc[weekKey].items.push(item)
+      return acc
+    }, {} as Record<string, { weekInfo: { bulan: number, minggu: number }, items: RencanaMingguan[] }>)
+
+    // Convert to array and sort by bulan desc, then minggu desc
+    const sortedWeeks = Object.entries(groupedByWeek)
+      .map(([weekKey, data]) => ({ weekKey, ...data }))
+      .sort((a, b) => {
+        // Primary sort by month (descending)
+        const monthDiff = b.weekInfo.bulan - a.weekInfo.bulan
+        if (monthDiff !== 0) return monthDiff
+        
+        // Secondary sort by week (descending) if months are equal
+        return b.weekInfo.minggu - a.weekInfo.minggu
+      })
+
+    return sortedWeeks
+  }
+
+  // Get recent weeks (latest 3) and older weeks with pagination
+  const getWeeksToDisplay = (status: string) => {
+    const allWeeks = getKegiatanGroupedByWeek(status)
+    
+    if (showOnlyRecentWeeks) {
+      const recentWeeks = allWeeks.slice(0, 3)
+      const olderWeeks = allWeeks.slice(3)
+      return { recentWeeks, olderWeeks, totalOlderWeeks: olderWeeks.length }
+    }
+    
+    return { recentWeeks: allWeeks, olderWeeks: [], totalOlderWeeks: 0 }
+  }
+
+  // Get paginated older weeks for display
+  const getPaginatedOlderWeeks = () => {
+    // Collect all older weeks from all statuses
+    const allOlderWeeksMap = new Map<string, { bulan: number, minggu: number }>()
+    
+    ;['Direncanakan', 'Dilaksanakan', 'Reschedule', 'Dibatalkan'].forEach(status => {
+      const { olderWeeks } = getWeeksToDisplay(status)
+      olderWeeks.forEach(week => {
+        allOlderWeeksMap.set(week.weekKey, week.weekInfo)
+      })
+    })
+
+    // Sort all older weeks
+    const sortedOlderWeeks = Array.from(allOlderWeeksMap.entries())
+      .map(([weekKey, weekInfo]) => ({ weekKey, weekInfo }))
+      .sort((a, b) => {
+        const monthDiff = b.weekInfo.bulan - a.weekInfo.bulan
+        if (monthDiff !== 0) return monthDiff
+        return b.weekInfo.minggu - a.weekInfo.minggu
+      })
+
+    // Apply pagination
+    const startIndex = (currentOlderWeekPage - 1) * olderWeeksPerPage
+    const endIndex = startIndex + olderWeeksPerPage
+    const paginatedWeeks = sortedOlderWeeks.slice(startIndex, endIndex)
+    
+    return {
+      weeks: paginatedWeeks,
+      totalWeeks: sortedOlderWeeks.length,
+      totalPages: Math.ceil(sortedOlderWeeks.length / olderWeeksPerPage),
+      hasMore: sortedOlderWeeks.length > olderWeeksPerPage
+    }
+  }
+
+  // Toggle collapsed state for week
+  const toggleWeekCollapse = (weekKey: string) => {
+    const newCollapsed = new Set(collapsedWeeks)
+    if (newCollapsed.has(weekKey)) {
+      newCollapsed.delete(weekKey)
+    } else {
+      newCollapsed.add(weekKey)
+    }
+    setCollapsedWeeks(newCollapsed)
   }
 
   // Get kegiatan by status
@@ -875,146 +980,498 @@ export default function RencanaKegiatanPage() {
           </div>
         </div>
         {/* Board/Column View */}
-        <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
-          {[
-            { status: 'Direncanakan', title: 'Direncanakan', icon: Calendar, color: 'blue' },
-            { status: 'Dilaksanakan', title: 'Dilaksanakan', icon: CheckCircle, color: 'green' },
-            { status: 'Reschedule', title: 'Reschedule', icon: Clock, color: 'yellow' },
-            { status: 'Dibatalkan', title: 'Dibatalkan', icon: Trash2, color: 'red' }
-          ].map(column => {
-            const columnItems = getKegiatanByStatus(column.status)
-            const IconComponent = column.icon
-            const isDragOver = dragOverColumn === column.status
+        <div className="space-y-6">
+          {/* Get all unique weeks from all statuses */}
+          {(() => {
+            // Collect all weeks from all statuses
+            const allWeeksMap = new Map<string, { bulan: number, minggu: number }>()
             
+            ;['Direncanakan', 'Dilaksanakan', 'Reschedule', 'Dibatalkan'].forEach(status => {
+              const weeks = getKegiatanGroupedByWeek(status)
+              weeks.forEach(week => {
+                allWeeksMap.set(week.weekKey, week.weekInfo)
+              })
+            })
+
+            // Sort all weeks by bulan desc, then minggu desc
+            const sortedAllWeeks = Array.from(allWeeksMap.entries())
+              .map(([weekKey, weekInfo]) => ({ weekKey, weekInfo }))
+              .sort((a, b) => {
+                const monthDiff = b.weekInfo.bulan - a.weekInfo.bulan
+                if (monthDiff !== 0) return monthDiff
+                return b.weekInfo.minggu - a.weekInfo.minggu
+              })
+
+            const recentAllWeeks = showOnlyRecentWeeks ? sortedAllWeeks.slice(0, 3) : sortedAllWeeks
+            const { weeks: paginatedOlderWeeks, totalWeeks: totalOlderWeeks, totalPages: totalOlderPages, hasMore: hasMoreOlderWeeks } = showOnlyRecentWeeks ? getPaginatedOlderWeeks() : { weeks: [], totalWeeks: 0, totalPages: 0, hasMore: false }
+
             return (
-              <div 
-                key={column.status} 
-                className={`bg-gray-50 rounded-lg p-4 transition-all duration-200 ${
-                  isDragOver ? 'bg-blue-50 border-2 border-blue-300 border-dashed scale-[1.02]' : ''
-                }`}
-                onDragOver={handleDragOver}
-                onDragEnter={(e) => handleDragEnter(e, column.status)}
-                onDragLeave={handleDragLeave}
-                onDrop={(e) => handleDrop(e, column.status)}
-              >
-                <div className="flex items-center justify-between mb-4">
-                  <div className="flex items-center">
-                    <IconComponent className={`h-5 w-5 mr-2 ${
-                      column.color === 'blue' ? 'text-blue-600' :
-                      column.color === 'green' ? 'text-green-600' :
-                      column.color === 'yellow' ? 'text-yellow-600' :
-                      column.color === 'red' ? 'text-red-600' : 'text-gray-600'
-                    }`} />
-                    <h3 className="font-semibold text-gray-900">{column.title}</h3>
-                  </div>
-                  <span className={`px-2 py-1 rounded text-xs font-semibold ${
-                    column.color === 'blue' ? 'bg-blue-100 text-blue-600' :
-                    column.color === 'green' ? 'bg-green-100 text-green-600' :
-                    column.color === 'yellow' ? 'bg-yellow-100 text-yellow-600' :
-                    column.color === 'red' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
-                  }`}>
-                    {columnItems.length}
-                  </span>
-                </div>
-                
-                <div className="space-y-3 min-h-[300px]">
-                  {columnItems.map(item => {
-                    const isBeingDragged = draggedItem?.id === item.id
-                    
+              <>
+                {/* Column Headers */}
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 mb-4">
+                  {[
+                    { status: 'Direncanakan', title: 'Direncanakan', icon: Calendar, color: 'blue' },
+                    { status: 'Dilaksanakan', title: 'Dilaksanakan', icon: CheckCircle, color: 'green' },
+                    { status: 'Reschedule', title: 'Reschedule', icon: Clock, color: 'yellow' },
+                    { status: 'Dibatalkan', title: 'Dibatalkan', icon: Trash2, color: 'red' }
+                  ].map(column => {
+                    const { recentWeeks, olderWeeks } = getWeeksToDisplay(column.status)
+                    const totalItems = recentWeeks.reduce((sum, week) => sum + week.items.length, 0) + 
+                                     olderWeeks.reduce((sum, week) => sum + week.items.length, 0)
+                    const IconComponent = column.icon
+
                     return (
-                      <div
-                        key={item.id}
-                        draggable
-                        onDragStart={(e) => handleDragStart(e, item)}
-                        onDragEnd={handleDragEnd}
-                        className={`bg-white rounded-lg shadow-md border border-gray-200 p-4 cursor-move hover:shadow-lg transition-all duration-200 group ${
-                          isBeingDragged ? 'opacity-50 rotate-2' : 'hover:scale-[1.02]'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
-                            {getBulanLabel(item.bulan)} - Minggu {item.minggu}
-                          </span>
-                          <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleEdit(item)
-                              }}
-                              className="h-6 w-6 p-0 hover:bg-blue-50"
-                            >
-                              <Edit className="w-3 h-3 text-blue-600" />
-                            </Button>
-                            <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={(e) => {
-                                e.stopPropagation()
-                                handleDelete(item.id)
-                              }}
-                              className="h-6 w-6 p-0 hover:bg-red-50"
-                            >
-                              <Trash2 className="w-3 h-3 text-red-600" />
-                            </Button>
+                      <div key={column.status} className="bg-gray-50 rounded-lg p-4">
+                        <div className="flex items-center justify-between mb-4">
+                          <div className="flex items-center">
+                            <IconComponent className={`h-5 w-5 mr-2 ${
+                              column.color === 'blue' ? 'text-blue-600' :
+                              column.color === 'green' ? 'text-green-600' :
+                              column.color === 'yellow' ? 'text-yellow-600' :
+                              column.color === 'red' ? 'text-red-600' : 'text-gray-600'
+                            }`} />
+                            <h3 className="font-semibold text-gray-900">{column.title}</h3>
                           </div>
-                        </div>
-                        
-                        <h4 className="font-semibold text-sm text-gray-800 mb-2 line-clamp-2 break-words">
-                          {item.kegiatan}
-                        </h4>
-                        
-                        <div className="text-xs text-gray-500 mb-2">
-                          {getJenisBelanjaLabel(item.jenis_belanja)}
-                        </div>
-                        
-                        <div className="space-y-1 text-xs">
-                          <div className="flex items-center justify-between">
-                            <span className="text-gray-600">Rencana:</span>
-                            <span className="font-medium text-blue-600">
-                              Rp {(item.anggaran_rencana / 1000000).toFixed(1)}M
+                          <div className="flex items-center gap-2">
+                            <span className={`px-2 py-1 rounded text-xs font-semibold ${
+                              column.color === 'blue' ? 'bg-blue-100 text-blue-600' :
+                              column.color === 'green' ? 'bg-green-100 text-green-600' :
+                              column.color === 'yellow' ? 'bg-yellow-100 text-yellow-600' :
+                              column.color === 'red' ? 'bg-red-100 text-red-600' : 'bg-gray-100 text-gray-600'
+                            }`}>
+                              {totalItems}
                             </span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <span className="text-gray-600">Realisasi:</span>
-                            <span className="font-medium text-green-600">
-                              Rp {(item.anggaran_cair / 1000000).toFixed(1)}M
-                            </span>
+                            {column.status === 'Direncanakan' && hasMoreOlderWeeks && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => setShowOnlyRecentWeeks(!showOnlyRecentWeeks)}
+                                className="h-6 w-6 p-0"
+                                title={showOnlyRecentWeeks ? 'Tampilkan semua minggu' : 'Tampilkan 3 minggu terakhir'}
+                              >
+                                {showOnlyRecentWeeks ? <Eye className="w-3 h-3" /> : <EyeOff className="w-3 h-3" />}
+                              </Button>
+                            )}
                           </div>
                         </div>
-                        
-                        {/* Progress bar */}
-                        {item.anggaran_rencana > 0 && (
-                          <div className="mt-3">
-                            <div className="w-full bg-gray-200 rounded-full h-1.5">
-                              <div 
-                                className="bg-green-500 h-1.5 rounded-full transition-all duration-300" 
-                                style={{ 
-                                  width: `${Math.min((item.anggaran_cair / item.anggaran_rencana) * 100, 100)}%` 
-                                }}
-                              ></div>
-                            </div>
-                            <div className="flex justify-between text-xs text-gray-500 mt-1">
-                              <span>Progress</span>
-                              <span>{Math.round((item.anggaran_cair / item.anggaran_rencana) * 100)}%</span>
-                            </div>
-                          </div>
-                        )}
                       </div>
                     )
                   })}
-                  
-                  {columnItems.length === 0 && (
-                    <div className="text-center py-8 text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-lg">
-                      <IconComponent className="w-8 h-8 mx-auto mb-2 opacity-50" />
-                      Belum ada kegiatan {column.title.toLowerCase()}
-                    </div>
-                  )}
                 </div>
-              </div>
+
+                {/* Recent Weeks Content */}
+                <div className="space-y-6">
+                  {recentAllWeeks.map((weekData, weekIndex) => (
+                    <div key={weekData.weekKey}>
+                      {/* Week Separator Line */}
+                      {weekIndex > 0 && (
+                        <div className="border-t-2 border-gray-300 mb-6 relative">
+                          <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 bg-gray-50 px-3">
+                            <div className="text-xs text-gray-500 font-medium">━━━</div>
+                          </div>
+                        </div>
+                      )}
+
+                      {/* Week Header */}
+                      <div className="text-center mb-4">
+                        <span className="inline-block text-sm font-semibold text-gray-700 bg-white px-4 py-2 rounded-lg shadow-sm border border-gray-200">
+                          {getBulanLabel(weekData.weekInfo.bulan)} - Minggu {weekData.weekInfo.minggu}
+                        </span>
+                      </div>
+
+                      {/* Week Content Grid */}
+                      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                        {[
+                          { status: 'Direncanakan', color: 'blue' },
+                          { status: 'Dilaksanakan', color: 'green' },
+                          { status: 'Reschedule', color: 'yellow' },
+                          { status: 'Dibatalkan', color: 'red' }
+                        ].map(column => {
+                          const weekItems = getKegiatanGroupedByWeek(column.status)
+                            .find(week => week.weekKey === weekData.weekKey)?.items || []
+                          const isDragOver = dragOverColumn === column.status
+
+                          return (
+                            <div
+                              key={column.status}
+                              className={`bg-gray-50 rounded-lg p-4 min-h-[200px] transition-all duration-200 ${
+                                isDragOver ? 'bg-blue-50 border-2 border-blue-300 border-dashed scale-[1.02]' : ''
+                              }`}
+                              onDragOver={handleDragOver}
+                              onDragEnter={(e) => handleDragEnter(e, column.status)}
+                              onDragLeave={handleDragLeave}
+                              onDrop={(e) => handleDrop(e, column.status)}
+                            >
+                              <div className="space-y-3">
+                                {weekItems.map(item => {
+                                  const isBeingDragged = draggedItem?.id === item.id
+                                  
+                                  return (
+                                    <div
+                                      key={item.id}
+                                      draggable
+                                      onDragStart={(e) => handleDragStart(e, item)}
+                                      onDragEnd={handleDragEnd}
+                                      className={`bg-white rounded-lg shadow-md border border-gray-200 p-3 cursor-move hover:shadow-lg transition-all duration-200 group ${
+                                        isBeingDragged ? 'opacity-50 rotate-2' : 'hover:scale-[1.02]'
+                                      }`}
+                                    >
+                                      <div className="flex items-center justify-between mb-2">
+                                        <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                          ID: {item.id}
+                                        </span>
+                                        <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              handleEdit(item)
+                                            }}
+                                            className="h-6 w-6 p-0 hover:bg-blue-50"
+                                          >
+                                            <Edit className="w-3 h-3 text-blue-600" />
+                                          </Button>
+                                          <Button
+                                            variant="ghost"
+                                            size="sm"
+                                            onClick={(e) => {
+                                              e.stopPropagation()
+                                              handleDelete(item.id)
+                                            }}
+                                            className="h-6 w-6 p-0 hover:bg-red-50"
+                                          >
+                                            <Trash2 className="w-3 h-3 text-red-600" />
+                                          </Button>
+                                        </div>
+                                      </div>
+                                      
+                                      <h4 className="font-semibold text-sm text-gray-800 mb-2 line-clamp-2 break-words">
+                                        {item.kegiatan}
+                                      </h4>
+                                      
+                                      <div className="text-xs text-gray-500 mb-2">
+                                        {getJenisBelanjaLabel(item.jenis_belanja)}
+                                      </div>
+                                      
+                                      <div className="space-y-1 text-xs">
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-gray-600">Rencana:</span>
+                                          <span className="font-medium text-blue-600">
+                                            Rp {(item.anggaran_rencana / 1000000).toFixed(1)}M
+                                          </span>
+                                        </div>
+                                        <div className="flex items-center justify-between">
+                                          <span className="text-gray-600">Realisasi:</span>
+                                          <span className="font-medium text-green-600">
+                                            Rp {(item.anggaran_cair / 1000000).toFixed(1)}M
+                                          </span>
+                                        </div>
+                                      </div>
+                                      
+                                      {/* Progress bar */}
+                                      {item.anggaran_rencana > 0 && (
+                                        <div className="mt-2">
+                                          <div className="w-full bg-gray-200 rounded-full h-1">
+                                            <div 
+                                              className="bg-green-500 h-1 rounded-full transition-all duration-300" 
+                                              style={{ 
+                                                width: `${Math.min((item.anggaran_cair / item.anggaran_rencana) * 100, 100)}%` 
+                                              }}
+                                            ></div>
+                                          </div>
+                                          <div className="text-xs text-gray-500 mt-1 text-right">
+                                            {Math.round((item.anggaran_cair / item.anggaran_rencana) * 100)}%
+                                          </div>
+                                        </div>
+                                      )}
+                                    </div>
+                                  )
+                                })}
+                                
+                                {weekItems.length === 0 && (
+                                  <div className="text-center py-6 text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-lg">
+                                    <div className="text-xs">Tidak ada kegiatan</div>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          )
+                        })}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+
+                {/* Older Weeks (Collapsible with Pagination) */}
+                {!showOnlyRecentWeeks && hasMoreOlderWeeks && (
+                  <div className="border-t-2 border-gray-400 pt-6 mt-8">
+                    <div className="flex items-center justify-between mb-6">
+                      <span className="inline-block text-sm font-semibold text-gray-600 bg-gray-100 px-4 py-2 rounded-lg">
+                        Minggu Sebelumnya ({totalOlderWeeks})
+                      </span>
+                      
+                      {/* Pagination Controls */}
+                      {totalOlderPages > 1 && (
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-gray-500">
+                            Halaman {currentOlderWeekPage} dari {totalOlderPages}
+                          </span>
+                          <div className="flex items-center gap-1">
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentOlderWeekPage(Math.max(1, currentOlderWeekPage - 1))}
+                              disabled={currentOlderWeekPage === 1}
+                              className="h-7 w-7 p-0"
+                            >
+                              <ChevronLeft className="w-3 h-3" />
+                            </Button>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setCurrentOlderWeekPage(Math.min(totalOlderPages, currentOlderWeekPage + 1))}
+                              disabled={currentOlderWeekPage === totalOlderPages}
+                              className="h-7 w-7 p-0"
+                            >
+                              <ChevronRight className="w-3 h-3" />
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                    
+                    <div className="space-y-6">
+                      {paginatedOlderWeeks.map((weekData, weekIndex) => {
+                        const isCollapsed = collapsedWeeks.has(weekData.weekKey)
+                        
+                        return (
+                          <div key={weekData.weekKey}>
+                            {/* Week Separator Line for older weeks */}
+                            {weekIndex > 0 && (
+                              <div className="border-t border-gray-200 mb-4 relative">
+                                <div className="absolute -top-1 left-1/2 transform -translate-x-1/2 bg-gray-50 px-2">
+                                  <div className="text-xs text-gray-400">···</div>
+                                </div>
+                              </div>
+                            )}
+                            
+                            {/* Collapsible Week Header */}
+                            <button
+                              onClick={() => toggleWeekCollapse(weekData.weekKey)}
+                              className="w-full flex items-center justify-center p-3 bg-gray-100 hover:bg-gray-200 rounded-lg transition-colors mb-4"
+                            >
+                              <span className="text-sm font-medium text-gray-700 mr-3">
+                                {getBulanLabel(weekData.weekInfo.bulan)} - Minggu {weekData.weekInfo.minggu}
+                              </span>
+                              <div className="flex items-center gap-2">
+                                {isCollapsed ? 
+                                  <ChevronDown className="w-4 h-4" /> : 
+                                  <ChevronUp className="w-4 h-4" />
+                                }
+                              </div>
+                            </button>
+
+                            {/* Collapsible Week Content */}
+                            {!isCollapsed && (
+                              <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                                {[
+                                  { status: 'Direncanakan', color: 'blue' },
+                                  { status: 'Dilaksanakan', color: 'green' },
+                                  { status: 'Reschedule', color: 'yellow' },
+                                  { status: 'Dibatalkan', color: 'red' }
+                                ].map(column => {
+                                  const weekItems = getKegiatanGroupedByWeek(column.status)
+                                    .find(week => week.weekKey === weekData.weekKey)?.items || []
+                                  const isDragOver = dragOverColumn === column.status
+
+                                  return (
+                                    <div
+                                      key={column.status}
+                                      className={`bg-gray-50 rounded-lg p-3 min-h-[150px] transition-all duration-200 ${
+                                        isDragOver ? 'bg-blue-50 border-2 border-blue-300 border-dashed scale-[1.02]' : ''
+                                      }`}
+                                      onDragOver={handleDragOver}
+                                      onDragEnter={(e) => handleDragEnter(e, column.status)}
+                                      onDragLeave={handleDragLeave}
+                                      onDrop={(e) => handleDrop(e, column.status)}
+                                    >
+                                      <div className="space-y-2">
+                                        {weekItems.map(item => {
+                                          const isBeingDragged = draggedItem?.id === item.id
+                                          
+                                          return (
+                                            <div
+                                              key={item.id}
+                                              draggable
+                                              onDragStart={(e) => handleDragStart(e, item)}
+                                              onDragEnd={handleDragEnd}
+                                              className={`bg-white rounded-lg shadow-sm border border-gray-200 p-2 cursor-move hover:shadow-md transition-all duration-200 group ${
+                                                isBeingDragged ? 'opacity-50 rotate-2' : 'hover:scale-[1.01]'
+                                              }`}
+                                            >
+                                              <div className="flex items-center justify-between mb-1">
+                                                <span className="text-xs font-medium text-blue-600 bg-blue-50 px-2 py-1 rounded">
+                                                  ID: {item.id}
+                                                </span>
+                                                <div className="opacity-0 group-hover:opacity-100 transition-opacity flex gap-1">
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation()
+                                                      handleEdit(item)
+                                                    }}
+                                                    className="h-5 w-5 p-0 hover:bg-blue-50"
+                                                  >
+                                                    <Edit className="w-2 h-2 text-blue-600" />
+                                                  </Button>
+                                                  <Button
+                                                    variant="ghost"
+                                                    size="sm"
+                                                    onClick={(e) => {
+                                                      e.stopPropagation()
+                                                      handleDelete(item.id)
+                                                    }}
+                                                    className="h-5 w-5 p-0 hover:bg-red-50"
+                                                  >
+                                                    <Trash2 className="w-2 h-2 text-red-600" />
+                                                  </Button>
+                                                </div>
+                                              </div>
+                                              
+                                              <h4 className="font-medium text-xs text-gray-800 mb-1 line-clamp-1 break-words">
+                                                {item.kegiatan}
+                                              </h4>
+                                              
+                                              <div className="text-xs text-gray-500 mb-1">
+                                                {getJenisBelanjaLabel(item.jenis_belanja)}
+                                              </div>
+                                              
+                                              <div className="flex items-center justify-between text-xs">
+                                                <span className="text-blue-600 font-medium">
+                                                  Rp {(item.anggaran_rencana / 1000000).toFixed(1)}M
+                                                </span>
+                                                <span className="text-green-600 font-medium">
+                                                  {Math.round((item.anggaran_cair / Math.max(item.anggaran_rencana, 1)) * 100)}%
+                                                </span>
+                                              </div>
+                                            </div>
+                                          )
+                                        })}
+                                        
+                                        {weekItems.length === 0 && (
+                                          <div className="text-center py-4 text-gray-400 text-xs border-2 border-dashed border-gray-200 rounded-lg">
+                                            Tidak ada kegiatan
+                                          </div>
+                                        )}
+                                      </div>
+                                    </div>
+                                  )
+                                })}
+                              </div>
+                            )}
+                          </div>
+                        )
+                      })}
+                    </div>
+                    
+                    {/* Bottom Pagination (if more than 5 pages) */}
+                    {totalOlderPages > 5 && (
+                      <div className="flex justify-center mt-6">
+                        <div className="flex items-center gap-2 bg-white rounded-lg shadow-sm border border-gray-200 p-2">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setCurrentOlderWeekPage(1)}
+                            disabled={currentOlderWeekPage === 1}
+                            className="h-7 px-2 text-xs"
+                          >
+                            First
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setCurrentOlderWeekPage(Math.max(1, currentOlderWeekPage - 1))}
+                            disabled={currentOlderWeekPage === 1}
+                            className="h-7 w-7 p-0"
+                          >
+                            <ChevronLeft className="w-3 h-3" />
+                          </Button>
+                          
+                          <div className="flex items-center gap-1">
+                            {/* Show page numbers around current page */}
+                            {Array.from({ length: Math.min(5, totalOlderPages) }, (_, i) => {
+                              const pageNum = Math.max(1, Math.min(
+                                totalOlderPages - 4,
+                                currentOlderWeekPage - 2
+                              )) + i
+                              
+                              if (pageNum <= totalOlderPages) {
+                                return (
+                                  <Button
+                                    key={pageNum}
+                                    variant={pageNum === currentOlderWeekPage ? "default" : "ghost"}
+                                    size="sm"
+                                    onClick={() => setCurrentOlderWeekPage(pageNum)}
+                                    className="h-7 w-7 p-0 text-xs"
+                                  >
+                                    {pageNum}
+                                  </Button>
+                                )
+                              }
+                              return null
+                            })}
+                          </div>
+                          
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setCurrentOlderWeekPage(Math.min(totalOlderPages, currentOlderWeekPage + 1))}
+                            disabled={currentOlderWeekPage === totalOlderPages}
+                            className="h-7 w-7 p-0"
+                          >
+                            <ChevronRight className="w-3 h-3" />
+                          </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            onClick={() => setCurrentOlderWeekPage(totalOlderPages)}
+                            disabled={currentOlderWeekPage === totalOlderPages}
+                            className="h-7 px-2 text-xs"
+                          >
+                            Last
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Empty State */}
+                {recentAllWeeks.length === 0 && (
+                  <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    {[
+                      { status: 'Direncanakan', title: 'Direncanakan', icon: Calendar },
+                      { status: 'Dilaksanakan', title: 'Dilaksanakan', icon: CheckCircle },
+                      { status: 'Reschedule', title: 'Reschedule', icon: Clock },
+                      { status: 'Dibatalkan', title: 'Dibatalkan', icon: Trash2 }
+                    ].map(column => {
+                      const IconComponent = column.icon
+                      return (
+                        <div key={column.status} className="bg-gray-50 rounded-lg p-4 min-h-[300px]">
+                          <div className="text-center py-8 text-gray-400 text-sm border-2 border-dashed border-gray-200 rounded-lg">
+                            <IconComponent className="w-8 h-8 mx-auto mb-2 opacity-50" />
+                            Belum ada kegiatan {column.title.toLowerCase()}
+                          </div>
+                        </div>
+                      )
+                    })}
+                  </div>
+                )}
+              </>
             )
-          })}
+          })()}
         </div>
 
 

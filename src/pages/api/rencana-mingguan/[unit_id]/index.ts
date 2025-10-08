@@ -53,10 +53,10 @@ async function handlePost(unit_id: number, req: NextApiRequest, res: NextApiResp
     }
 
     // Logic untuk anggaran_cair berdasarkan status
-    let finalAnggaranCair = anggaran_cair || anggaran_rencana;
-    if (['Dibatalkan', 'Ditunda', 'Reschedule'].includes(status)) {
-      finalAnggaranCair = 0;
-    }
+    //let finalAnggaranCair = anggaran_cair || anggaran_rencana;
+    //if (['Dibatalkan', 'Ditunda', 'Reschedule'].includes(status)) {
+    //  finalAnggaranCair = 0.0;
+    //}
 
     const newData = await prisma.rencana_mingguan.create({
       data: {
@@ -66,7 +66,7 @@ async function handlePost(unit_id: number, req: NextApiRequest, res: NextApiResp
         kegiatan,
         jenis_belanja,
         anggaran_rencana: parseFloat(anggaran_rencana),
-        anggaran_cair: parseFloat(finalAnggaranCair),
+        anggaran_cair: parseFloat(anggaran_cair),
         status
       }
     });
@@ -101,16 +101,16 @@ async function handlePut(unit_id: number, req: NextApiRequest, res: NextApiRespo
       }
 
       // Logic untuk anggaran_cair berdasarkan status
-      let finalAnggaranCair = existingData.anggaran_cair;
-      if (['Dibatalkan', 'Ditunda', 'Reschedule'].includes(status)) {
-        finalAnggaranCair = 0;
-      }
+      //let finalAnggaranCair = existingData.anggaran_cair;
+      //if (['Dibatalkan', 'Ditunda', 'Reschedule'].includes(status)) {
+      //  finalAnggaranCair = 0;
+      //}
 
       const updatedData = await prisma.rencana_mingguan.update({
         where: { id: parseInt(id) },
         data: {
           status,
-          anggaran_cair: finalAnggaranCair
+          anggaran_cair: existingData.anggaran_cair
         }
       });
 
@@ -118,10 +118,10 @@ async function handlePut(unit_id: number, req: NextApiRequest, res: NextApiRespo
     } else {
       // For complete updates (form submissions)
       // Logic untuk anggaran_cair berdasarkan status
-      let finalAnggaranCair = anggaran_cair || anggaran_rencana;
-      if (['Dibatalkan', 'Ditunda', 'Reschedule'].includes(status)) {
-        finalAnggaranCair = 0;
-      }
+      //let finalAnggaranCair = anggaran_cair || anggaran_rencana;
+      //if (['Dibatalkan', 'Ditunda', 'Reschedule'].includes(status)) {
+      //  finalAnggaranCair = 0;
+      //}
 
       const updatedData = await prisma.rencana_mingguan.update({
         where: { id: parseInt(id) },
@@ -131,7 +131,7 @@ async function handlePut(unit_id: number, req: NextApiRequest, res: NextApiRespo
           kegiatan,
           jenis_belanja,
           anggaran_rencana: parseFloat(anggaran_rencana),
-          anggaran_cair: parseFloat(finalAnggaranCair),
+          anggaran_cair: parseFloat(anggaran_cair),
           status
         }
       });

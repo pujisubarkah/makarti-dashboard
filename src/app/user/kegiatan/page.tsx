@@ -599,15 +599,6 @@ export default function RencanaKegiatanPage() {
   }
 
   // Get kegiatan by status
-  const getKegiatanByStatus = (status: string) => {
-    return sortedData.filter(item => {
-      // Handle legacy "Ditunda" status as "Reschedule"
-      if (status === 'Reschedule') {
-        return item.status === 'Reschedule' || item.status === 'Ditunda'
-      }
-      return item.status === status
-    })
-  }
 
   const getBulanLabel = (bulan: number) => {
     const bulanObj = bulanOptions.find(b => b.value === bulan)

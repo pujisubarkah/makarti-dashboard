@@ -22,42 +22,61 @@ export default function SKPGenerikPage() {
   const [selectedIndicator, setSelectedIndicator] = useState<string>("");
   const [showUpdateModal, setShowUpdateModal] = useState(false);
   const [updateItemData, setUpdateItemData] = useState<SKPItem | null>(null);
+  const [editingHistoryId, setEditingHistoryId] = useState<string | null>(null);
+  const [editingValue, setEditingValue] = useState<string>("");
   
-  // Mapping data chart untuk rata-rata persentase per tanggal
+  // Mapping data chart untuk rata-rata persentase per tanggal dengan capaian terakhir per indikator
   const averageChartData = React.useMemo(() => {
-    const dataByDate: { [date: string]: { tanggal: string; bigger: number; smarter: number; better: number; count: { bigger: number; smarter: number; better: number } } } = {};
+    if (skpList.length === 0) return [];
+
+    // Get all unique dates and sort them
+    const allDates = [...new Set(skpList.map(item => item.tanggal))].sort();
     
-    skpList.forEach(item => {
-      const tgl = item.tanggal;
-      const pilar = item.pilar.toUpperCase();
-      const percent = item.targetVolume > 0 ? (item.updateVolume / item.targetVolume) * 100 : 0;
+    // Get all unique indicators per pilar
+    const indicatorsByPilar = {
+      BIGGER: [...new Set(skpList.filter(item => item.pilar.toUpperCase() === 'BIGGER').map(item => item.indikator))],
+      SMARTER: [...new Set(skpList.filter(item => item.pilar.toUpperCase() === 'SMARTER').map(item => item.indikator))],
+      BETTER: [...new Set(skpList.filter(item => item.pilar.toUpperCase() === 'BETTER').map(item => item.indikator))]
+    };
+
+    // Function to get latest value for an indicator up to a specific date
+    const getLatestValueUpToDate = (indicator: string, targetDate: string) => {
+      const relevantRecords = skpList
+        .filter(item => item.indikator === indicator && item.tanggal <= targetDate)
+        .sort((a, b) => b.tanggal.localeCompare(a.tanggal));
       
-      if (!dataByDate[tgl]) {
-        dataByDate[tgl] = { tanggal: tgl, bigger: 0, smarter: 0, better: 0, count: { bigger: 0, smarter: 0, better: 0 } };
-      }
+      if (relevantRecords.length === 0) return null;
       
-      if (pilar === "BIGGER") {
-        dataByDate[tgl].bigger += percent;
-        dataByDate[tgl].count.bigger++;
-      } else if (pilar === "SMARTER") {
-        dataByDate[tgl].smarter += percent;
-        dataByDate[tgl].count.smarter++;
-      } else if (pilar === "BETTER") {
-        dataByDate[tgl].better += percent;
-        dataByDate[tgl].count.better++;
-      }
+      const latestRecord = relevantRecords[0];
+      return latestRecord.targetVolume > 0 ? (latestRecord.updateVolume / latestRecord.targetVolume) * 100 : 0;
+    };
+
+    // Calculate average for each date
+    const chartData = allDates.map(date => {
+      const biggerValues = indicatorsByPilar.BIGGER
+        .map(indicator => getLatestValueUpToDate(indicator, date))
+        .filter(value => value !== null) as number[];
+      
+      const smarterValues = indicatorsByPilar.SMARTER
+        .map(indicator => getLatestValueUpToDate(indicator, date))
+        .filter(value => value !== null) as number[];
+      
+      const betterValues = indicatorsByPilar.BETTER
+        .map(indicator => getLatestValueUpToDate(indicator, date))
+        .filter(value => value !== null) as number[];
+
+      return {
+        tanggal: date,
+        bigger: biggerValues.length > 0 ? Math.round(biggerValues.reduce((sum, val) => sum + val, 0) / biggerValues.length) : 0,
+        smarter: smarterValues.length > 0 ? Math.round(smarterValues.reduce((sum, val) => sum + val, 0) / smarterValues.length) : 0,
+        better: betterValues.length > 0 ? Math.round(betterValues.reduce((sum, val) => sum + val, 0) / betterValues.length) : 0,
+      };
     });
-    
-    // Calculate averages
-    return Object.values(dataByDate).map(item => ({
-      tanggal: item.tanggal,
-      bigger: item.count.bigger > 0 ? Math.round(item.bigger / item.count.bigger) : 0,
-      smarter: item.count.smarter > 0 ? Math.round(item.smarter / item.count.smarter) : 0,
-      better: item.count.better > 0 ? Math.round(item.better / item.count.better) : 0,
-    })).sort((a, b) => a.tanggal.localeCompare(b.tanggal));
+
+    return chartData;
   }, [skpList]);
 
-  // Data untuk grafik indikator spesifik
+  // Data untuk grafik indikator spesifik (tanpa forward-fill, menampilkan data aktual)
   const indicatorChartData = React.useMemo(() => {
     if (!selectedIndicator) return [];
     
@@ -161,6 +180,66 @@ export default function SKPGenerikPage() {
   const handleUpdateCapaian = (item: SKPItem) => {
     setUpdateItemData(item);
     setShowUpdateModal(true);
+  };
+
+  const handleEditHistory = (item: SKPItem) => {
+    const historyId = `${item.tanggal}-${item.indikator}`;
+    setEditingHistoryId(historyId);
+    setEditingValue(item.updateVolume.toString());
+  };
+
+  const handleSaveHistoryEdit = async (item: SKPItem) => {
+    if (!editingValue || !updateItemData) return;
+
+    const unitKerjaId = localStorage.getItem("id");
+    if (!unitKerjaId) return;
+
+    try {
+      // Assuming we need to update the existing record
+      // This would require an UPDATE API endpoint, but for now we'll update locally
+      const updatedList = skpList.map(skpItem => 
+        skpItem.tanggal === item.tanggal && skpItem.indikator === item.indikator
+          ? { ...skpItem, updateVolume: Number(editingValue) }
+          : skpItem
+      );
+      
+      setSkpList(updatedList);
+      setEditingHistoryId(null);
+      setEditingValue("");
+      
+      // In a real app, you would also call an API to update the database
+      // await fetch(`/api/skp_generik/${unitKerjaId}/${item.id}`, { method: 'PUT', ... })
+      
+    } catch (error) {
+      console.error('Error updating history:', error);
+    }
+  };
+
+  const handleCancelHistoryEdit = () => {
+    setEditingHistoryId(null);
+    setEditingValue("");
+  };
+
+  const handleDeleteHistory = async (item: SKPItem) => {
+    if (!confirm(`Hapus data capaian tanggal ${item.tanggal}?`)) return;
+
+    const unitKerjaId = localStorage.getItem("id");
+    if (!unitKerjaId) return;
+
+    try {
+      // Update local state by removing the item
+      const updatedList = skpList.filter(skpItem => 
+        !(skpItem.tanggal === item.tanggal && skpItem.indikator === item.indikator && skpItem.pilar === item.pilar)
+      );
+      
+      setSkpList(updatedList);
+      
+      // In a real app, you would also call an API to delete from database
+      // await fetch(`/api/skp_generik/${unitKerjaId}/${item.id}`, { method: 'DELETE' })
+      
+    } catch (error) {
+      console.error('Error deleting history:', error);
+    }
   };
 
   const handleSubmitUpdateCapaian = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -611,76 +690,186 @@ export default function SKPGenerikPage() {
       {/* Modal Update Capaian */}
       {showUpdateModal && updateItemData && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-          <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-lg relative">
+          <div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-4xl relative max-h-[90vh] overflow-y-auto">
             <h2 className="text-xl font-bold mb-6 text-green-700">
               Update Capaian - {updateItemData.indikator}
             </h2>
-            <form className="space-y-4" onSubmit={handleSubmitUpdateCapaian}>
-              <div className="bg-gray-50 p-4 rounded-lg mb-4">
-                <h3 className="font-semibold text-gray-700 mb-2">Data Saat Ini:</h3>
-                <div className="grid grid-cols-2 gap-2 text-sm">
-                  <div><span className="font-medium">Tanggal:</span> {updateItemData.tanggal}</div>
-                  <div><span className="font-medium">Pilar:</span> {updateItemData.pilar}</div>
-                  <div><span className="font-medium">Target:</span> {updateItemData.targetVolume} {updateItemData.targetSatuan}</div>
-                  <div><span className="font-medium">Capaian:</span> {updateItemData.updateVolume} {updateItemData.updateSatuan}</div>
+            
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* Form Update Capaian */}
+              <div>
+                <form className="space-y-4" onSubmit={handleSubmitUpdateCapaian}>
+                  <div className="bg-gray-50 p-4 rounded-lg mb-4">
+                    <h3 className="font-semibold text-gray-700 mb-2">Data Saat Ini:</h3>
+                    <div className="grid grid-cols-1 gap-2 text-sm">
+                      <div><span className="font-medium">Tanggal:</span> {updateItemData.tanggal}</div>
+                      <div><span className="font-medium">Pilar:</span> {updateItemData.pilar}</div>
+                      <div><span className="font-medium">Target:</span> {updateItemData.targetVolume} {updateItemData.targetSatuan}</div>
+                      <div><span className="font-medium">Capaian:</span> {updateItemData.updateVolume} {updateItemData.updateSatuan}</div>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <label
+                      htmlFor="tanggal-update"
+                      className="w-32 text-sm font-medium text-gray-700"
+                    >
+                      Tanggal Update
+                    </label>
+                    <input
+                      type="date"
+                      id="tanggal-update"
+                      name="tanggal"
+                      required
+                      defaultValue={new Date().toISOString().split('T')[0]}
+                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <label
+                      htmlFor="updateVolume-new"
+                      className="w-32 text-sm font-medium text-gray-700"
+                    >
+                      Update Capaian
+                    </label>
+                    <input
+                      type="number"
+                      id="updateVolume-new"
+                      name="updateVolume"
+                      required
+                      step="0.01"
+                      defaultValue={updateItemData.updateVolume}
+                      className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
+                      placeholder={`Satuan: ${updateItemData.updateSatuan}`}
+                    />
+                  </div>
+
+                  <div className="flex justify-end gap-2 pt-4">
+                    <button
+                      type="button"
+                      className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-400 transition"
+                      onClick={() => {
+                        setShowUpdateModal(false);
+                        setUpdateItemData(null);
+                      }}
+                    >
+                      Batal
+                    </button>
+                    <button
+                      type="submit"
+                      className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 transition"
+                    >
+                      Update Capaian
+                    </button>
+                  </div>
+                </form>
+              </div>
+
+              {/* Histori Update Capaian */}
+              <div>
+                <h3 className="font-semibold text-gray-700 mb-4">Histori Update Capaian</h3>
+                <div className="bg-gray-50 rounded-lg p-4 max-h-96 overflow-y-auto">
+                  <table className="min-w-full">
+                    <thead className="bg-gray-100 sticky top-0">
+                      <tr>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Tanggal
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Update Capaian
+                        </th>
+                        <th className="px-3 py-2 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                          Aksi
+                        </th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-gray-200">
+                      {skpList
+                        .filter(item => item.indikator === updateItemData.indikator)
+                        .sort((a, b) => b.tanggal.localeCompare(a.tanggal))
+                        .map((item, index) => {
+                          const historyId = `${item.tanggal}-${item.indikator}`;
+                          const isEditing = editingHistoryId === historyId;
+                          
+                          return (
+                            <tr key={index} className="hover:bg-gray-100">
+                              <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                                {item.tanggal}
+                              </td>
+                              <td className="px-3 py-2 whitespace-nowrap text-sm text-gray-900">
+                                {isEditing ? (
+                                  <div className="flex items-center gap-2">
+                                    <input
+                                      type="number"
+                                      step="0.01"
+                                      value={editingValue}
+                                      onChange={(e) => setEditingValue(e.target.value)}
+                                      className="w-20 px-2 py-1 text-xs border border-gray-300 rounded focus:outline-none focus:ring-1 focus:ring-green-400"
+                                    />
+                                    <span className="text-xs text-gray-500">{item.updateSatuan}</span>
+                                  </div>
+                                ) : (
+                                  `${item.updateVolume}`
+                                )}
+                              </td>
+                              <td className="px-3 py-2 whitespace-nowrap text-sm">
+                                {isEditing ? (
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      onClick={() => handleSaveHistoryEdit(item)}
+                                      className="inline-flex items-center justify-center text-green-600 hover:bg-green-50 rounded p-1 transition"
+                                      title="Simpan"
+                                    >
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 13l4 4L19 7" />
+                                      </svg>
+                                    </button>
+                                    <button
+                                      onClick={handleCancelHistoryEdit}
+                                      className="inline-flex items-center justify-center text-red-600 hover:bg-red-50 rounded p-1 transition"
+                                      title="Batal"
+                                    >
+                                      <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                                      </svg>
+                                    </button>
+                                  </div>
+                                ) : (
+                                  <div className="flex items-center gap-1">
+                                    <button
+                                      onClick={() => handleEditHistory(item)}
+                                      className="inline-flex items-center justify-center text-blue-600 hover:bg-blue-50 rounded p-1 transition"
+                                      title="Edit"
+                                    >
+                                      <Pencil className="w-3 h-3" />
+                                    </button>
+                                    <button
+                                      onClick={() => handleDeleteHistory(item)}
+                                      className="inline-flex items-center justify-center text-red-600 hover:bg-red-50 rounded p-1 transition"
+                                      title="Hapus"
+                                    >
+                                      <Trash2 className="w-3 h-3" />
+                                    </button>
+                                  </div>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })}
+                      {skpList.filter(item => item.indikator === updateItemData.indikator).length === 0 && (
+                        <tr>
+                          <td colSpan={3} className="px-3 py-4 text-center text-sm text-gray-500 italic">
+                            Belum ada histori update
+                          </td>
+                        </tr>
+                      )}
+                    </tbody>
+                  </table>
                 </div>
               </div>
-
-              <div className="flex items-center gap-4">
-                <label
-                  htmlFor="tanggal-update"
-                  className="w-32 text-sm font-medium text-gray-700"
-                >
-                  Tanggal Update
-                </label>
-                <input
-                  type="date"
-                  id="tanggal-update"
-                  name="tanggal"
-                  required
-                  defaultValue={new Date().toISOString().split('T')[0]}
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
-                />
-              </div>
-
-              <div className="flex items-center gap-4">
-                <label
-                  htmlFor="updateVolume-new"
-                  className="w-32 text-sm font-medium text-gray-700"
-                >
-                  Update Capaian
-                </label>
-                <input
-                  type="number"
-                  id="updateVolume-new"
-                  name="updateVolume"
-                  required
-                  step="0.01"
-                  defaultValue={updateItemData.updateVolume}
-                  className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-green-400"
-                  placeholder={`Satuan: ${updateItemData.updateSatuan}`}
-                />
-              </div>
-
-              <div className="flex justify-end gap-2 pt-4">
-                <button
-                  type="button"
-                  className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-400 transition"
-                  onClick={() => {
-                    setShowUpdateModal(false);
-                    setUpdateItemData(null);
-                  }}
-                >
-                  Batal
-                </button>
-                <button
-                  type="submit"
-                  className="bg-green-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-green-700 transition"
-                >
-                  Update Capaian
-                </button>
-              </div>
-            </form>
+            </div>
+            
             <button
               className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl"
               onClick={() => {

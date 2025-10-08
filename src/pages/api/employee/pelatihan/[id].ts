@@ -6,9 +6,30 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   if (req.method === "GET") {
     try {
       const { id } = req.query;
+      let pegawaiId: number;
+
+      // Check if id is a valid integer ID (small number) or NIP (long string)
+      const numericId = Number(id);
+      if (!isNaN(numericId) && numericId > 0 && numericId < 1000000 && Number.isInteger(numericId)) {
+        // Use directly as pegawai_id
+        pegawaiId = numericId;
+      } else {
+        // Search pegawai by NIP to get pegawai_id
+        const pegawai = await prisma.pegawai.findFirst({
+          where: { nip: String(id) },
+          select: { id: true }
+        });
+        
+        if (!pegawai) {
+          return res.status(404).json({ error: "Pegawai tidak ditemukan" });
+        }
+        
+        pegawaiId = pegawai.id;
+      }
+
       const data = await prisma.pelatihan.findMany({
         where: {
-          pegawai_id: Number(id),
+          pegawai_id: pegawaiId,
         },
         include: {
           pegawai: {

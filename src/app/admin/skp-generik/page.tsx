@@ -1,185 +1,459 @@
 "use client";
-import React, { useState } from "react";
-import { Pencil } from "lucide-react";
+import React, { useState, useEffect } from "react";
+import { Search, Filter } from "lucide-react";
+import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from "recharts";
+
 type SKPItem = {
-	tanggal: string;
-	pilar: string;
-	indikator: string;
-	targetVolume: number;
-	targetSatuan: string;
-	updateVolume: number;
-	updateSatuan: string;
-	kendala: string;
+  tanggal: string;
+  pilar: string;
+  indikator: string;
+  targetVolume: number;
+  targetSatuan: string;
+  updateVolume: number;
+  updateSatuan: string;
+  kendala: string;
+  unit_kerja_id: number;
+  unit_kerja?: string;
 };
-import { ResponsiveContainer, LineChart, XAxis, YAxis, Tooltip, Legend, Line } from "recharts";
+
+type UnitKerja = {
+  id: number;
+  unit_kerja: string;
+};
 
 export default function SKPGenerikAdminPage() {
-		const [skpList, setSkpList] = useState<SKPItem[]>([
-		{
-			tanggal: "2025-10-01",
-			pilar: "BIGGER",
-			indikator: "Jumlah Produk Pembelajaran dalam Corpu LAN",
-			targetVolume: 2,
-			targetSatuan: "produk",
-			updateVolume: 1,
-			updateSatuan: "produk",
-			kendala: "Belum ada modul pembelajaran terbaru."
-		},
-		{
-			tanggal: "2025-10-02",
-			pilar: "SMARTER",
-			indikator: "Jumlah Produk hukum yang ditetapkan oleh Kepala LAN",
-			targetVolume: 19,
-			targetSatuan: "produk hukum",
-			updateVolume: 10,
-			updateSatuan: "produk hukum",
-			kendala: "Proses legalisasi masih berjalan."
-		},
-		{
-			tanggal: "2025-10-03",
-			pilar: "BETTER",
-			indikator: "Jumlah Mitra Kerja yang berkaitan dengan layanan Biro HOS",
-			targetVolume: 30,
-			targetSatuan: "mitra kerja",
-			updateVolume: 20,
-			updateSatuan: "mitra kerja",
-			kendala: "Beberapa mitra belum konfirmasi kerjasama."
-		},
-		{
-			tanggal: "2025-10-04",
-			pilar: "BETTER",
-			indikator: "Jumlah Mitra Kerja yang berkaitan dengan layanan Biro HOS",
-			targetVolume: 40,
-			targetSatuan: "mitra kerja",
-			updateVolume: 25,
-			updateSatuan: "mitra kerja",
-			kendala: "Kendala komunikasi dengan mitra baru."
-		},
-	]);
-	const [showModal, setShowModal] = useState(false);
-	const [editIndex, setEditIndex] = useState<number | null>(null);
+  const [skpList, setSkpList] = useState<SKPItem[]>([]);
+  const [unitList, setUnitList] = useState<UnitKerja[]>([]);
+  const [selectedUnit, setSelectedUnit] = useState<string>("");
+  const [searchQuery, setSearchQuery] = useState<string>("");
+  const [loading, setLoading] = useState(true);
 
-		const calcProgress = (target: number, update: number) => {
-			if (!target || target === 0) return 0;
-			return Math.min((update / target) * 100, 100);
-		};
+  // Fetch data from API
+  useEffect(() => {
+    fetchSKPData();
+    fetchUnitList();
+  }, []);
 
-	const handleEdit = (index: number) => {
-		setEditIndex(index);
-		setShowModal(true);
-	};
+  const fetchSKPData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/skp_generik');
+      const data = await response.json();
+      
+      if (Array.isArray(data)) {
+		const mapped = data.map((item: {
+		  tanggal: string;
+		  pilar: string;
+		  indikator: string;
+		  target_volume: number | string;
+		  target_satuan: string;
+		  update_volume: number | string;
+		  update_satuan: string;
+		  kendala: string;
+		  unit_kerja_id: number;
+		}) => ({
+		  tanggal: typeof item.tanggal === "string" ? item.tanggal.split('T')[0] : "",
+		  pilar: typeof item.pilar === "string" ? item.pilar : "",
+		  indikator: typeof item.indikator === "string" ? item.indikator : "",
+		  targetVolume: typeof item.target_volume === "number" ? item.target_volume : Number(item.target_volume) || 0,
+		  targetSatuan: typeof item.target_satuan === "string" ? item.target_satuan : "",
+		  updateVolume: typeof item.update_volume === "number" ? item.update_volume : Number(item.update_volume) || 0,
+		  updateSatuan: typeof item.update_satuan === "string" ? item.update_satuan : "",
+		  kendala: typeof item.kendala === "string" ? item.kendala : "",
+		  unit_kerja_id: item.unit_kerja_id || 0,
+		}));
+        setSkpList(mapped);
+      }
+    } catch (error) {
+      console.error('Error fetching SKP data:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
-		const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
-			e.preventDefault();
-			const formData = new FormData(e.currentTarget);
-			const newItem: Partial<SKPItem> = Object.fromEntries(formData.entries());
-			if (editIndex !== null) {
-				const updatedList = [...skpList];
-				updatedList[editIndex] = {
-					...updatedList[editIndex],
-					...newItem,
-					targetVolume: Number(newItem.targetVolume),
-					updateVolume: Number(newItem.updateVolume),
-				} as SKPItem;
-				setSkpList(updatedList);
-				setEditIndex(null);
+  const fetchUnitList = async () => {
+    try {
+      const response = await fetch('/api/users');
+      const data = await response.json();
+      
+	  if (data.users && Array.isArray(data.users)) {
+		// Define a type for user
+		type User = { id: number; unit_kerja: string };
+		// Extract unique unit_kerja values
+		const uniqueUnits = data.users
+		  .filter((user: User) => user.unit_kerja)
+		  .reduce((acc: UnitKerja[], user: User) => {
+			if (!acc.find(u => u.unit_kerja === user.unit_kerja)) {
+			  acc.push({
+				id: user.id,
+				unit_kerja: user.unit_kerja
+			  });
 			}
-			setShowModal(false);
-		};
+			return acc;
+		  }, [])
+		  .sort((a: UnitKerja, b: UnitKerja) => a.unit_kerja.localeCompare(b.unit_kerja));
+		
+		setUnitList(uniqueUnits);
+	  }
+    } catch (error) {
+      console.error('Error fetching unit list:', error);
+    }
+  };
+
+  // Filter data based on selected unit and search query
+  const filteredSKPData = React.useMemo(() => {
+    let filtered = skpList;
+
+    // Filter by unit
+    if (selectedUnit) {
+      // Find unit_kerja_id based on selected unit name
+      const selectedUnitObj = unitList.find(unit => unit.unit_kerja === selectedUnit);
+      if (selectedUnitObj) {
+        filtered = filtered.filter(item => item.unit_kerja_id === selectedUnitObj.id);
+      }
+    }
+
+    // Filter by search query
+    if (searchQuery) {
+      const query = searchQuery.toLowerCase();
+      filtered = filtered.filter(item => 
+        item.pilar.toLowerCase().includes(query) ||
+        item.indikator.toLowerCase().includes(query) ||
+        item.kendala.toLowerCase().includes(query) ||
+        item.tanggal.includes(query)
+      );
+    }
+
+    return filtered;
+  }, [skpList, selectedUnit, searchQuery, unitList]);
+
+  // Mapping data chart untuk rata-rata persentase per tanggal dengan capaian terakhir per indikator
+  const averageChartData = React.useMemo(() => {
+    if (filteredSKPData.length === 0) return [];
+
+    const allDates = [...new Set(filteredSKPData.map(item => item.tanggal))].sort();
+    
+    const indicatorsByPilar = {
+      BIGGER: [...new Set(filteredSKPData.filter(item => item.pilar.toUpperCase() === 'BIGGER').map(item => item.indikator))],
+      SMARTER: [...new Set(filteredSKPData.filter(item => item.pilar.toUpperCase() === 'SMARTER').map(item => item.indikator))],
+      BETTER: [...new Set(filteredSKPData.filter(item => item.pilar.toUpperCase() === 'BETTER').map(item => item.indikator))]
+    };
+
+    const getLatestValueUpToDate = (indicator: string, targetDate: string) => {
+      const relevantRecords = filteredSKPData
+        .filter(item => item.indikator === indicator && item.tanggal <= targetDate)
+        .sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+      
+      if (relevantRecords.length === 0) return null;
+      
+      const latestRecord = relevantRecords[0];
+      return latestRecord.targetVolume > 0 ? (latestRecord.updateVolume / latestRecord.targetVolume) * 100 : 0;
+    };
+
+    const chartData = allDates.map(date => {
+      const biggerValues = indicatorsByPilar.BIGGER
+        .map(indicator => getLatestValueUpToDate(indicator, date))
+        .filter(value => value !== null) as number[];
+      
+      const smarterValues = indicatorsByPilar.SMARTER
+        .map(indicator => getLatestValueUpToDate(indicator, date))
+        .filter(value => value !== null) as number[];
+      
+      const betterValues = indicatorsByPilar.BETTER
+        .map(indicator => getLatestValueUpToDate(indicator, date))
+        .filter(value => value !== null) as number[];
+
+      return {
+        tanggal: date,
+        bigger: biggerValues.length > 0 ? Math.round(biggerValues.reduce((sum, val) => sum + val, 0) / biggerValues.length) : 0,
+        smarter: smarterValues.length > 0 ? Math.round(smarterValues.reduce((sum, val) => sum + val, 0) / smarterValues.length) : 0,
+        better: betterValues.length > 0 ? Math.round(betterValues.reduce((sum, val) => sum + val, 0) / betterValues.length) : 0,
+      };
+    });
+
+    return chartData;
+  }, [filteredSKPData]);
+
+  // Get latest record for each indicator for table display
+  const latestRecordsPerIndicator = React.useMemo(() => {
+    const indicatorMap = new Map();
+    
+    filteredSKPData.forEach((item, index) => {
+      const key = `${item.indikator}-${item.unit_kerja_id}`;
+      if (!indicatorMap.has(key) || item.tanggal > indicatorMap.get(key).tanggal) {
+        // Add unit_kerja name to item
+        const unitName = unitList.find(unit => unit.id === item.unit_kerja_id)?.unit_kerja || 'Unknown Unit';
+        indicatorMap.set(key, { ...item, unit_kerja: unitName, originalIndex: index });
+      }
+    });
+    
+    return Array.from(indicatorMap.values()).sort((a, b) => b.tanggal.localeCompare(a.tanggal));
+  }, [filteredSKPData, unitList]);
+
+  const calcProgress = (target: number, update: number) => {
+    if (!target || target === 0) return 0;
+    return Math.min((update / target) * 100, 100);
+  };
+
+  if (loading) {
+    return (
+      <div className="p-6 space-y-8 bg-gray-50 min-h-screen">
+        <div className="flex justify-center items-center h-64">
+          <div className="animate-spin rounded-full h-32 w-32 border-b-2 border-blue-600"></div>
+        </div>
+      </div>
+    );
+  }
 
 	return (
-				<div className="p-6 space-y-8 bg-gray-50 min-h-screen relative">
-				{/* Watermark Data Dummy */}
-				<div className="pointer-events-none select-none absolute top-10 right-10 opacity-30 text-5xl font-extrabold text-blue-400 z-10" style={{transform: 'rotate(-20deg)'}}>DATA DUMMY</div>
+		<div className="p-6 space-y-8 bg-gray-50 min-h-screen relative">
+			{/* Header */}
 			<div className="flex justify-between items-center mb-8">
 				<div>
-					<h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard SKP Generik</h1>
-					<p className="text-blue-600">Rekap capaian SKP generik seluruh user</p>
+					<h1 className="text-3xl font-bold text-blue-800 mb-2">Dashboard SKP Generik - Admin</h1>
+					<p className="text-blue-600">Monitor dan lihat capaian SKP generik dari seluruh unit kerja</p>
+				</div>
+				<div className="text-right">
+					<p className="text-sm text-gray-600">Total Data: {filteredSKPData.length}</p>
+					<p className="text-sm text-gray-600">Unit Aktif: {unitList.length}</p>
 				</div>
 			</div>
 
+			{/* Filter Controls */}
 			<div className="bg-white rounded-xl shadow-lg p-6 mb-8">
-				<h2 className="text-xl font-bold mb-4 text-blue-600 flex items-center">
-					<svg className="w-6 h-6 mr-2 text-blue-500" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 3v18h18" /></svg>
-					Perbandingan Target & Realisasi
+				<h2 className="text-lg font-bold mb-4 text-gray-800 flex items-center">
+					<Filter className="w-5 h-5 mr-2" />
+					Filter & Pencarian Data
 				</h2>
-				<div className="h-[300px]">
-					<ResponsiveContainer width="100%" height="100%">
-						<LineChart data={skpList} margin={{ top: 10, right: 30, left: 0, bottom: 0 }}>
-							<XAxis dataKey="pilar" tick={{ fontSize: 14 }} />
-							<YAxis tick={{ fontSize: 12 }} />
-							<Tooltip contentStyle={{ backgroundColor: '#f8fafc', border: '1px solid #e2e8f0', borderRadius: '8px' }} />
-							<Legend />
-							<Line type="monotone" dataKey="targetVolume" name="Target" stroke="#2563eb" strokeWidth={2} />
-							<Line type="monotone" dataKey="updateVolume" name="Realisasi" stroke="#22c55e" strokeWidth={2} />
+				<div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+					{/* Unit Filter */}
+					<div>
+						<label htmlFor="unit-filter" className="block text-sm font-medium text-gray-700 mb-2">
+							Filter Unit Kerja
+						</label>
+						<select
+							id="unit-filter"
+							value={selectedUnit}
+							onChange={(e) => setSelectedUnit(e.target.value)}
+							className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+						>
+							<option value="">Semua Unit Kerja</option>
+							{unitList.map((unit) => (
+								<option key={unit.id} value={unit.unit_kerja}>
+									{unit.unit_kerja}
+								</option>
+							))}
+						</select>
+					</div>
+
+					{/* Search Bar */}
+					<div>
+						<label htmlFor="search" className="block text-sm font-medium text-gray-700 mb-2">
+							Pencarian
+						</label>
+						<div className="relative">
+							<Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+							<input
+								id="search"
+								type="text"
+								placeholder="Cari berdasarkan pilar, indikator, kendala, atau tanggal..."
+								value={searchQuery}
+								onChange={(e) => setSearchQuery(e.target.value)}
+								className="w-full pl-10 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
+							/>
+						</div>
+					</div>
+				</div>
+
+				{/* Active Filters Display */}
+				{(selectedUnit || searchQuery) && (
+					<div className="mt-4 flex flex-wrap gap-2">
+						{selectedUnit && (
+							<span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+								Unit: {selectedUnit}
+								<button
+									onClick={() => setSelectedUnit("")}
+									className="ml-2 text-blue-600 hover:text-blue-800"
+								>
+									×
+								</button>
+							</span>
+						)}
+						{searchQuery && (
+							<span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800">
+								Pencarian: {searchQuery}
+								<button
+									onClick={() => setSearchQuery("")}
+									className="ml-2 text-green-600 hover:text-green-800"
+								>
+									×
+								</button>
+							</span>
+						)}
+					</div>
+				)}
+			</div>
+
+			{/* Chart Line Rata-rata Persentase per Pilar */}
+			<div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+				{/* Chart BIGGER */}
+				<div className="bg-white rounded-xl shadow-lg p-6">
+					<h2 className="text-lg font-bold mb-2 text-blue-700">BIGGER - Rata-rata Persentase</h2>
+					<ResponsiveContainer width="100%" height={250}>
+						<LineChart data={averageChartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+							<XAxis dataKey="tanggal" tick={{ fontSize: 12 }} />
+							<YAxis tick={{ fontSize: 12 }} domain={[0, 100]} />
+							<Tooltip formatter={(value) => [`${value}%`, "Rata-rata BIGGER"]} />
+							<Legend wrapperStyle={{ fontWeight: 'bold', fontSize: 13 }} />
+							<Line type="monotone" dataKey="bigger" name="% Capaian" stroke="#1d4ed8" strokeWidth={3} connectNulls />
+						</LineChart>
+					</ResponsiveContainer>
+				</div>
+				{/* Chart SMARTER */}
+				<div className="bg-white rounded-xl shadow-lg p-6">
+					<h2 className="text-lg font-bold mb-2 text-green-700">SMARTER - Rata-rata Persentase</h2>
+					<ResponsiveContainer width="100%" height={250}>
+						<LineChart data={averageChartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+							<XAxis dataKey="tanggal" tick={{ fontSize: 12 }} />
+							<YAxis tick={{ fontSize: 12 }} domain={[0, 100]} />
+							<Tooltip formatter={(value) => [`${value}%`, "Rata-rata SMARTER"]} />
+							<Legend wrapperStyle={{ fontWeight: 'bold', fontSize: 13 }} />
+							<Line type="monotone" dataKey="smarter" name="% Capaian" stroke="#059669" strokeWidth={3} connectNulls />
+						</LineChart>
+					</ResponsiveContainer>
+				</div>
+				{/* Chart BETTER */}
+				<div className="bg-white rounded-xl shadow-lg p-6">
+					<h2 className="text-lg font-bold mb-2 text-yellow-700">BETTER - Rata-rata Persentase</h2>
+					<ResponsiveContainer width="100%" height={250}>
+						<LineChart data={averageChartData} margin={{ top: 10, right: 20, left: 0, bottom: 0 }}>
+							<XAxis dataKey="tanggal" tick={{ fontSize: 12 }} />
+							<YAxis tick={{ fontSize: 12 }} domain={[0, 100]} />
+							<Tooltip formatter={(value) => [`${value}%`, "Rata-rata BETTER"]} />
+							<Legend wrapperStyle={{ fontWeight: 'bold', fontSize: 13 }} />
+							<Line type="monotone" dataKey="better" name="% Capaian" stroke="#b45309" strokeWidth={3} connectNulls />
 						</LineChart>
 					</ResponsiveContainer>
 				</div>
 			</div>
 
+			{/* Table */}
 			<div className="bg-white rounded-xl shadow-lg overflow-hidden">
 				<div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
 					<div className="flex justify-between items-center">
 						<div>
-							<h2 className="text-xl font-bold">Detail SKP Generik</h2>
-							<p className="text-blue-100 text-sm">Daftar capaian dan target SKP generik</p>
+							<h2 className="text-xl font-bold">Detail SKP Generik - Seluruh Unit</h2>
+							<p className="text-blue-100 text-sm">Daftar capaian dan target SKP generik dari semua unit kerja</p>
 						</div>
-						{skpList.length > 0 && (
+						{latestRecordsPerIndicator.length > 0 && (
 							<div className="text-right">
-								<p className="text-sm text-blue-100">Menampilkan {skpList.length} data</p>
+								<p className="text-sm text-blue-100">Menampilkan {latestRecordsPerIndicator.length} indikator (data terakhir)</p>
+								{selectedUnit && (
+									<p className="text-xs text-blue-200">Unit: {selectedUnit}</p>
+								)}
 							</div>
 						)}
 					</div>
 				</div>
 				<div className="overflow-x-auto">
-					<table className="min-w-full border-collapse">
+					<table className="min-w-full border-collapse table-fixed">
+						<colgroup>
+							<col className="w-32" />
+							<col className="w-24" />
+							<col className="w-20" />
+							<col className="w-80" />
+							<col className="w-20" />
+							<col className="w-24" />
+							<col className="w-20" />
+							<col className="w-24" />
+							<col className="w-64" />
+							<col className="w-24" />
+						</colgroup>
 						<thead className="bg-gray-50">
 							<tr>
-								<th className="px-4 py-2 border">Tanggal</th>
-								<th className="px-4 py-2 border">Pilar</th>
-								<th className="px-4 py-2 border">Indikator</th>
-								<th className="px-4 py-2 border">Target</th>
-								<th className="px-4 py-2 border">Update</th>
-								<th className="px-4 py-2 border">Kendala</th>
-								<th className="px-4 py-2 border">Progress</th>
-								<th className="px-4 py-2 border">Aksi</th>
+								<th className="px-4 py-2 border text-left">Unit Kerja</th>
+								<th className="px-4 py-2 border text-left">Tanggal</th>
+								<th className="px-4 py-2 border text-left">Pilar</th>
+								<th className="px-4 py-2 border text-left">Indikator</th>
+								<th className="px-4 py-2 border text-center">Target Volume</th>
+								<th className="px-4 py-2 border text-left">Target Satuan</th>
+								<th className="px-4 py-2 border text-center">Update Volume</th>
+								<th className="px-4 py-2 border text-left">Update Satuan</th>
+								<th className="px-4 py-2 border text-left">Kendala</th>
+								<th className="px-4 py-2 border text-center">Progress</th>
 							</tr>
 						</thead>
 						<tbody>
-							{skpList.length === 0 ? (
+							{latestRecordsPerIndicator.length === 0 ? (
 								<tr>
-									<td colSpan={8} className="text-center py-4 text-gray-500 italic">Belum ada data</td>
+									<td colSpan={10} className="text-center py-8 text-gray-500 italic">
+										{selectedUnit || searchQuery ? 
+											"Tidak ada data yang sesuai dengan filter yang dipilih" : 
+											"Belum ada data SKP Generik"
+										}
+									</td>
 								</tr>
 							) : (
-								skpList.map((item, index) => {
+								latestRecordsPerIndicator.map((item, index) => {
 									const target = Number(item.targetVolume) || 0;
 									const update = Number(item.updateVolume) || 0;
 									const progress = calcProgress(target, update);
 									return (
-										<tr key={index} className="hover:bg-blue-50 transition-colors">
-											<td className="px-4 py-2 border">{item.tanggal}</td>
-											<td className="px-4 py-2 border">{item.pilar}</td>
-											<td className="px-4 py-2 border">{item.indikator}</td>
-											<td className="px-4 py-2 border">{target} {item.targetSatuan}</td>
-											<td className="px-4 py-2 border">{update} {item.updateSatuan}</td>
-											<td className="px-4 py-2 border">{item.kendala || '-'}</td>
-											<td className="px-4 py-2 border">
-												<div className="w-full bg-gray-200 rounded-full h-2">
-													<div className={`h-2 rounded-full ${progress >= 100 ? "bg-green-600" : progress >= 50 ? "bg-yellow-500" : "bg-red-500"}`}
-														style={{ width: `${progress}%` }}
-													/>
+										<tr key={index} className="hover:bg-blue-50 transition-colors align-top">
+											<td className="px-4 py-3 border">
+												<div className="font-medium text-sm text-blue-700">
+													{item.unit_kerja}
 												</div>
-												<span className="text-sm text-gray-600">{progress.toFixed(0)}%</span>
 											</td>
-											<td className="px-4 py-2 border">
-												<div className="flex items-center justify-center gap-3">
-													<button
-														onClick={() => handleEdit(index)}
-														className="inline-flex items-center justify-center text-blue-600 hover:bg-blue-50 rounded-lg p-2 transition"
-														title="Ubah"
-													>
-														<Pencil className="w-5 h-5" />
-													</button>
+											<td className="px-4 py-3 border">{item.tanggal}</td>
+											<td className="px-4 py-3 border">
+												<span className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
+													item.pilar === 'BIGGER' ? 'bg-blue-100 text-blue-800' :
+													item.pilar === 'SMARTER' ? 'bg-green-100 text-green-800' :
+													'bg-yellow-100 text-yellow-800'
+												}`}>
+													{item.pilar}
+												</span>
+											</td>
+											<td className="px-4 py-3 border">
+												<div>
+													<p className="text-sm text-gray-900 whitespace-normal break-words leading-relaxed">
+														{item.indikator}
+													</p>
+												</div>
+											</td>
+											<td className="px-4 py-3 border text-center">{target}</td>
+											<td className="px-4 py-3 border">{item.targetSatuan}</td>
+											<td className="px-4 py-3 border text-center font-semibold text-blue-600">{update}</td>
+											<td className="px-4 py-3 border">{item.updateSatuan}</td>
+											<td className="px-4 py-3 border">
+												<div>
+													<p className="text-sm text-gray-600 whitespace-normal break-words leading-relaxed">
+														{item.kendala || '-'}
+													</p>
+												</div>
+											</td>
+											<td className="px-4 py-3 border">
+												<div className="flex flex-col items-center">
+													<div className="w-full bg-gray-200 rounded-full h-2 mb-1">
+														<div 
+															className={`h-2 rounded-full transition-all duration-300 ${
+																progress >= 100 ? "bg-green-600" : 
+																progress >= 75 ? "bg-yellow-500" : 
+																progress >= 50 ? "bg-orange-500" : 
+																"bg-red-500"
+															}`}
+															style={{ width: `${Math.min(progress, 100)}%` }}
+														/>
+													</div>
+													<span className={`text-xs font-semibold ${
+														progress >= 100 ? "text-green-600" : 
+														progress >= 75 ? "text-yellow-600" : 
+														progress >= 50 ? "text-orange-600" : 
+														"text-red-600"
+													}`}>
+														{progress.toFixed(1)}%
+													</span>
 												</div>
 											</td>
 										</tr>
@@ -189,129 +463,37 @@ export default function SKPGenerikAdminPage() {
 						</tbody>
 					</table>
 				</div>
-			</div>
 
-			{/* Modal Edit */}
-			{showModal && editIndex !== null && (
-				<div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
-					<div className="bg-white rounded-xl shadow-xl p-8 w-full max-w-lg relative">
-						<h2 className="text-xl font-bold mb-6 text-blue-700">Edit SKP Generik</h2>
-						<form className="space-y-4" onSubmit={handleSubmit}>
-							<div className="flex items-center gap-4">
-								<label htmlFor="tanggal" className="w-48 text-sm font-medium text-gray-700">Tanggal Pelaporan</label>
-								<input
-									type="date"
-									id="tanggal"
-									name="tanggal"
-									className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-									defaultValue={editIndex !== null ? skpList[editIndex].tanggal : ""}
-								/>
+				{/* Summary Statistics */}
+				{latestRecordsPerIndicator.length > 0 && (
+					<div className="px-6 py-4 bg-gray-50 border-t">
+						<div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+							<div>
+								<p className="text-sm text-gray-600">Total Indikator</p>
+								<p className="text-2xl font-bold text-blue-600">{latestRecordsPerIndicator.length}</p>
 							</div>
-							<div className="flex items-center gap-4">
-								<label htmlFor="pilar" className="w-48 text-sm font-medium text-gray-700">Pilar</label>
-								<select
-									id="pilar"
-									name="pilar"
-									className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-									defaultValue={editIndex !== null ? skpList[editIndex].pilar : ""}
-								>
-									<option value="BIGGER">BIGGER</option>
-									<option value="SMARTER">SMARTER</option>
-									<option value="BETTER">BETTER</option>
-								</select>
+							<div>
+								<p className="text-sm text-gray-600">BIGGER</p>
+								<p className="text-2xl font-bold text-blue-600">
+									{latestRecordsPerIndicator.filter(item => item.pilar === 'BIGGER').length}
+								</p>
 							</div>
-							<div className="flex items-center gap-4">
-								<label htmlFor="indikator" className="w-48 text-sm font-medium text-gray-700">Indikator Kinerja</label>
-								<textarea
-									id="indikator"
-									name="indikator"
-									rows={2}
-									className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-									defaultValue={editIndex !== null ? skpList[editIndex].indikator : ""}
-								/>
+							<div>
+								<p className="text-sm text-gray-600">SMARTER</p>
+								<p className="text-2xl font-bold text-green-600">
+									{latestRecordsPerIndicator.filter(item => item.pilar === 'SMARTER').length}
+								</p>
 							</div>
-							<div className="flex items-center gap-4">
-								<label htmlFor="kendala" className="w-48 text-sm font-medium text-gray-700">Kendala</label>
-								<textarea
-									id="kendala"
-									name="kendala"
-									className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-									defaultValue={editIndex !== null ? skpList[editIndex].kendala : ""}
-								/>
+							<div>
+								<p className="text-sm text-gray-600">BETTER</p>
+								<p className="text-2xl font-bold text-yellow-600">
+									{latestRecordsPerIndicator.filter(item => item.pilar === 'BETTER').length}
+								</p>
 							</div>
-							<div className="grid grid-cols-2 gap-4">
-								<div className="flex items-center gap-2">
-									<label htmlFor="targetVolume" className="text-sm font-medium text-gray-700 min-w-max">Target Volume</label>
-									<input
-										type="number"
-										id="targetVolume"
-										name="targetVolume"
-										className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
-										defaultValue={editIndex !== null ? skpList[editIndex].targetVolume : ""}
-									/>
-								</div>
-								<div className="flex items-center gap-2">
-									<label htmlFor="targetSatuan" className="text-sm font-medium text-gray-700 min-w-max">Target Satuan</label>
-									<input
-										type="text"
-										id="targetSatuan"
-										name="targetSatuan"
-										className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
-										defaultValue={editIndex !== null ? skpList[editIndex].targetSatuan : ""}
-									/>
-								</div>
-							</div>
-							<div className="grid grid-cols-2 gap-4">
-								<div className="flex items-center gap-2">
-									<label htmlFor="updateVolume" className="text-sm font-medium text-gray-700 min-w-max">Update Volume</label>
-									<input
-										type="number"
-										id="updateVolume"
-										name="updateVolume"
-										className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
-										defaultValue={editIndex !== null ? skpList[editIndex].updateVolume : ""}
-									/>
-								</div>
-								<div className="flex items-center gap-2">
-									<label htmlFor="updateSatuan" className="text-sm font-medium text-gray-700 min-w-max">Update Satuan</label>
-									<input
-										type="text"
-										id="updateSatuan"
-										name="updateSatuan"
-										className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
-										defaultValue={editIndex !== null ? skpList[editIndex].updateSatuan : ""}
-									/>
-								</div>
-							</div>
-							<div className="flex justify-end gap-2 pt-4">
-								<button
-									type="button"
-									className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg font-semibold hover:bg-gray-400 transition"
-									onClick={() => {
-										setShowModal(false);
-										setEditIndex(null);
-									}}
-								>
-									Batal
-								</button>
-								<button
-									type="submit"
-									className="bg-blue-600 text-white px-4 py-2 rounded-lg font-semibold hover:bg-blue-700 transition"
-								>
-									Simpan
-								</button>
-							</div>
-						</form>
-						<button
-							className="absolute top-2 right-2 text-gray-400 hover:text-gray-700 text-xl"
-							onClick={() => setShowModal(false)}
-							aria-label="Close"
-						>
-							&times;
-						</button>
+						</div>
 					</div>
-				</div>
-			)}
+				)}
+			</div>
 		</div>
 	);
 }

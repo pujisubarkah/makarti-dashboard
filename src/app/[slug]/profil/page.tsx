@@ -5,7 +5,7 @@ import { useParams } from "next/navigation";
 
 export default function ProfilPage() {
   const params = useParams() as Record<string, string | undefined>;
-  const slug = params?.slug as string;
+  //const slug = params?.slug as string;
   const id = params?.id || localStorage.getItem('username'); // Get from params or localStorage
   
   type PegawaiDetailItem = {

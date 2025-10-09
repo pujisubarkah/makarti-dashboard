@@ -37,9 +37,8 @@ export default async function handler(
 
   try {
     const allPegawai = await prisma.pegawai.findMany({
-      include: {
-        users: true,
-      },
+      // Adjust the include clause to match your schema, e.g., include related user if relation is 'user'
+      // include: { user: true },
     });
 
     const filteredPegawai = allPegawai.filter(p =>
@@ -52,7 +51,18 @@ export default async function handler(
     }
 
     const sampleUnit = filteredPegawai.find(p => p.unit_kerja_id === targetUnitId);
-    const namaUnitKerja = sampleUnit?.users?.unit_kerja || 'Unit Tidak Diketahui';
+
+    // Fetch unit name from the users table
+    let namaUnitKerja = 'Unit Tidak Diketahui';
+    if (sampleUnit?.unit_kerja_id) {
+      const unit = await prisma.users.findUnique({
+        where: { id: sampleUnit.unit_kerja_id },
+        select: { unit_kerja: true },
+      });
+      if (unit?.unit_kerja) {
+        namaUnitKerja = unit.unit_kerja;
+      }
+    }
 
     let totalPegawai = 0;
     let kepalaUnit: string | null = null;

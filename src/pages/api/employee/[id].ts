@@ -25,7 +25,7 @@ export default async function handler(
 				pegawai = await prisma.pegawai.findUnique({
 					where: { id: numericId },
 					include: {
-						users: {
+						users_pegawai_unit_kerja_idTousers: {
 							select: { unit_kerja: true }
 						},
 						pegawai_detail: true
@@ -36,7 +36,7 @@ export default async function handler(
 				pegawai = await prisma.pegawai.findFirst({
 					where: { nip: String(id) },
 					include: {
-						users: {
+						users_pegawai_unit_kerja_idTousers: {
 							select: { unit_kerja: true }
 						},
 						pegawai_detail: true

@@ -91,6 +91,7 @@ export default function UnitKerjaDashboard() {
                 
                 // Ambil unit_kerja_id dari localStorage
                 const userUnitId = localStorage.getItem("id");
+                console.log(`Retrieved unit ID from localStorage: ${userUnitId}`);
                 
                 if (!userUnitId) {
                     throw new Error("Unit kerja ID tidak ditemukan di localStorage. Silakan login ulang.");
@@ -99,19 +100,25 @@ export default function UnitKerjaDashboard() {
                 // Validasi ID harus berupa angka
                 const unitId = parseInt(userUnitId);
                 if (isNaN(unitId)) {
-                    throw new Error("Unit kerja ID tidak valid. Silakan login ulang.");
+                    throw new Error(`Unit kerja ID tidak valid: "${userUnitId}". Silakan login ulang.`);
                 }
 
                 // Fetch data dari API dengan ID spesifik
+                console.log(`Fetching data for unit ID: ${unitId}`);
                 const response = await fetch(`/api/pegawai/${unitId}`);
                 
+                console.log(`API Response status: ${response.status}`);
+                
                 if (!response.ok) {
+                    const errorText = await response.text();
+                    console.error(`API Error Response: ${errorText}`);
+                    
                     if (response.status === 404) {
                         throw new Error("Unit kerja tidak ditemukan atau tidak memenuhi syarat.");
                     } else if (response.status === 204) {
                         throw new Error("Unit kerja tidak memenuhi syarat (jumlah pegawai terlalu sedikit).");
                     } else {
-                        throw new Error(`HTTP error! status: ${response.status}`);
+                        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
                     }
                 }
                 
@@ -127,7 +134,17 @@ export default function UnitKerjaDashboard() {
                 
             } catch (err) {
                 console.error('Error fetching unit data:', err);
-                setError(err instanceof Error ? err.message : 'Terjadi kesalahan saat memuat data');
+                
+                // More detailed error handling
+                let errorMessage = 'Terjadi kesalahan saat memuat data';
+                
+                if (err instanceof TypeError && err.message.includes('fetch')) {
+                    errorMessage = 'Gagal terhubung ke server. Periksa koneksi internet Anda.';
+                } else if (err instanceof Error) {
+                    errorMessage = err.message;
+                }
+                
+                setError(errorMessage);
                 
                 // Fallback data jika gagal fetch
                 setUnitData({

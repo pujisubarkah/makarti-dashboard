@@ -17,7 +17,7 @@ export default async function handler(
         const pegawai = await prisma.pegawai.findUnique({
           where: { id: Number(req.query.id) },
           include: {
-            users: {
+            users_pegawai_unit_kerja_idTousers: {
               select: { unit_kerja: true }
             }
           }
@@ -36,7 +36,7 @@ export default async function handler(
       try {
         const pegawai = await prisma.pegawai.findMany({
           include: {
-            users: {
+            users_pegawai_unit_kerja_idTousers: {
               select: { unit_kerja: true }
             }
           }

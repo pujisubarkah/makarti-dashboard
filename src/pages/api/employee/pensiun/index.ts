@@ -12,7 +12,7 @@ export default async function handler(
         try {
             const pegawaiList = await prisma.pegawai.findMany({
                 include: {
-                    users: {
+                    users_pegawai_unit_kerja_idTousers: {
                         select: { unit_kerja: true }
                     },
                     pegawai_detail: true

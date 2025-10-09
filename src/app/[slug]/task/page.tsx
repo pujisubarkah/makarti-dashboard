@@ -909,7 +909,7 @@ export default function TaskPage() {
                                                 </div>
                                                 {subtask.subtask_submissions.komentar && (
                                                   <p className="text-xs text-purple-700 mt-1 italic">
-                                                    "{subtask.subtask_submissions.komentar}"
+                                                    &quot;{subtask.subtask_submissions.komentar}&quot;
                                                   </p>
                                                 )}
                                               </div>

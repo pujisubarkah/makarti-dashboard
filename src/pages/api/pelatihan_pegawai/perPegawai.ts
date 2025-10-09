@@ -18,7 +18,7 @@ export default async function handler(
       // Ambil semua pegawai dan kelompokkan berdasarkan unit kerja
       const semuaPegawai = await prisma.pegawai.findMany({
         include: {
-          users: {
+          users_pegawai_unit_kerja_idTousers: {
             select: { unit_kerja: true },
           },
         },
@@ -27,7 +27,7 @@ export default async function handler(
       // Hitung jumlah pegawai per unit kerja
       const jumlahPegawaiPerUnit = new Map<string, number>();
       semuaPegawai.forEach((pegawai) => {
-        const unit_kerja = pegawai.users?.unit_kerja || "Tidak diketahui";
+        const unit_kerja = pegawai.users_pegawai_unit_kerja_idTousers?.unit_kerja || "Tidak diketahui";
         jumlahPegawaiPerUnit.set(
           unit_kerja,
           (jumlahPegawaiPerUnit.get(unit_kerja) || 0) + 1

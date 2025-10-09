@@ -253,19 +253,20 @@ model org_units {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model pegawai {
-  id                Int                 @id @default(autoincrement())
-  created_at        DateTime            @default(now()) @db.Timestamptz(6)
-  nip               String?             @default("18") @db.VarChar
-  nama              String?             @default("225") @db.VarChar
-  unit_kerja_id     Int?
-  jabatan           String?
-  golongan          String?             @db.VarChar
-  eselon            String?             @db.VarChar(10)
-  event_assignments event_assignments[]
-  users             users?              @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
-  pegawai_detail    pegawai_detail[]
-  pelatihan         pelatihan[]
-  subtasks          subtasks[]
+  id                                 Int                 @id @default(autoincrement())
+  created_at                         DateTime            @default(now()) @db.Timestamptz(6)
+  nip                                String?             @unique(map: "pegawai_unique") @default("18") @db.VarChar
+  nama                               String?             @default("225") @db.VarChar
+  unit_kerja_id                      Int?
+  jabatan                            String?
+  golongan                           String?             @db.VarChar
+  eselon                             String?             @db.VarChar(10)
+  event_assignments                  event_assignments[]
+  users_pegawai_unit_kerja_idTousers users?              @relation("pegawai_unit_kerja_idTousers", fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  users_pegawai_nipTousers           users?              @relation("pegawai_nipTousers", fields: [nip], references: [username], onDelete: NoAction, onUpdate: NoAction, map: "pegawai_users_fk")
+  pegawai_detail                     pegawai_detail[]
+  pelatihan                          pelatihan[]
+  subtasks                           subtasks[]
 
   @@schema("makarti")
 }
@@ -291,6 +292,7 @@ model pegawai_detail {
   tingkat_pendidikan String?   @db.VarChar
   tempat_lahir       String?   @db.VarChar
   pegawai            pegawai   @relation(fields: [pegawai_id], references: [id], onDelete: Cascade, map: "fk_pegawai")
+  users              users?    @relation(fields: [nip], references: [username], onDelete: NoAction, onUpdate: NoAction, map: "pegawai_detail_users_fk")
 
   @@schema("makarti")
 }
@@ -476,15 +478,41 @@ model status_inovasi {
   @@schema("makarti")
 }
 
-model subtasks {
+/// This table contains check constraints and requires additional setup for migrations. Visit https://pris.ly/d/check-constraints for more info.
+model subtask_reviews {
   id          Int       @id @default(autoincrement())
-  task_id     Int
-  title       String
-  is_done     Boolean?  @default(false)
-  assigned_to Int?
-  created_at  DateTime? @default(now()) @db.Timestamp(6)
-  pegawai     pegawai?  @relation(fields: [assigned_to], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "subtasks_pegawai_fk")
-  tasks       tasks     @relation(fields: [task_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+  subtask_id  Int       @unique
+  rating      Int       @db.SmallInt
+  reviewed_by String    @db.VarChar(18)
+  reviewed_at DateTime? @default(now()) @db.Timestamp(6)
+  subtasks    subtasks  @relation(fields: [subtask_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("makarti")
+}
+
+model subtask_submissions {
+  id           Int       @id @default(autoincrement())
+  subtask_id   Int       @unique
+  file_upload  String
+  komentar     String?
+  submitted_at DateTime? @default(now()) @db.Timestamp(6)
+  is_revised   Boolean?  @default(false)
+  subtasks     subtasks  @relation(fields: [subtask_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
+
+  @@schema("makarti")
+}
+
+model subtasks {
+  id                  Int                  @id @default(autoincrement())
+  task_id             Int
+  title               String
+  is_done             Boolean?             @default(false)
+  assigned_to         Int?
+  created_at          DateTime?            @default(now()) @db.Timestamp(6)
+  subtask_reviews     subtask_reviews?
+  subtask_submissions subtask_submissions?
+  pegawai             pegawai?             @relation(fields: [assigned_to], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "subtasks_pegawai_fk")
+  tasks               tasks                @relation(fields: [task_id], references: [id], onDelete: Cascade, onUpdate: NoAction)
 
   @@schema("makarti")
 }
@@ -508,38 +536,40 @@ model tasks {
 
 /// This model contains row level security and requires additional setup for migrations. Visit https://pris.ly/d/row-level-security for more info.
 model users {
-  created_at            DateTime                @default(now()) @db.Timestamptz(6)
-  unit_kerja            String?
-  username              String                  @db.VarChar @unique
-  password              String?                 @db.VarChar
-  id                    Int                     @id @unique @default(autoincrement())
-  role_id               Int?
-  alias                 String?                 @db.VarChar(255)
-  role                  String?                 @db.VarChar(10)
-  bigger_score          bigger_score[]
-  broadcastmessage      broadcastmessage[]
-  broadcastread         broadcastread[]
-  evaluasi_unit_kerja   evaluasi_unit_kerja?
-  event_schedule        event_schedule[]
-  inovasi               inovasi[]
-  kajian                kajian[]
-  koordinasi            koordinasi[]
-  networking            networking[]
-  notification          notification[]
-  org_units             org_units[]
-  pegawai               pegawai[]
-  pelatihan             pelatihan[]
-  penyelenggaraan       penyelenggaraan[]
-  produkInovasi         produkInovasi[]
-  publikasi             publikasi[]
-  rekap_skor_unit_kerja rekap_skor_unit_kerja[]
-  rencana_mingguan      rencana_mingguan[]
-  serapan_anggaran      serapan_anggaran[]
-  skp_generik           skp_generik[]
-  skptransformational   skptransformational[]
-  sosialisasi           sosialisasi[]
-  tasks                 tasks[]
-  role_user             role_user?              @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+  created_at                           DateTime                @default(now()) @db.Timestamptz(6)
+  unit_kerja                           String?
+  username                             String                  @unique(map: "users_unique") @db.VarChar
+  password                             String?                 @db.VarChar
+  id                                   Int                     @id @unique @default(autoincrement())
+  role_id                              Int?
+  alias                                String?                 @db.VarChar(255)
+  role                                 String?                 @db.VarChar(10)
+  bigger_score                         bigger_score[]
+  broadcastmessage                     broadcastmessage[]
+  broadcastread                        broadcastread[]
+  evaluasi_unit_kerja                  evaluasi_unit_kerja?
+  event_schedule                       event_schedule[]
+  inovasi                              inovasi[]
+  kajian                               kajian[]
+  koordinasi                           koordinasi[]
+  networking                           networking[]
+  notification                         notification[]
+  org_units                            org_units[]
+  pegawai_pegawai_unit_kerja_idTousers pegawai[]               @relation("pegawai_unit_kerja_idTousers")
+  pegawai_pegawai_nipTousers           pegawai?                @relation("pegawai_nipTousers")
+  pegawai_detail                       pegawai_detail[]
+  pelatihan                            pelatihan[]
+  penyelenggaraan                      penyelenggaraan[]
+  produkInovasi                        produkInovasi[]
+  publikasi                            publikasi[]
+  rekap_skor_unit_kerja                rekap_skor_unit_kerja[]
+  rencana_mingguan                     rencana_mingguan[]
+  serapan_anggaran                     serapan_anggaran[]
+  skp_generik                          skp_generik[]
+  skptransformational                  skptransformational[]
+  sosialisasi                          sosialisasi[]
+  tasks                                tasks[]
+  role_user                            role_user?              @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("makarti")
 }

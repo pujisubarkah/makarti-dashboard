@@ -73,36 +73,7 @@ interface SubtasksApiResponse {
   grouped_subtasks: TaskGroup[];
 }
 
-const categories = [
-  { 
-    id: 'inovasi', 
-    name: 'Inovasi', 
-    icon: Lightbulb, 
-    color: 'bg-purple-100 text-purple-800 border-purple-200',
-    bgColor: 'bg-purple-50'
-  },
-  { 
-    id: 'networking', 
-    name: 'Networking', 
-    icon: Network, 
-    color: 'bg-blue-100 text-blue-800 border-blue-200',
-    bgColor: 'bg-blue-50'
-  },
-  { 
-    id: 'branding', 
-    name: 'Branding', 
-    icon: Megaphone, 
-    color: 'bg-green-100 text-green-800 border-green-200',
-    bgColor: 'bg-green-50'
-  },
-  { 
-    id: 'learning', 
-    name: 'Learning', 
-    icon: GraduationCap, 
-    color: 'bg-orange-100 text-orange-800 border-orange-200',
-    bgColor: 'bg-orange-50'
-  }
-]
+
 
 export default function TaskPage() {
   const params = useParams()

@@ -31,6 +31,48 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import SubtaskForm from "../../../components/SubtaskForm"
 import type { Task, Subtask } from "../../../../types/task";
 
+// Interface for Subtasks API response
+interface SubtaskStatistics {
+  total: number;
+  completed: number;
+  pending: number;
+  completion_rate: number;
+}
+
+interface SubtaskPegawai {
+  id: number;
+  nama: string;
+  jabatan: string;
+  nip: string;
+}
+
+interface SubtaskTask {
+  id: number;
+  title: string;
+  status: string;
+  progress: number;
+  created_at: string;
+}
+
+interface SubtaskItem {
+  id: number;
+  title: string;
+  is_done: boolean;
+  created_at: string;
+  assigned_to: number;
+  pegawai: SubtaskPegawai;
+}
+
+interface TaskGroup {
+  task: SubtaskTask;
+  subtasks: SubtaskItem[];
+}
+
+interface SubtasksApiResponse {
+  statistics: SubtaskStatistics;
+  grouped_subtasks: TaskGroup[];
+}
+
 const categories = [
   { 
     id: 'inovasi', 
@@ -82,7 +124,7 @@ export default function TaskPage() {
   const [achievementMessage, setAchievementMessage] = useState('');
   
   // --- Subtasks State ---
-  const [subtasksData, setSubtasksData] = useState<any>(null);
+  const [subtasksData, setSubtasksData] = useState<SubtasksApiResponse | null>(null);
   const [subtasksLoading, setSubtasksLoading] = useState(false);
   const [showSubtasks, setShowSubtasks] = useState(true); // Change to true by default
 
@@ -454,7 +496,7 @@ export default function TaskPage() {
 
                           {/* Subtasks Cards */}
                           <div className="space-y-6">
-                            {subtasksData.grouped_subtasks.map((taskGroup: any) => (
+                            {subtasksData.grouped_subtasks.map((taskGroup: TaskGroup) => (
                               <div key={taskGroup.task.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                                 {/* Task Header */}
                                 <div className="mb-4 pb-3 border-b border-gray-300">
@@ -500,7 +542,7 @@ export default function TaskPage() {
 
                                 {/* Subtasks Grid */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                  {taskGroup.subtasks.map((subtask: any) => (
+                                  {taskGroup.subtasks.map((subtask: SubtaskItem) => (
                                     <Card key={subtask.id} className={`hover:shadow-md transition-all duration-200 border-l-4 ${
                                       subtask.is_done ? 'border-green-400 bg-green-50' : 'border-blue-400 bg-white'
                                     }`}>

@@ -1,5 +1,6 @@
 
 import Image from 'next/image';
+import Link from 'next/link';
 
 export default function Home() {
   return (
@@ -56,7 +57,7 @@ export default function Home() {
           {/* Desktop Navigation Menu - appears on hover */}
           <div id="menu-is-quest" className="hidden md:block">
             {/* Left Circle: Makarti 5.0 */}
-            <a href="/login"
+            <Link href="/login"
               className="absolute text-center size-[120px] lg:size-[150px] bg-blue-50 border-red-500 border-[1px] shadow-lg shadow-white/40 text-slate-800 font-semibold hover:scale-105 opacity-0 rounded-full flex flex-col justify-center items-center transition-all duration-300 delay-200 group-hover:opacity-90 group-hover:-translate-x-[160px] lg:group-hover:-translate-x-[220px] group-hover:-translate-y-[20px] p-2"
               style={{ left: '50%', top: '50%', transform: 'translate(-50%, -50%) translate(-160px, -20px)' }}
             >
@@ -64,7 +65,7 @@ export default function Home() {
                 <Image src="/lanri.png" alt="Logo LAN" width={40} height={40} className="mb-1" />
                 <span className="text-[#269DD8] font-bold text-xs lg:text-sm">Makarti 5.0</span>
               </div>
-            </a>
+            </Link>
             
             {/* Right Circle: Makarti Corpu */}
             <a href="https://makarti-corpu.vercel.app/" target="_blank" rel="noopener noreferrer" id="btn-layanan-guest2"
@@ -95,7 +96,7 @@ export default function Home() {
           {/* Mobile Navigation Menu */}
           <div className="md:hidden">
             <div className="relative">
-              <a
+              <Link
                 href="/login"
                 id="btn-layanan-makarti-mobile"
                 className="absolute -left-4 text-center py-2 px-3 w-[200px] rounded-md bg-blue-50 border-red-500 border-[1px] shadow-lg shadow-white/40 text-slate-800 font-semibold hover:scale-105 opacity-0 flex justify-center items-center transition-all duration-300 delay-200 p-2 group-hover:opacity-90 group-hover:-translate-y-[60px]"
@@ -107,7 +108,7 @@ export default function Home() {
                   </svg>
                   <span className="text-[#269DD8] font-bold text-sm">Makarti 5.0</span>
                 </div>
-              </a>
+              </Link>
             </div>
           </div>
         </div>

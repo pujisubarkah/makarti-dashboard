@@ -25,4 +25,5 @@ export interface Task {
   subtasks: Subtask[];
   owner?: number;
   users?: { name?: string };
+  rating?: number; // Rating from supervisor (1-5 stars)
 }

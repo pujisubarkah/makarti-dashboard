@@ -44,10 +44,10 @@ export default function SlugDashboard() {
       {/* Header */}
       <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-xl shadow-lg p-6 text-white">
         <h1 className="text-4xl font-bold mb-2">
-          Dashboard {slug}
+          Dashboard
         </h1>
         <p className="text-blue-100 text-lg">
-          Selamat datang di dashboard khusus untuk {slug}
+           Dashboard khusus pegawai a.n. {slug.replace(/-/g, ' ')}
         </p>
       </div>
 
@@ -118,7 +118,7 @@ export default function SlugDashboard() {
         <div className="bg-gray-50 p-4 rounded-lg">
           <p className="text-gray-600">
             Anda sedang mengakses dashboard untuk: 
-            <span className="font-bold text-blue-600 ml-2">{slug}</span>
+            <span className="font-bold text-blue-600 ml-2">{slug.replace(/-/g, ' ')}</span>
           </p>
           <p className="text-sm text-gray-500 mt-2">
             Semua menu dan fitur akan disesuaikan dengan context ini.

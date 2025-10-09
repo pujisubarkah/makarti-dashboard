@@ -213,16 +213,16 @@ export default function PelatihanPage() {
           <div className="flex-1">
             <h1 className="text-3xl font-bold mb-2 flex items-center gap-3">
               <GraduationCap className="w-8 h-8" />
-              Input Pelatihan - {slug}
+              Pengembangan Kapasitas Individu
             </h1>
             <p className="text-blue-100">
-              Kelola dan input data pelatihan yang telah diikuti
+              Kelola dan input data pelatihan yang telah diikuti {slug.replace(/-/g, ' ')}
             </p>
             <p className="text-sm text-blue-200 mt-2 font-medium">
               🐣 <span className="font-bold">CUPU</span> → 📚 <span className="font-bold">RAJIN</span> → 🎯 <span className="font-bold">JAGO</span> → 🏆 <span className="font-bold">PRO</span> → 🦸 <span className="font-bold">HERO</span> → ⚡ <span className="font-bold">LEGEND</span> → 🔥 <span className="font-bold">SUHU</span>
             </p>
             <p className="text-xs text-blue-300 mt-1 opacity-80">
-              Kumpulkan JP untuk unlock level berikutnya!
+              Kumpulkan JP untuk unlock level berikutnya! Naik level setiap 20 JP.
             </p>
           </div>
           
@@ -379,7 +379,6 @@ export default function PelatihanPage() {
                   formatter={(value, name) => {
                     if (name === 'jumlah_pelatihan') return [value, 'Jumlah Pelatihan']
                     if (name === 'total_jam') return [value, 'Total Jam']
-                    if (name === 'dengan_sertifikat') return [value, 'Dengan Sertifikat']
                     return [value, name]
                   }}
                 />
@@ -403,15 +402,6 @@ export default function PelatihanPage() {
                   strokeDasharray="5 5"
                   dot={{ fill: '#3b82f6', strokeWidth: 2, r: 3 }}
                 />
-                <Line 
-                  type="monotone" 
-                  dataKey="dengan_sertifikat" 
-                  name="Dengan Sertifikat" 
-                  stroke="#10b981" 
-                  strokeWidth={2} 
-                  connectNulls 
-                  dot={{ fill: '#10b981', strokeWidth: 2, r: 3 }}
-                />
               </LineChart>
             </ResponsiveContainer>
           </div>
@@ -431,12 +421,6 @@ export default function PelatihanPage() {
                     <div className="w-3 h-1 bg-blue-500"></div>
                     <span className="text-gray-700">
                       <strong>Total Jam:</strong> Akumulasi jam pelatihan per bulan
-                    </span>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <div className="w-3 h-3 bg-green-500 rounded-full"></div>
-                    <span className="text-gray-700">
-                      <strong>Dengan Sertifikat:</strong> Pelatihan yang memiliki sertifikat
                     </span>
                   </div>
                 </div>
@@ -544,9 +528,20 @@ export default function PelatihanPage() {
                     </td>
                     <td className="px-4 py-3 border">
                       {pelatihan.sertifikat ? (
-                        <div className="flex items-center gap-2 text-green-600">
-                          <Award className="w-4 h-4" />
-                          <span className="text-sm">Ada</span>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2 text-green-600">
+                            <Award className="w-4 h-4" />
+                            <span className="text-sm">Ada</span>
+                          </div>
+                          <a
+                            href={pelatihan.sertifikat.startsWith('http') ? pelatihan.sertifikat : `https://${pelatihan.sertifikat}`}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-xs text-blue-600 hover:text-blue-800 underline hover:no-underline transition-all inline-flex items-center gap-1"
+                            title="Lihat Sertifikat"
+                          >
+                            <GraduationCap className="w-3 h-3" /> Lihat
+                          </a>
                         </div>
                       ) : (
                         <span className="text-gray-400 text-sm">Tidak ada</span>
@@ -612,7 +607,8 @@ export default function PelatihanPage() {
                   name="tanggal"
                   required
                   className="w-full border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
-                  defaultValue={editIndex !== null && pelatihanList[editIndex] ? pelatihanList[editIndex].tanggal : ""}
+                  defaultValue={editIndex !== null && pelatihanList[editIndex] ? 
+                    new Date(pelatihanList[editIndex].tanggal).toISOString().split('T')[0] : ""}
                 />
               </div>
 

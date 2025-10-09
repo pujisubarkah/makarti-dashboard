@@ -31,7 +31,7 @@ export function SidebarSlug({ className }: SidebarSlugProps) {
   const menuItems: MenuItem[] = [
  
     {
-      label: `Dashboard ${slug}`,
+      label: `Dashboard`,
       href: `/${slug}`,
       icon: Home,
       status: 'ready',
@@ -70,8 +70,8 @@ export function SidebarSlug({ className }: SidebarSlugProps) {
       {/* Display current slug */}
       {slug && (
         <div className="mb-6 p-3 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-sm text-blue-600 font-medium">Current Context:</p>
-          <p className="text-lg font-bold text-blue-800 truncate">{slug}</p>
+          <p className="text-sm text-blue-600 font-medium">PEGAWAI LAN:</p>
+          <p className="text-lg font-bold text-blue-800 truncate">{slug.replace(/-/g, ' ')}</p>
         </div>
       )}
 

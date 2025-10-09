@@ -49,6 +49,15 @@ interface SubtaskTask {
   created_at: string;
 }
 
+interface SubtaskSubmission {
+  id: number;
+  subtask_id: number;
+  file_upload: string;
+  komentar: string | null;
+  submitted_at: string;
+  is_revised: boolean;
+}
+
 interface SubtaskItem {
   id: number;
   title: string;
@@ -57,6 +66,7 @@ interface SubtaskItem {
   assigned_to: number;
   pegawai: SubtaskPegawai;
   rating?: number; // Rating from supervisor (1-5 stars)
+  subtask_submissions?: SubtaskSubmission; // Submission info if exists
 }
 
 interface TaskGroup {
@@ -107,7 +117,7 @@ export default function TaskPage() {
       await updateTaskStatus(String(editingTask.id), 'proses');
       
       // Show achievement notification
-      setAchievementMessage('🎉 Bukti berhasil dikirim! Menunggu penilaian atasan ⭐');
+      setAchievementMessage('🎉 Bukti berhasil dikirim! Menunggu penilaian  ⭐');
       setShowAchievement(true);
       setTimeout(() => setShowAchievement(false), 3000);
       
@@ -238,19 +248,61 @@ export default function TaskPage() {
     
     setIsUploadingSubtask(true);
     try {
-      // Upload bukti dan mark subtask sebagai selesai
-      await handleUpdateSubtask(editingSubtask.id, true);
+      // Determine if this is a new submission or revision
+      const isRevision = editingSubtask.subtask_submissions?.is_revised;
+      const method = isRevision ? 'PUT' : 'POST';
       
-      // Show achievement notification
-      setAchievementMessage('🎉 Bukti subtask berhasil diupload! Menunggu penilaian ⭐');
-      setShowAchievement(true);
-      setTimeout(() => setShowAchievement(false), 3000);
+      const requestBody = isRevision ? {
+        subtask_id: editingSubtask.id,
+        file_upload: subtaskUploadFile,
+        komentar: subtaskUploadNote || null,
+        is_revised: false // Reset revision flag
+      } : {
+        subtask_id: editingSubtask.id,
+        file_upload: subtaskUploadFile,
+        komentar: subtaskUploadNote || null
+      };
       
-      // Reset form
-      setEditingSubtask(null);
-      setSubtaskUploadFile('');
-      setSubtaskUploadNote('');
-    } catch {
+      // Submit bukti ke API subtasks_submission
+      const response = await fetch('/api/subtasks_submission', {
+        method: method,
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestBody)
+      });
+
+      if (response.ok) {
+        const submissionData = await response.json();
+        console.log(`Subtask submission ${isRevision ? 'updated' : 'created'}:`, submissionData);
+        
+        // Refresh subtasks data after successful submission
+        fetchSubtasks();
+        
+        // Show achievement notification
+        const message = isRevision 
+          ? '🎉 Bukti revisi berhasil diupload! Menunggu review ulang ⭐'
+          : '🎉 Bukti subtask berhasil diupload! Menunggu penilaian ⭐';
+        setAchievementMessage(message);
+        setShowAchievement(true);
+        setTimeout(() => setShowAchievement(false), 3000);
+        
+        // Reset form
+        setEditingSubtask(null);
+        setSubtaskUploadFile('');
+        setSubtaskUploadNote('');
+      } else {
+        const errorData = await response.json();
+        console.error('Failed to submit subtask:', errorData);
+        
+        if (response.status === 409) {
+          alert('Bukti sudah pernah diupload untuk subtask ini');
+        } else {
+          alert(`Gagal mengupload bukti: ${errorData.error || 'Unknown error'}`);
+        }
+      }
+    } catch (error) {
+      console.error('Error uploading subtask submission:', error);
       alert('Gagal mengupload bukti subtask');
     } finally {
       setIsUploadingSubtask(false);
@@ -260,6 +312,14 @@ export default function TaskPage() {
   // Handle edit subtask
   const handleEditSubtask = (subtask: SubtaskItem) => {
     setEditingSubtask(subtask);
+    // Pre-populate form if editing existing submission
+    if (subtask.subtask_submissions) {
+      setSubtaskUploadFile(subtask.subtask_submissions.file_upload);
+      setSubtaskUploadNote(subtask.subtask_submissions.komentar || '');
+    } else {
+      setSubtaskUploadFile('');
+      setSubtaskUploadNote('');
+    }
   };
 
 
@@ -442,7 +502,7 @@ export default function TaskPage() {
                       <span className="text-sm font-medium">Sistem Penilaian</span>
                     </div>
                     <p className="text-xs opacity-90">
-                      Atasan akan memberikan rating 1-5 bintang untuk setiap tugas yang diselesaikan. 
+                      
                       Setiap 15 bintang naik 1 level!
                     </p>
                   </div>
@@ -719,17 +779,36 @@ export default function TaskPage() {
 
                                 {/* Subtasks Grid */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                  {taskGroup.subtasks.map((subtask: SubtaskItem) => (
-                                    <Card key={subtask.id} className={`hover:shadow-md transition-all duration-200 border-l-4 ${
-                                      subtask.is_done ? 'border-green-400 bg-green-50' : 'border-blue-400 bg-white'
-                                    }`}>
+                                  {taskGroup.subtasks.map((subtask: SubtaskItem) => {
+                                    // Determine card color based on status
+                                    let cardStyle = 'border-blue-400 bg-white'; // Default: not started
+                                    
+                                    if (subtask.subtask_submissions?.is_revised) {
+                                      // Needs revision - Red (highest priority)
+                                      cardStyle = 'border-red-400 bg-red-50';
+                                    } else if (subtask.is_done) {
+                                      // Approved/completed - Green
+                                      cardStyle = 'border-green-400 bg-green-50';
+                                    } else if (subtask.subtask_submissions) {
+                                      // Has submission but not approved yet - Yellow
+                                      cardStyle = 'border-yellow-400 bg-yellow-50';
+                                    }
+                                    
+                                    return (
+                                    <Card key={subtask.id} className={`hover:shadow-md transition-all duration-200 border-l-4 ${cardStyle}`}>
                                       <CardContent className="p-4">
                                         <div className="flex items-start justify-between mb-3">
                                           <div className="flex-1">
                                             <div className="flex items-start justify-between mb-2">
                                               <h4 className={`font-medium ${
-                                                subtask.is_done ? 'text-green-800 line-through' : 'text-gray-800'
+                                                subtask.is_done ? 'text-green-800' : 
+                                                subtask.subtask_submissions && !subtask.subtask_submissions.is_revised ? 'text-yellow-800' :
+                                                subtask.subtask_submissions?.is_revised ? 'text-red-800' :
+                                                'text-gray-800'
                                               }`}>
+                                                {subtask.is_done && '✅ '}
+                                                {!subtask.is_done && subtask.subtask_submissions && !subtask.subtask_submissions.is_revised && '⏳ '}
+                                                {subtask.subtask_submissions?.is_revised && '🔄 '}
                                                 {subtask.title}
                                               </h4>
                                               <DropdownMenu>
@@ -739,27 +818,49 @@ export default function TaskPage() {
                                                   </Button>
                                                 </DropdownMenuTrigger>
                                                 <DropdownMenuContent align="end">
-                                                  {!subtask.is_done && (
+                                                  {!subtask.is_done && !subtask.subtask_submissions && (
                                                     <DropdownMenuItem onClick={() => handleEditSubtask(subtask)}>
                                                       <Edit className="h-4 w-4 mr-2" />
                                                       Upload Bukti
                                                     </DropdownMenuItem>
                                                   )}
-                                                  <DropdownMenuItem 
-                                                    onClick={() => handleUpdateSubtask(subtask.id, !subtask.is_done)}
-                                                  >
-                                                    {subtask.is_done ? (
-                                                      <>
-                                                        <Clock className="h-4 w-4 mr-2" />
-                                                        Tandai Belum Selesai
-                                                      </>
-                                                    ) : (
-                                                      <>
-                                                        <CheckCircle2 className="h-4 w-4 mr-2" />
-                                                        Tandai Selesai
-                                                      </>
-                                                    )}
-                                                  </DropdownMenuItem>
+                                                  
+                                                  {/* Show revision option if submission needs revision */}
+                                                  {subtask.subtask_submissions?.is_revised && (
+                                                    <DropdownMenuItem onClick={() => handleEditSubtask(subtask)}>
+                                                      <Edit className="h-4 w-4 mr-2" />
+                                                      Upload Bukti Revisi
+                                                    </DropdownMenuItem>
+                                                  )}
+                                                  
+                                                  {/* Show view submission link if exists */}
+                                                  {subtask.subtask_submissions && (
+                                                    <DropdownMenuItem 
+                                                      onClick={() => window.open(subtask.subtask_submissions!.file_upload, '_blank')}
+                                                    >
+                                                      <Edit className="h-4 w-4 mr-2" />
+                                                      Lihat Bukti
+                                                    </DropdownMenuItem>
+                                                  )}
+                                                  
+                                                  {/* Simple mark as done/undone for cases without submission required */}
+                                                  {!subtask.subtask_submissions && (
+                                                    <DropdownMenuItem 
+                                                      onClick={() => handleUpdateSubtask(subtask.id, !subtask.is_done)}
+                                                    >
+                                                      {subtask.is_done ? (
+                                                        <>
+                                                          <Clock className="h-4 w-4 mr-2" />
+                                                          Tandai Belum Selesai
+                                                        </>
+                                                      ) : (
+                                                        <>
+                                                          <CheckCircle2 className="h-4 w-4 mr-2" />
+                                                          Tandai Selesai
+                                                        </>
+                                                      )}
+                                                    </DropdownMenuItem>
+                                                  )}
                                                 </DropdownMenuContent>
                                               </DropdownMenu>
                                             </div>
@@ -781,13 +882,70 @@ export default function TaskPage() {
                                               </div>
                                             )}
                                             
+                                            {/* Submission Status */}
+                                            {subtask.subtask_submissions && (
+                                              <div className="mt-2 p-2 bg-purple-50 rounded-lg border border-purple-200">
+                                                <div className="flex items-center justify-between">
+                                                  <div className="flex items-center gap-2">
+                                                    <span className="text-xs font-medium text-purple-800">
+                                                      Bukti Diupload:
+                                                    </span>
+                                                  </div>
+                                                  <div className="flex items-center gap-1">
+                                                    <a
+                                                      href={subtask.subtask_submissions.file_upload}
+                                                      target="_blank"
+                                                      rel="noopener noreferrer"
+                                                      className="text-xs text-purple-600 hover:text-purple-800 underline"
+                                                    >
+                                                      Lihat Bukti
+                                                    </a>
+                                                    {subtask.subtask_submissions.is_revised && (
+                                                      <span className="text-xs bg-red-100 text-red-700 px-1 py-0.5 rounded">
+                                                        Perlu Revisi
+                                                      </span>
+                                                    )}
+                                                  </div>
+                                                </div>
+                                                {subtask.subtask_submissions.komentar && (
+                                                  <p className="text-xs text-purple-700 mt-1 italic">
+                                                    "{subtask.subtask_submissions.komentar}"
+                                                  </p>
+                                                )}
+                                              </div>
+                                            )}
+                                            
                                             {/* Waiting for Rating */}
-                                            {subtask.is_done && !subtask.rating && (
+                                            {subtask.is_done && !subtask.rating && !subtask.subtask_submissions && (
                                               <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
                                                 <div className="flex items-center gap-2">
                                                   <Clock className="h-3 w-3 text-blue-600" />
                                                   <span className="text-xs text-blue-700">
-                                                    Menunggu penilaian atasan
+                                                    Menunggu penilaian 
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            )}
+                                            
+                                            {/* Submitted but not approved yet */}
+                                            {!subtask.is_done && subtask.subtask_submissions && !subtask.subtask_submissions.is_revised && (
+                                              <div className="mt-2 p-2 bg-yellow-50 rounded-lg border border-yellow-200">
+                                                <div className="flex items-center gap-2">
+                                                  <Clock className="h-3 w-3 text-yellow-600" />
+                                                  <span className="text-xs text-yellow-700">
+                                                    Bukti sudah diupload, menunggu review atasan
+                                                  </span>
+                                                </div>
+                                              </div>
+                                            )}
+                                            
+                                            {/* Approved and completed */}
+                                            {subtask.is_done && subtask.subtask_submissions && (
+                                              <div className="mt-2 p-2 bg-green-50 rounded-lg border border-green-200">
+                                                <div className="flex items-center gap-2">
+                                                  <CheckCircle2 className="h-3 w-3 text-green-600" />
+                                                  <span className="text-xs text-green-700">
+                                                    ✅ Subtask telah disetujui dan selesai
                                                   </span>
                                                 </div>
                                               </div>
@@ -802,7 +960,8 @@ export default function TaskPage() {
                                         </div>
                                       </CardContent>
                                     </Card>
-                                  ))}
+                                    );
+                                  })}
                                 </div>
                               </div>
                             ))}
@@ -926,9 +1085,16 @@ export default function TaskPage() {
                     <Dialog open={!!editingSubtask} onOpenChange={() => setEditingSubtask(null)}>
                       <DialogContent className="max-w-md">
                         <DialogHeader>
-                          <DialogTitle>Upload Bukti Subtask</DialogTitle>
+                          <DialogTitle>
+                            {editingSubtask.subtask_submissions?.is_revised ? 'Upload Bukti Revisi' : 'Upload Bukti Subtask'}
+                          </DialogTitle>
                           <DialogDescription>
                             Masukkan link Google Drive atau bukti penyelesaian untuk: {editingSubtask.title}
+                            {editingSubtask.subtask_submissions?.is_revised && (
+                              <div className="mt-2 p-2 bg-red-50 border border-red-200 rounded text-red-700 text-sm">
+                                ⚠️ Subtask ini perlu revisi. Silakan upload bukti yang sudah diperbaiki.
+                              </div>
+                            )}
                           </DialogDescription>
                         </DialogHeader>
                         <div className="space-y-4">
@@ -976,12 +1142,12 @@ export default function TaskPage() {
                               {isUploadingSubtask ? (
                                 <>
                                   <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-white mr-2"></div>
-                                  Mengupload...
+                                  {editingSubtask.subtask_submissions?.is_revised ? 'Mengupload Revisi...' : 'Mengupload...'}
                                 </>
                               ) : (
                                 <>
                                   <CheckCircle2 className="h-4 w-4 mr-2" />
-                                  Upload & Selesaikan
+                                  {editingSubtask.subtask_submissions?.is_revised ? 'Upload Revisi' : 'Upload & Selesaikan'}
                                 </>
                               )}
                             </Button>

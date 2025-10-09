@@ -57,6 +57,14 @@ export default function LoginPage() {
       // Step 3: Redirect berdasarkan role
       if (data.user.role_id === 1) {
         router.push('/admin/dashboard');
+      } else if (data.user.role_id === 4) {
+        // Format slug: hapus spasi, ganti dengan dash
+        const unitSlug = (data.user.unit_kerja || 'unit')
+          .replace(/\s+/g, '-')
+          .replace(/[^a-zA-Z0-9-]/g, '')
+          .replace(/-+/g, '-')
+          .replace(/^-|-$/g, '');
+        router.push(`/${unitSlug}`);
       } else {
         router.push('/user/dashboard');
       }

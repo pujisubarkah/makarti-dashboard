@@ -5,7 +5,6 @@ import { useParams } from 'next/navigation'
 import { 
   Plus, 
   Calendar, 
-  Users, 
   Flag, 
   CheckCircle2, 
   Clock, 
@@ -234,9 +233,7 @@ export default function TaskPage() {
     }
   }
 
-  const handleEditTask = (task: Task) => {
-    setEditingTask(task);
-  };
+
 
   // Handle subtask status update
   const handleUpdateSubtask = async (subtaskId: number, isDone: boolean) => {
@@ -348,35 +345,7 @@ export default function TaskPage() {
     return stars;
   };
 
-  const getCategoryData = (categoryId: string) => {
-    return categories.find(cat => cat.id === categoryId)
-  }
-
-  const getLabelColorScheme = (label: string) => {
-    const colorSchemes = {
-      'inovasi': {
-        borderColor: 'border-l-purple-500',
-        textColor: 'text-purple-600'
-      },
-      'networking': {
-        borderColor: 'border-l-blue-500',
-        textColor: 'text-blue-600'
-      },
-      'branding': {
-        borderColor: 'border-l-green-500',
-        textColor: 'text-green-600'
-      },
-      'learning': {
-        borderColor: 'border-l-orange-500',
-        textColor: 'text-orange-600'
-      }
-    };
-    return colorSchemes[label as keyof typeof colorSchemes] || {
-      borderColor: 'border-l-gray-500',
-      textColor: 'text-gray-600'
-    };
-  }
-
+  
 
 
   // --- Tab UI ---

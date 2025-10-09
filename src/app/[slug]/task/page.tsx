@@ -9,10 +9,6 @@ import {
   CheckCircle2, 
   Clock, 
   Star,
-  Lightbulb,
-  Network,
-  Megaphone,
-  GraduationCap,
   MoreHorizontal,
   Edit
 } from 'lucide-react'

@@ -2,7 +2,7 @@
 'use client'
 
 import { useParams } from 'next/navigation'
-import { useState, useEffect, useMemo } from 'react'
+import { useState, useEffect, useMemo, useRef } from 'react'
 import { GraduationCap, Calendar, Clock, Plus, Edit, Trash2, FileText, Award, TrendingUp } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts'
 
@@ -19,6 +19,7 @@ type PelatihanItem = {
 export default function PelatihanPage() {
   const params = useParams()
   const slug = params?.slug as string
+  const formRef = useRef<HTMLFormElement>(null)
 
   const [showModal, setShowModal] = useState(false)
   const [editIndex, setEditIndex] = useState<number | null>(null)
@@ -81,14 +82,21 @@ export default function PelatihanPage() {
     setLoading(true)
     
     const formData = new FormData(e.currentTarget)
+    const sertifikatValue = formData.get('sertifikat') as string
+    
     const pelatihanData = {
       judul: formData.get('judul') as string,
       tanggal: formData.get('tanggal') as string,
       jam: parseInt(formData.get('jam') as string),
-      sertifikat: formData.get('sertifikat') as string || null,
+      sertifikat: sertifikatValue && sertifikatValue.trim() !== '' ? sertifikatValue : null,
       pegawai_id: parseInt(localStorage.getItem("pegawai_id") || "1"),
       unit_kerja_id: parseInt(localStorage.getItem("id") || "1"),
     }
+
+    // Debug log
+    console.log('Data yang akan dikirim:', pelatihanData)
+    console.log('localStorage pegawai_id:', localStorage.getItem("pegawai_id"))
+    console.log('localStorage id (unit_kerja_id):', localStorage.getItem("id"))
 
     // Calculate current level before submission
     const currentTotalJam = pelatihanList.reduce((sum, p) => sum + p.jam, 0)
@@ -97,6 +105,9 @@ export default function PelatihanPage() {
     try {
       const method = editIndex !== null ? 'PUT' : 'POST'
       const url = editIndex !== null ? `/api/pelatihan/${pelatihanList[editIndex].id}` : '/api/pelatihan'
+      
+      console.log('URL API:', url)
+      console.log('Method:', method)
       
       const response = await fetch(url, {
         method,
@@ -156,13 +167,20 @@ export default function PelatihanPage() {
         }
         
         setShowModal(false)
-        e.currentTarget.reset()
+        setEditIndex(null)
+        
+        // Reset form safely
+        if (formRef.current) {
+          formRef.current.reset()
+        }
       } else {
-        alert('Gagal menyimpan data pelatihan')
+        const errorData = await response.json().catch(() => ({ error: 'Unknown error' }))
+        console.error('API Error Response:', errorData)
+        alert(`Gagal menyimpan data pelatihan: ${errorData.error || 'Unknown error'}`)
       }
     } catch (error) {
       console.error('Error:', error)
-      alert('Terjadi kesalahan saat menyimpan data')
+      alert(`Terjadi kesalahan saat menyimpan data: ${error instanceof Error ? error.message : 'Unknown error'}`)
     } finally {
       setLoading(false)
     }
@@ -171,6 +189,15 @@ export default function PelatihanPage() {
   const handleEdit = (index: number) => {
     setEditIndex(index)
     setShowModal(true)
+  }
+
+  const handleCloseModal = () => {
+    setShowModal(false)
+    setEditIndex(null)
+    // Reset form when closing modal
+    if (formRef.current) {
+      formRef.current.reset()
+    }
   }
 
   const handleDelete = async (index: number) => {
@@ -465,6 +492,12 @@ export default function PelatihanPage() {
           onClick={() => {
             setEditIndex(null)
             setShowModal(true)
+            // Reset form when opening for new entry
+            setTimeout(() => {
+              if (formRef.current) {
+                formRef.current.reset()
+              }
+            }, 0)
           }}
           className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-lg shadow-lg hover:shadow-xl transition-all font-semibold flex items-center gap-2"
         >
@@ -581,7 +614,7 @@ export default function PelatihanPage() {
               <GraduationCap className="w-6 h-6" />
               {editIndex !== null ? "Edit Pelatihan" : "Tambah Pelatihan"}
             </h2>
-            <form className="space-y-4" onSubmit={handleSubmit}>
+            <form ref={formRef} className="space-y-4" onSubmit={handleSubmit}>
               <div>
                 <label htmlFor="judul" className="block text-sm font-medium text-gray-700 mb-1">
                   Judul Pelatihan
@@ -645,10 +678,7 @@ export default function PelatihanPage() {
               <div className="flex justify-end gap-3 mt-6">
                 <button
                   type="button"
-                  onClick={() => {
-                    setShowModal(false)
-                    setEditIndex(null)
-                  }}
+                  onClick={handleCloseModal}
                   className="px-4 py-2 text-gray-600 hover:text-gray-800 font-medium transition-colors"
                 >
                   Batal

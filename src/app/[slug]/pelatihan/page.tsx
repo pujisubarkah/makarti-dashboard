@@ -35,6 +35,7 @@ export default function PelatihanPage() {
       jumlah_pelatihan: number;
       total_jam: number;
       dengan_sertifikat: number;
+      sortKey: string;
     }> = {}
 
     pelatihanList.forEach(pelatihan => {
@@ -47,7 +48,8 @@ export default function PelatihanPage() {
           bulan: monthLabel,
           jumlah_pelatihan: 0,
           total_jam: 0,
-          dengan_sertifikat: 0
+          dengan_sertifikat: 0,
+          sortKey: monthKey
         }
       }
 
@@ -58,7 +60,7 @@ export default function PelatihanPage() {
       }
     })
 
-    return Object.values(monthlyData).sort((a, b) => a.bulan.localeCompare(b.bulan))
+    return Object.values(monthlyData).sort((a, b) => a.sortKey.localeCompare(b.sortKey))
   }, [pelatihanList])
 
   // Fetch data pelatihan

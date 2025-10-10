@@ -46,7 +46,7 @@ export default async function handler(
       }
 
       // Build where clause
-      const whereClause: any = { task_id: taskId };
+      const whereClause: Record<string, unknown> = { task_id: taskId };
 
       if (assigned_to && !Array.isArray(assigned_to)) {
         const empId = parseInt(assigned_to, 10);
@@ -60,7 +60,44 @@ export default async function handler(
       }
 
       // Build include clause
-      const includeClause: any = {
+      const includeClause: {
+        pegawai: {
+          select: {
+            id: boolean;
+            nama: boolean;
+            nip: boolean;
+            jabatan: boolean;
+            golongan: boolean;
+          };
+        };
+        tasks: {
+          select: {
+            id: boolean;
+            title: boolean;
+            owner: boolean;
+            status: boolean;
+            pilar: boolean;
+            progress: boolean;
+          };
+        };
+        subtask_reviews?: {
+          select: {
+            id: boolean;
+            rating: boolean;
+            reviewed_by: boolean;
+            reviewed_at: boolean;
+          };
+        };
+        subtask_submissions?: {
+          select: {
+            id: boolean;
+            file_upload: boolean;
+            komentar: boolean;
+            submitted_at: boolean;
+            is_revised: boolean;
+          };
+        };
+      } = {
         pegawai: {
           select: {
             id: true,
@@ -115,7 +152,7 @@ export default async function handler(
 
       // Calculate task completion statistics
       const totalSubtasks = subtasks.length;
-      const completedSubtasks = subtasks.filter(st => st.is_done).length;
+      const completedSubtasks = subtasks.filter((st: { is_done: boolean | null }) => st.is_done === true).length;
       const pendingSubtasks = totalSubtasks - completedSubtasks;
       const completionRate = totalSubtasks > 0 ? ((completedSubtasks / totalSubtasks) * 100).toFixed(2) + '%' : '0%';
 

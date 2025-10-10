@@ -66,7 +66,44 @@ export default async function handler(
       const offsetNum = parseInt(offset as string, 10);
 
       // Build include clause based on query parameters
-      const includeClause: any = {
+      const includeClause: {
+        pegawai: {
+          select: {
+            id: boolean;
+            nama: boolean;
+            nip: boolean;
+            jabatan: boolean;
+            golongan: boolean;
+          };
+        };
+        tasks: {
+          select: {
+            id: boolean;
+            title: boolean;
+            owner: boolean;
+            status: boolean;
+            pilar: boolean;
+            progress: boolean;
+          };
+        };
+        subtask_reviews?: {
+          select: {
+            id: boolean;
+            rating: boolean;
+            reviewed_by: boolean;
+            reviewed_at: boolean;
+          };
+        };
+        subtask_submissions?: {
+          select: {
+            id: boolean;
+            file_upload: boolean;
+            komentar: boolean;
+            submitted_at: boolean;
+            is_revised: boolean;
+          };
+        };
+      } = {
         pegawai: {
           select: {
             id: true,

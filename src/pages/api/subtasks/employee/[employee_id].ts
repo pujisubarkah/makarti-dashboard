@@ -1,4 +1,4 @@
-import { PrismaClient } from '@prisma/client';
+import { PrismaClient, Prisma } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
 
 const prisma = new PrismaClient();
@@ -45,7 +45,7 @@ export default async function handler(
       }
 
       // Build where clause
-      const whereClause: any = { assigned_to: employeeId };
+      const whereClause: Record<string, unknown> = { assigned_to: employeeId };
 
       if (is_done && !Array.isArray(is_done)) {
         whereClause.is_done = is_done === 'true';
@@ -59,7 +59,7 @@ export default async function handler(
       }
 
       // Build include clause
-      const includeClause: any = {
+      const includeClause: Prisma.subtasksInclude = {
         pegawai: {
           select: {
             id: true,
@@ -113,10 +113,11 @@ export default async function handler(
       });
 
       // Group subtasks by task
-      const taskGroups: Record<number, any> = {};
+      type TaskType = NonNullable<(typeof subtasks)[number]['tasks']>;
+      const taskGroups: Record<number, { task: TaskType; subtasks: typeof subtasks }> = {};
       const taskStats: Record<number, { total: number; completed: number; pending: number; completion_rate: string }> = {};
 
-      subtasks.forEach(subtask => {
+      subtasks.forEach((subtask: typeof subtasks[number]) => {
         const taskId = subtask.task_id;
         
         if (!taskGroups[taskId]) {
@@ -142,13 +143,13 @@ export default async function handler(
 
       // Calculate overall statistics
       const totalSubtasks = subtasks.length;
-      const completedSubtasks = subtasks.filter(st => st.is_done).length;
+      const completedSubtasks = subtasks.filter((st: typeof subtasks[number]) => st.is_done).length;
       const pendingSubtasks = totalSubtasks - completedSubtasks;
       const overallCompletionRate = totalSubtasks > 0 ? ((completedSubtasks / totalSubtasks) * 100).toFixed(2) + '%' : '0%';
 
       // Get tasks with submissions
-      const submittedSubtasks = subtasks.filter(st => st.subtask_submissions).length;
-      const reviewedSubtasks = subtasks.filter(st => st.subtask_reviews).length;
+      const submittedSubtasks = subtasks.filter((st: typeof subtasks[number]) => st.subtask_submissions).length;
+      const reviewedSubtasks = subtasks.filter((st: typeof subtasks[number]) => st.subtask_reviews).length;
 
       return res.status(200).json({
         employee: employee,

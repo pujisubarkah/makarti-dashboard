@@ -43,7 +43,7 @@ export default async function handler(
       }
 
       // Build where clause for subtasks
-      const whereClause: any = { assigned_to: employee.id };
+      const whereClause: Record<string, unknown> = { assigned_to: employee.id };
 
       if (is_done && !Array.isArray(is_done)) {
         whereClause.is_done = is_done === 'true';
@@ -57,7 +57,48 @@ export default async function handler(
       }
 
       // Build include clause
-      const includeClause: any = {
+      type IncludeClauseType = {
+        pegawai: {
+          select: {
+            id: boolean;
+            nama: boolean;
+            nip: boolean;
+            jabatan: boolean;
+            golongan: boolean;
+            eselon: boolean;
+          };
+        };
+        tasks: {
+          select: {
+            id: boolean;
+            title: boolean;
+            owner: boolean;
+            status: boolean;
+            pilar: boolean;
+            progress: boolean;
+            created_at: boolean;
+          };
+        };
+        subtask_reviews?: {
+          select: {
+            id: boolean;
+            rating: boolean;
+            reviewed_by: boolean;
+            reviewed_at: boolean;
+          };
+        };
+        subtask_submissions?: {
+          select: {
+            id: boolean;
+            file_upload: boolean;
+            komentar: boolean;
+            submitted_at: boolean;
+            is_revised: boolean;
+          };
+        };
+      };
+
+      const includeClause: IncludeClauseType = {
         pegawai: {
           select: {
             id: true,
@@ -113,10 +154,27 @@ export default async function handler(
       });
 
       // Group subtasks by task
-      const taskGroups: Record<number, any> = {};
+      type TaskType = {
+        id: number;
+        title: string;
+        owner: number;
+        status: string;
+        pilar: string | null;
+        progress: number | null;
+        created_at: Date | null;
+      };
+      const taskGroups: Record<number, { task: TaskType; subtasks: unknown[] }> = {};
       const taskStats: Record<number, { total: number; completed: number; pending: number; completion_rate: string }> = {};
 
-      subtasks.forEach(subtask => {
+      interface SubtaskType {
+        task_id: number;
+        is_done: boolean | null;
+        created_at?: Date | string | null;
+        tasks: TaskType;
+        [key: string]: unknown;
+      }
+
+      subtasks.forEach((subtask: SubtaskType) => {
         const taskId = subtask.task_id;
         
         if (!taskGroups[taskId]) {
@@ -130,7 +188,7 @@ export default async function handler(
         taskGroups[taskId].subtasks.push(subtask);
         taskStats[taskId].total++;
         
-        if (subtask.is_done) {
+        if (subtask.is_done === true) {
           taskStats[taskId].completed++;
         } else {
           taskStats[taskId].pending++;
@@ -142,19 +200,26 @@ export default async function handler(
 
       // Calculate overall statistics
       const totalSubtasks = subtasks.length;
-      const completedSubtasks = subtasks.filter(st => st.is_done).length;
+      const completedSubtasks = subtasks.filter((st: SubtaskType) => st.is_done).length;
       const pendingSubtasks = totalSubtasks - completedSubtasks;
       const overallCompletionRate = totalSubtasks > 0 ? ((completedSubtasks / totalSubtasks) * 100).toFixed(2) + '%' : '0%';
 
       // Get tasks with submissions and reviews
-      const submittedSubtasks = subtasks.filter(st => st.subtask_submissions).length;
-      const reviewedSubtasks = subtasks.filter(st => st.subtask_reviews).length;
+      const submittedSubtasks = subtasks.filter((st: { subtask_submissions?: unknown }) => st.subtask_submissions).length;
+      const reviewedSubtasks = subtasks.filter((st: { subtask_reviews?: unknown }) => st.subtask_reviews).length;
 
       // Calculate average rating if reviews exist
       let averageRating = 0;
-      const reviewedTasks = subtasks.filter((st: any) => st.subtask_reviews);
+      interface SubtaskWithOptionalReviews {
+        subtask_reviews?: { rating?: number } | null;
+        [key: string]: unknown;
+      }
+      const reviewedTasks = subtasks.filter((st: SubtaskWithOptionalReviews) => st.subtask_reviews);
       if (reviewedTasks.length > 0) {
-        const totalRating = reviewedTasks.reduce((sum: number, st: any) => sum + (st.subtask_reviews?.rating || 0), 0);
+        const totalRating = reviewedTasks.reduce(
+          (sum: number, st: SubtaskWithOptionalReviews) => sum + (st.subtask_reviews?.rating || 0),
+          0
+        );
         averageRating = totalRating / reviewedTasks.length;
       }
 
@@ -162,13 +227,18 @@ export default async function handler(
       const thirtyDaysAgo = new Date();
       thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
       
-      const recentSubtasks = subtasks.filter(st => 
-        new Date(st.created_at!) > thirtyDaysAgo
+      const recentSubtasks = subtasks.filter((st: SubtaskType) => 
+        st.created_at && (typeof st.created_at === 'string' || st.created_at instanceof Date) && new Date(st.created_at) > thirtyDaysAgo
       );
 
-      const recentCompletions = subtasks.filter((st: any) => 
-        st.is_done && st.subtask_submissions && 
-        new Date(st.subtask_submissions.submitted_at!) > thirtyDaysAgo
+      interface SubtaskWithSubmission {
+        is_done: boolean | null;
+        subtask_submissions?: { submitted_at?: Date | string | null } | null;
+      }
+      const recentCompletions = subtasks.filter((st: SubtaskWithSubmission) => 
+        st.is_done === true && st.subtask_submissions && 
+        st.subtask_submissions.submitted_at &&
+        new Date(st.subtask_submissions.submitted_at) > thirtyDaysAgo
       );
 
       return res.status(200).json({
@@ -190,7 +260,7 @@ export default async function handler(
         recent_activity: {
           new_subtasks_30_days: recentSubtasks.length,
           completed_30_days: recentCompletions.length,
-          tasks_involved: [...new Set(subtasks.map(st => st.task_id))].length
+          tasks_involved: [...new Set(subtasks.map((st: SubtaskType) => st.task_id))].length
         }
       });
 

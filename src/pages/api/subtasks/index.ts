@@ -1,7 +1,5 @@
-import { PrismaClient } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma';
 
 interface WhereClause {
   task_id?: number;
@@ -323,7 +321,5 @@ export default async function handler(
   } catch (error) {
     console.error('Error in subtasks API:', error);
     return res.status(500).json({ error: 'Internal server error' });
-  } finally {
-    await prisma.$disconnect();
   }
 }

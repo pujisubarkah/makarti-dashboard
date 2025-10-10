@@ -46,7 +46,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } catch (error) {
     console.error(error);
     return res.status(500).json({ error: 'Terjadi kesalahan pada server.' });
-  } finally {
-    await prisma.$disconnect();
   }
 }

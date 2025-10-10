@@ -251,7 +251,7 @@ export default function TaskPage() {
         
         // Show achievement notification
         if (isDone) {
-          setAchievementMessage('🎉 Subtask selesai! Menunggu penilaian atasan ⭐');
+          setAchievementMessage('✅ Subtask ditandai selesai! Menunggu penilaian atasan ⭐');
           setShowAchievement(true);
           setTimeout(() => setShowAchievement(false), 3000);
         }
@@ -300,8 +300,8 @@ export default function TaskPage() {
         
         // Show achievement notification
         const message = isRevision 
-          ? '🎉 Bukti revisi berhasil diupload! Menunggu review ulang ⭐'
-          : '🎉 Bukti subtask berhasil diupload! Menunggu penilaian ⭐';
+          ? '📤 Bukti revisi berhasil diupload! Menunggu review ulang atasan'
+          : '📤 Bukti subtask berhasil diupload! Menunggu review & penilaian atasan';
         setAchievementMessage(message);
         setShowAchievement(true);
         setTimeout(() => setShowAchievement(false), 3000);
@@ -802,16 +802,16 @@ export default function TaskPage() {
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
                                   {(taskGroup.subtasks || []).map((subtask: SubtaskItem) => {
                                     // Determine card color based on status
-                                    let cardStyle = 'border-blue-400 bg-white'; // Default: not started
+                                    let cardStyle = 'border-red-400 bg-red-50'; // Default: not started - Red
                                     
                                     if (subtask.subtask_submissions?.is_revised) {
-                                      // Needs revision - Red (highest priority)
-                                      cardStyle = 'border-red-400 bg-red-50';
-                                    } else if (subtask.is_done) {
-                                      // Approved/completed - Green
+                                      // Needs revision - Dark Red (highest priority)
+                                      cardStyle = 'border-red-600 bg-red-100';
+                                    } else if (subtask.is_done && subtask.subtask_reviews?.rating) {
+                                      // Truly completed with rating - Green
                                       cardStyle = 'border-green-400 bg-green-50';
-                                    } else if (subtask.subtask_submissions) {
-                                      // Has submission but not approved yet - Yellow
+                                    } else if (subtask.subtask_submissions && !subtask.subtask_submissions.is_revised) {
+                                      // Has submission but waiting for review - Yellow
                                       cardStyle = 'border-yellow-400 bg-yellow-50';
                                     }
                                     
@@ -822,14 +822,15 @@ export default function TaskPage() {
                                           <div className="flex-1">
                                             <div className="flex items-start justify-between mb-2">
                                               <h4 className={`font-medium ${
-                                                subtask.is_done ? 'text-green-800' : 
+                                                subtask.is_done && subtask.subtask_reviews?.rating ? 'text-green-800' : 
                                                 subtask.subtask_submissions && !subtask.subtask_submissions.is_revised ? 'text-yellow-800' :
                                                 subtask.subtask_submissions?.is_revised ? 'text-red-800' :
-                                                'text-gray-800'
+                                                'text-red-800'
                                               }`}>
-                                                {subtask.is_done && '✅ '}
-                                                {!subtask.is_done && subtask.subtask_submissions && !subtask.subtask_submissions.is_revised && '⏳ '}
+                                                {subtask.is_done && subtask.subtask_reviews?.rating && '✅ '}
+                                                {subtask.subtask_submissions && !subtask.subtask_submissions.is_revised && !subtask.subtask_reviews?.rating && '⏳ '}
                                                 {subtask.subtask_submissions?.is_revised && '🔄 '}
+                                                {!subtask.subtask_submissions && !subtask.is_done && '� '}
                                                 {subtask.title}
                                               </h4>
                                               <DropdownMenu>
@@ -886,23 +887,6 @@ export default function TaskPage() {
                                               </DropdownMenu>
                                             </div>
                                             
-                                            {/* Rating Display for Completed Subtasks */}
-                                            {subtask.is_done && subtask.subtask_reviews?.rating && (
-                                              <div className="mt-2 p-2 bg-yellow-50 rounded-lg border border-yellow-200">
-                                                <div className="flex items-center justify-between">
-                                                  <span className="text-xs font-medium text-yellow-800">
-                                                    Penilaian :
-                                                  </span>
-                                                  <div className="flex items-center gap-1">
-                                                    {renderStars(subtask.subtask_reviews.rating)}
-                                                    <span className="text-xs font-bold text-yellow-600 ml-1">
-                                                      {subtask.subtask_reviews.rating}/5
-                                                    </span>
-                                                  </div>
-                                                </div>
-                                              </div>
-                                            )}
-                                            
                                             {/* Submission Status */}
                                             {subtask.subtask_submissions && (
                                               <div className="mt-2 p-2 bg-purple-50 rounded-lg border border-purple-200">
@@ -936,37 +920,37 @@ export default function TaskPage() {
                                               </div>
                                             )}
                                             
-                                            {/* Waiting for Rating */}
-                                            {subtask.is_done && !subtask.subtask_reviews?.rating && !subtask.subtask_submissions && (
-                                              <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
+                                            {/* Not started yet */}
+                                            {!subtask.subtask_submissions && !subtask.is_done && (
+                                              <div className="mt-2 p-2 bg-red-50 rounded-lg border border-red-200">
                                                 <div className="flex items-center gap-2">
-                                                  <Clock className="h-3 w-3 text-blue-600" />
-                                                  <span className="text-xs text-blue-700">
-                                                    Menunggu penilaian 
+                                                  <Clock className="h-3 w-3 text-red-600" />
+                                                  <span className="text-xs text-red-700">
+                                                    ⚠️ Belum dikerjakan - Silakan upload bukti segera
                                                   </span>
                                                 </div>
                                               </div>
                                             )}
                                             
-                                            {/* Submitted but not approved yet */}
-                                            {!subtask.is_done && subtask.subtask_submissions && !subtask.subtask_submissions.is_revised && (
+                                            {/* Submitted but waiting for review/rating */}
+                                            {subtask.subtask_submissions && !subtask.subtask_submissions.is_revised && !subtask.subtask_reviews?.rating && (
                                               <div className="mt-2 p-2 bg-yellow-50 rounded-lg border border-yellow-200">
                                                 <div className="flex items-center gap-2">
                                                   <Clock className="h-3 w-3 text-yellow-600" />
                                                   <span className="text-xs text-yellow-700">
-                                                    Bukti sudah diupload, menunggu review atasan
+                                                    ⏳ Bukti sudah diupload, menunggu review & penilaian atasan
                                                   </span>
                                                 </div>
                                               </div>
                                             )}
                                             
-                                            {/* Approved and completed */}
-                                            {subtask.is_done && subtask.subtask_submissions && (
+                                            {/* Truly completed with rating */}
+                                            {subtask.is_done && subtask.subtask_reviews?.rating && (
                                               <div className="mt-2 p-2 bg-green-50 rounded-lg border border-green-200">
                                                 <div className="flex items-center gap-2">
                                                   <CheckCircle2 className="h-3 w-3 text-green-600" />
                                                   <span className="text-xs text-green-700">
-                                                    ✅ Subtask telah disetujui dan selesai
+                                                    ✅ Subtask selesai dan telah dinilai
                                                   </span>
                                                 </div>
                                               </div>
@@ -979,6 +963,23 @@ export default function TaskPage() {
                                             Dibuat: {new Date(subtask.created_at).toLocaleDateString('id-ID')}
                                           </span>
                                         </div>
+                                        
+                                        {/* Rating Display for Completed Subtasks - Moved to Bottom */}
+                                        {subtask.is_done && subtask.subtask_reviews?.rating && (
+                                          <div className="mt-3 p-2 bg-green-50 rounded-lg border border-green-200">
+                                            <div className="flex items-center justify-between">
+                                              <span className="text-xs font-medium text-green-800">
+                                                ✅ Penilaian Final:
+                                              </span>
+                                              <div className="flex items-center gap-1">
+                                                {renderStars(subtask.subtask_reviews.rating)}
+                                                <span className="text-xs font-bold text-green-600 ml-1">
+                                                  {subtask.subtask_reviews.rating}/5
+                                                </span>
+                                              </div>
+                                            </div>
+                                          </div>
+                                        )}
                                       </CardContent>
                                     </Card>
                                     );
@@ -1145,20 +1146,18 @@ export default function TaskPage() {
                             />
                           </div>
                           
-                          <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
-                            <div className="flex items-center gap-2">
-                              <Star className="h-4 w-4 text-yellow-600" />
-                              <span className="text-sm text-yellow-800">
-                                Subtask akan otomatis ditandai selesai setelah upload bukti
-                              </span>
-                            </div>
-                          </div>
-                          
-                          <div className="flex gap-2 pt-4">
+          <div className="p-3 bg-yellow-50 rounded-lg border border-yellow-200">
+            <div className="flex items-center gap-2">
+              <Clock className="h-4 w-4 text-yellow-600" />
+              <span className="text-sm text-yellow-800">
+                Bukti akan dikirim untuk review atasan. Subtask akan selesai setelah diberi penilaian.
+              </span>
+            </div>
+          </div>                          <div className="flex gap-2 pt-4">
                             <Button 
                               onClick={handleSubtaskUpload} 
                               disabled={!subtaskUploadFile.trim() || isUploadingSubtask}
-                              className="flex-1 bg-green-600 hover:bg-green-700"
+                              className="flex-1 bg-yellow-600 hover:bg-yellow-700"
                             >
                               {isUploadingSubtask ? (
                                 <>
@@ -1167,8 +1166,8 @@ export default function TaskPage() {
                                 </>
                               ) : (
                                 <>
-                                  <CheckCircle2 className="h-4 w-4 mr-2" />
-                                  {editingSubtask.subtask_submissions?.is_revised ? 'Upload Revisi' : 'Upload & Selesaikan'}
+                                  <Clock className="h-4 w-4 mr-2" />
+                                  {editingSubtask.subtask_submissions?.is_revised ? 'Upload Bukti Revisi' : 'Upload untuk Review'}
                                 </>
                               )}
                             </Button>

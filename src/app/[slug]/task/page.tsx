@@ -283,7 +283,7 @@ export default function TaskPage() {
       };
       
       // Submit bukti ke API subtasks_submission
-      const response = await fetch('/api/subtasks_submission', {
+      const response = await fetch(`/api/subtasks_submission/${editingSubtask.id}`, {
         method: method,
         headers: {
           'Content-Type': 'application/json',
@@ -409,7 +409,7 @@ export default function TaskPage() {
       {/* Header dengan Context */}
       <div className="bg-gradient-to-r from-blue-600 to-indigo-600 rounded-xl shadow-lg p-6 text-white">
         <h1 className="text-3xl font-bold mb-2">
-          Task Management - {slug}
+          Task Management
         </h1>
         <p className="text-blue-100">
           Kelola tugas dan upload bukti penyelesaian dengan sistem gamifikasi

@@ -68,12 +68,30 @@ const getInitials = (name: string) => {
   return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
 };
 
-const getSubtaskCardBorder = (is_done: boolean) => {
-  return is_done ? 'border-green-500' : 'border-red-500';
+const getSubtaskCardBorder = (subtask: Subtask, submissionData?: { id: number; file_upload: string; has_review: boolean }) => {
+  // Hijau: sudah ada rating (is_done = true)
+  if (subtask.is_done) return 'border-green-500';
+  
+  // Kuning: ada bukti dukung tapi belum ada rating
+  if (submissionData && submissionData.file_upload && !submissionData.has_review) {
+    return 'border-yellow-500';
+  }
+  
+  // Merah: belum ada bukti dukung atau masih pending
+  return 'border-red-500';
 };
 
-const getSubtaskCardBg = (is_done: boolean) => {
-  return is_done ? 'bg-green-50' : 'bg-red-50';
+const getSubtaskCardBg = (subtask: Subtask, submissionData?: { id: number; file_upload: string; has_review: boolean }) => {
+  // Hijau: sudah ada rating (is_done = true)
+  if (subtask.is_done) return 'bg-green-50';
+  
+  // Kuning: ada bukti dukung tapi belum ada rating
+  if (submissionData && submissionData.file_upload && !submissionData.has_review) {
+    return 'bg-yellow-50';
+  }
+  
+  // Merah: belum ada bukti dukung atau masih pending
+  return 'bg-red-50';
 };
 
 const isAllSubtasksDone = (subtasks: Subtask[]) => {
@@ -90,6 +108,41 @@ const PetaKinerjaPegawai: React.FC<Props> = ({ tasks: fallbackTasks = [] }) => {
   const [currentRating, setCurrentRating] = useState(0);
   const [hoverRating, setHoverRating] = useState(0);
   const [submittingRating, setSubmittingRating] = useState(false);
+  const [submissionsData, setSubmissionsData] = useState<Map<number, { id: number; file_upload: string; has_review: boolean }>>(new Map());
+
+  const fetchAllSubmissions = async (tasks: Task[]) => {
+    const submissions = new Map<number, { id: number; file_upload: string; has_review: boolean }>();
+    
+    for (const task of tasks) {
+      for (const subtask of task.subtasks) {
+        try {
+          const res = await fetch(`/api/subtasks_submission/${subtask.id}`);
+          if (res.ok) {
+            const submissionData = await res.json();
+            
+            // Check if there's a review
+            let hasReview = false;
+            try {
+              const reviewRes = await fetch(`/api/subtask_reviews/${subtask.id}`);
+              hasReview = reviewRes.ok;
+            } catch {
+              hasReview = false;
+            }
+            
+            submissions.set(subtask.id, {
+              id: submissionData.id,
+              file_upload: submissionData.file_upload,
+              has_review: hasReview
+            });
+          }
+        } catch {
+          console.log(`No submission found for subtask ${subtask.id}`);
+        }
+      }
+    }
+    
+    setSubmissionsData(submissions);
+  };
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -128,6 +181,9 @@ const PetaKinerjaPegawai: React.FC<Props> = ({ tasks: fallbackTasks = [] }) => {
           }),
         }));
         setApiTasks(parsedTasks);
+        
+        // Fetch submission data for all subtasks
+        await fetchAllSubmissions(parsedTasks);
       } catch (err) {
         console.error('💥 Error fetching tasks:', err);
         setError((err instanceof Error ? err.message : 'Gagal memuat data'));
@@ -216,14 +272,53 @@ const PetaKinerjaPegawai: React.FC<Props> = ({ tasks: fallbackTasks = [] }) => {
 
       const reviewData = await res.json();
       
+      // Update subtask is_done status to true when rating is given
+      const updateRes = await fetch(`/api/subtasks/${subtaskId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          is_done: true
+        })
+      });
+
+      if (!updateRes.ok) {
+        console.warn('Failed to update subtask is_done status');
+      }
+      
       // Update the selected submission with new review data
       setSelectedSubmission(prev => prev ? {
         ...prev,
         subtasks: {
           ...prev.subtasks,
-          subtask_reviews: reviewData
+          subtask_reviews: reviewData,
+          is_done: true
         }
       } : null);
+      
+      // Update submissions data to reflect new review status
+      setSubmissionsData(prev => {
+        const newData = new Map(prev);
+        const submissionData = newData.get(subtaskId);
+        if (submissionData) {
+          newData.set(subtaskId, {
+            ...submissionData,
+            has_review: true
+          });
+        }
+        return newData;
+      });
+      
+      // Update apiTasks to reflect is_done status change
+      setApiTasks(prev => prev.map(task => ({
+        ...task,
+        subtasks: task.subtasks.map(subtask => 
+          subtask.id === subtaskId 
+            ? { ...subtask, is_done: true }
+            : subtask
+        )
+      })));
       
       setCurrentRating(rating);
       alert('Rating berhasil disimpan!');
@@ -282,7 +377,7 @@ const PetaKinerjaPegawai: React.FC<Props> = ({ tasks: fallbackTasks = [] }) => {
               <div className="flex flex-wrap justify-center gap-6">
                 {task.subtasks.length > 0 ? (
                   task.subtasks.map((subtask) => (
-                    <div key={subtask.id} className={`relative flex flex-col items-center max-w-[200px] p-2 border-2 rounded-lg shadow ${getSubtaskCardBorder(subtask.is_done)} ${getSubtaskCardBg(subtask.is_done)}`}> 
+                    <div key={subtask.id} className={`relative flex flex-col items-center max-w-[200px] p-2 border-2 rounded-lg shadow ${getSubtaskCardBorder(subtask, submissionsData.get(subtask.id))} ${getSubtaskCardBg(subtask, submissionsData.get(subtask.id))}`}> 
                       {/* Three dots menu */}
                       <div className="absolute top-2 right-2">
                         <button

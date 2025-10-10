@@ -57,16 +57,20 @@ const SubtaskForm: React.FC<SubtaskFormProps> = ({ selectedTask, setTasks, tasks
     setLoading(true);
 
     try {
+      const requestData = {
+        task_id: Number(selectedTask.id),
+        title,
+        assigned_to: assignedTo ? Number(assignedTo) : null,
+      };
+      
+      console.log('Creating subtask with data:', requestData);
+      
       const response = await fetch('/api/subtasks', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({
-          task_id: selectedTask.id,
-          title,
-          assigned_to: assignedTo || null,
-        })
+        body: JSON.stringify(requestData)
       });
 
       if (response.ok) {

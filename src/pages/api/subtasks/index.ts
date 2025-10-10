@@ -196,14 +196,27 @@ export default async function handler(
 
     } else if (req.method === 'POST') {
       // Create new subtask
+      console.log('POST /api/subtasks - Request body:', JSON.stringify(req.body, null, 2));
+      
       const { task_id, title, assigned_to, is_done = false } = req.body;
 
+      // Check required fields
       if (!task_id || !title) {
-        return res.status(400).json({ error: 'task_id and title are required' });
+        console.log('Missing required fields - task_id:', task_id, 'title:', title);
+        return res.status(400).json({ 
+          error: 'task_id and title are required',
+          received: { task_id, title, assigned_to, is_done }
+        });
       }
 
+      // Check data types
       if (typeof task_id !== 'number' || typeof title !== 'string') {
-        return res.status(400).json({ error: 'Invalid data types for task_id or title' });
+        console.log('Invalid data types - task_id type:', typeof task_id, 'title type:', typeof title);
+        return res.status(400).json({ 
+          error: 'Invalid data types for task_id or title',
+          expected: { task_id: 'number', title: 'string' },
+          received: { task_id: typeof task_id, title: typeof title }
+        });
       }
 
       // Validate task exists
@@ -218,7 +231,11 @@ export default async function handler(
       // Validate employee exists if assigned_to is provided
       if (assigned_to) {
         if (typeof assigned_to !== 'number') {
-          return res.status(400).json({ error: 'assigned_to must be a number' });
+          console.log('Invalid assigned_to type:', typeof assigned_to, 'value:', assigned_to);
+          return res.status(400).json({ 
+            error: 'assigned_to must be a number',
+            received: { type: typeof assigned_to, value: assigned_to }
+          });
         }
 
         const employee = await prisma.pegawai.findUnique({
@@ -226,7 +243,8 @@ export default async function handler(
         });
 
         if (!employee) {
-          return res.status(404).json({ error: 'Employee not found' });
+          console.log('Employee not found with id:', assigned_to);
+          return res.status(404).json({ error: 'Employee not found', assigned_to });
         }
       }
 

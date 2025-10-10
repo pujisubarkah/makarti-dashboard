@@ -48,11 +48,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       return res.status(200).json(formattedData);
     } else if (req.method === "PUT") {
-      const { pegawai_id, judul, jam, tanggal, sertifikat } = req.body;
+      const { username, judul, jam, tanggal, sertifikat } = req.body;
 
       // Validasi data
-      if (!judul || !tanggal || !pegawai_id || !jam) {
-        return res.status(400).json({ error: "Data pelatihan tidak lengkap" });
+      if (!judul || !tanggal || !username || !jam) {
+        return res.status(400).json({ error: "Data pelatihan tidak lengkap. Username diperlukan." });
+      }
+
+      // Cari pegawai berdasarkan username
+      const pegawai = await prisma.pegawai.findFirst({
+        where: { nip: username },
+        include: {
+          users_pegawai_unit_kerja_idTousers: {
+            select: { id: true, unit_kerja: true }
+          }
+        }
+      });
+
+      if (!pegawai) {
+        return res.status(404).json({ error: "Pegawai tidak ditemukan dengan username/nip tersebut" });
+      }
+
+      // Validasi unit_kerja_id dari pegawai tidak boleh null
+      if (!pegawai.unit_kerja_id) {
+        return res.status(400).json({ 
+          error: "Pegawai tidak memiliki unit kerja yang valid",
+          pegawai_id: pegawai.id,
+          pegawai_nama: pegawai.nama
+        });
       }
 
       const updated = await prisma.pelatihan.update({
@@ -61,8 +84,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           judul,
           jam: parseInt(jam.toString()),
           tanggal: new Date(tanggal),
-          pegawai_id: parseInt(pegawai_id.toString()),
-          unit_kerja_id: unitKerjaId,
+          pegawai_id: pegawai.id, // Gunakan id pegawai yang ditemukan
+          unit_kerja_id: pegawai.unit_kerja_id, // Sekarang sudah dipastikan tidak null
           ...(sertifikat !== undefined && sertifikat !== null && sertifikat !== "" ? { sertifikat } : {}),
         },
         include: {

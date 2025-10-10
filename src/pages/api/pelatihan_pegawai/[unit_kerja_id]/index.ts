@@ -49,10 +49,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "unit_kerja_id tidak valid" });
       }
 
-      const { pegawai_id, judul, jam, tanggal, sertifikat } = req.body;
+      const { username, judul, jam, tanggal, sertifikat } = req.body;
 
-      if (!judul || !tanggal || !pegawai_id || !jam) {
-        return res.status(400).json({ error: "Data pelatihan tidak lengkap" });
+      if (!judul || !tanggal || !username || !jam) {
+        return res.status(400).json({ error: "Data pelatihan tidak lengkap. Username diperlukan." });
+      }
+
+      // Cari pegawai berdasarkan username (yang di tabel users akan match dengan nip di tabel pegawai)
+      const pegawai = await prisma.pegawai.findFirst({
+        where: { nip: username },
+        include: {
+          users_pegawai_unit_kerja_idTousers: {
+            select: { id: true, unit_kerja: true }
+          }
+        }
+      });
+
+      if (!pegawai) {
+        return res.status(404).json({ error: "Pegawai tidak ditemukan dengan username/nip tersebut" });
+      }
+
+      // Debug info untuk melihat data pegawai
+      console.log('Pegawai ditemukan:', {
+        id: pegawai.id,
+        nama: pegawai.nama,
+        nip: pegawai.nip,
+        unit_kerja_id: pegawai.unit_kerja_id,
+        expected_unit: unitKerjaId
+      });
+
+      // Validasi unit_kerja_id dari pegawai tidak boleh null
+      if (!pegawai.unit_kerja_id) {
+        return res.status(400).json({ 
+          error: "Pegawai tidak memiliki unit kerja yang valid",
+          pegawai_id: pegawai.id,
+          pegawai_nama: pegawai.nama
+        });
       }
 
       const pelatihanBaru = await prisma.pelatihan.create({
@@ -61,8 +93,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           jam: parseInt(jam),
           tanggal: new Date(tanggal),
           sertifikat: sertifikat ?? null,
-          unit_kerja_id: unitKerjaId,
-          pegawai_id: parseInt(pegawai_id),
+          unit_kerja_id: pegawai.unit_kerja_id, // Sekarang sudah dipastikan tidak null
+          pegawai_id: pegawai.id, // Gunakan id pegawai yang ditemukan
         },
       });
 
@@ -76,11 +108,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         tanggal: pelatihanBaru.tanggal.toISOString().split("T")[0],
         sertifikat: pelatihanBaru.sertifikat,
         pegawai: {
-          id: pelatihanBaru.pegawai_id,
-          nama: (await prisma.pegawai.findUnique({
-            where: { id: pelatihanBaru.pegawai_id },
-          }))?.nama,
+          id: pegawai.id,
+          nama: pegawai.nama,
         },
+        unit_kerja: pegawai.users_pegawai_unit_kerja_idTousers?.unit_kerja || "Tidak diketahui"
       });
     } catch (error) {
       console.error("Error creating pelatihan:", error);

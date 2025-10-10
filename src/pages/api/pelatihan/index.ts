@@ -5,12 +5,12 @@ import { NextApiRequest, NextApiResponse } from "next";
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "POST") {
     try {
-      const { judul, tanggal, jam, sertifikat, pegawai_id, unit_kerja_id } = req.body;
+      const { judul, tanggal, jam, sertifikat, username, unit_kerja_id } = req.body;
 
       // Validasi data yang dikirim
-      if (!judul || !tanggal || !jam || !pegawai_id || !unit_kerja_id) {
+      if (!judul || !tanggal || !jam || !username || !unit_kerja_id) {
         return res.status(400).json({ 
-          error: "Data tidak lengkap. Judul, tanggal, jam, pegawai_id, dan unit_kerja_id harus diisi" 
+          error: "Data tidak lengkap. Judul, tanggal, jam, username, dan unit_kerja_id harus diisi" 
         });
       }
 
@@ -23,6 +23,29 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
+      // Cari pegawai berdasarkan username (yang di tabel users akan match dengan nip di tabel pegawai)
+      const pegawai = await prisma.pegawai.findFirst({
+        where: { nip: username },
+        include: {
+          users_pegawai_unit_kerja_idTousers: {
+            select: { id: true, unit_kerja: true }
+          }
+        }
+      });
+
+      if (!pegawai) {
+        return res.status(404).json({ error: "Pegawai tidak ditemukan dengan username/nip tersebut" });
+      }
+
+      // Validasi unit_kerja_id dari pegawai tidak boleh null
+      if (!pegawai.unit_kerja_id) {
+        return res.status(400).json({ 
+          error: "Pegawai tidak memiliki unit kerja yang valid",
+          pegawai_id: pegawai.id,
+          pegawai_nama: pegawai.nama
+        });
+      }
+
       // Buat data pelatihan baru
       const newPelatihan = await prisma.pelatihan.create({
         data: {
@@ -30,8 +53,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           tanggal: new Date(tanggal),
           jam: jamInt,
           sertifikat: sertifikat || null,
-          pegawai_id: parseInt(pegawai_id),
-          unit_kerja_id: parseInt(unit_kerja_id),
+          pegawai_id: pegawai.id, // Gunakan id pegawai yang ditemukan
+          unit_kerja_id: pegawai.unit_kerja_id, // Sekarang sudah dipastikan tidak null
         },
       });
 

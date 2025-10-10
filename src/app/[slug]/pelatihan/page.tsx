@@ -91,13 +91,13 @@ export default function PelatihanPage() {
       tanggal: formData.get('tanggal') as string,
       jam: parseInt(formData.get('jam') as string),
       sertifikat: sertifikatValue && sertifikatValue.trim() !== '' ? sertifikatValue : null,
-      pegawai_id: parseInt(localStorage.getItem("pegawai_id") || "1"),
+      username: localStorage.getItem("username") || "", // Gunakan username sebagai NIP
       unit_kerja_id: parseInt(localStorage.getItem("id") || "1"),
     }
 
     // Debug log
     console.log('Data yang akan dikirim:', pelatihanData)
-    console.log('localStorage pegawai_id:', localStorage.getItem("pegawai_id"))
+    console.log('localStorage username:', localStorage.getItem("username"))
     console.log('localStorage id (unit_kerja_id):', localStorage.getItem("id"))
 
     // Calculate current level before submission

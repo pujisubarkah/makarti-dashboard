@@ -58,6 +58,13 @@ interface SubtaskSubmission {
   is_revised: boolean;
 }
 
+interface SubtaskReview {
+  id: number;
+  rating: number;
+  reviewed_by: number;
+  reviewed_at: string;
+}
+
 interface SubtaskItem {
   id: number;
   title: string;
@@ -65,7 +72,7 @@ interface SubtaskItem {
   created_at: string;
   assigned_to: number;
   pegawai: SubtaskPegawai;
-  rating?: number; // Rating from supervisor (1-5 stars)
+  subtask_reviews?: SubtaskReview; // Review info if exists
   subtask_submissions?: SubtaskSubmission; // Submission info if exists
 }
 
@@ -143,13 +150,25 @@ export default function TaskPage() {
         return;
       }
 
-      const response = await fetch(`/api/subtasks/${nip}`);
+      const response = await fetch(`/api/subtasks/${nip}?include_reviews=true&include_submissions=true`);
       console.log('Subtasks API response status:', response.status);
       
       if (response.ok) {
         const data = await response.json();
         console.log('Subtasks data loaded successfully:', data);
-        setSubtasksData(data);
+        
+        // Transform API response to match expected structure
+        const transformedData: SubtasksApiResponse = {
+          statistics: {
+            total: data.overall_statistics?.total || 0,
+            completed: data.overall_statistics?.completed || 0,
+            pending: data.overall_statistics?.pending || 0,
+            completion_rate: parseFloat(data.overall_statistics?.completion_rate?.replace('%', '') || '0')
+          },
+          grouped_subtasks: data.grouped_by_task || []
+        };
+        
+        setSubtasksData(transformedData);
       } else {
         const errorText = await response.text();
         console.error('Failed to fetch subtasks. Status:', response.status, 'Error:', errorText);
@@ -339,13 +358,15 @@ export default function TaskPage() {
     }, 0);
     
     // Stars from completed subtasks (if any)
-    if (subtasksData) {
+    if (subtasksData && subtasksData.grouped_subtasks && Array.isArray(subtasksData.grouped_subtasks)) {
       subtasksData.grouped_subtasks.forEach(taskGroup => {
-        taskGroup.subtasks.forEach(subtask => {
-          if (subtask.is_done && subtask.rating) {
-            totalStars += subtask.rating;
-          }
-        });
+        if (taskGroup && taskGroup.subtasks && Array.isArray(taskGroup.subtasks)) {
+          taskGroup.subtasks.forEach(subtask => {
+            if (subtask.is_done && subtask.subtask_reviews?.rating) {
+              totalStars += subtask.subtask_reviews.rating;
+            }
+          });
+        }
       });
     }
     
@@ -697,7 +718,7 @@ export default function TaskPage() {
                               <div className="flex items-center justify-between">
                                 <div>
                                   <p className="text-sm opacity-90">Total Subtasks</p>
-                                  <p className="text-2xl font-bold">{subtasksData.statistics.total}</p>
+                                  <p className="text-2xl font-bold">{subtasksData.statistics?.total || 0}</p>
                                 </div>
                                 <div className="text-3xl">📋</div>
                               </div>
@@ -706,7 +727,7 @@ export default function TaskPage() {
                               <div className="flex items-center justify-between">
                                 <div>
                                   <p className="text-sm opacity-90">Selesai</p>
-                                  <p className="text-2xl font-bold">{subtasksData.statistics.completed}</p>
+                                  <p className="text-2xl font-bold">{subtasksData.statistics?.completed || 0}</p>
                                 </div>
                                 <div className="text-3xl">✅</div>
                               </div>
@@ -715,7 +736,7 @@ export default function TaskPage() {
                               <div className="flex items-center justify-between">
                                 <div>
                                   <p className="text-sm opacity-90">Pending</p>
-                                  <p className="text-2xl font-bold">{subtasksData.statistics.pending}</p>
+                                  <p className="text-2xl font-bold">{subtasksData.statistics?.pending || 0}</p>
                                 </div>
                                 <div className="text-3xl">⏳</div>
                               </div>
@@ -724,7 +745,7 @@ export default function TaskPage() {
                               <div className="flex items-center justify-between">
                                 <div>
                                   <p className="text-sm opacity-90">Completion</p>
-                                  <p className="text-2xl font-bold">{subtasksData.statistics.completion_rate}%</p>
+                                  <p className="text-2xl font-bold">{subtasksData.statistics?.completion_rate || '0%'}</p>
                                 </div>
                                 <div className="text-3xl">🎯</div>
                               </div>
@@ -733,7 +754,7 @@ export default function TaskPage() {
 
                           {/* Subtasks Cards */}
                           <div className="space-y-6">
-                            {subtasksData.grouped_subtasks.map((taskGroup: TaskGroup) => (
+                            {(subtasksData.grouped_subtasks || []).map((taskGroup: TaskGroup) => (
                               <div key={taskGroup.task.id} className="bg-gray-50 rounded-lg p-4 border border-gray-200">
                                 {/* Task Header */}
                                 <div className="mb-4 pb-3 border-b border-gray-300">
@@ -779,7 +800,7 @@ export default function TaskPage() {
 
                                 {/* Subtasks Grid */}
                                 <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3">
-                                  {taskGroup.subtasks.map((subtask: SubtaskItem) => {
+                                  {(taskGroup.subtasks || []).map((subtask: SubtaskItem) => {
                                     // Determine card color based on status
                                     let cardStyle = 'border-blue-400 bg-white'; // Default: not started
                                     
@@ -866,16 +887,16 @@ export default function TaskPage() {
                                             </div>
                                             
                                             {/* Rating Display for Completed Subtasks */}
-                                            {subtask.is_done && subtask.rating && (
+                                            {subtask.is_done && subtask.subtask_reviews?.rating && (
                                               <div className="mt-2 p-2 bg-yellow-50 rounded-lg border border-yellow-200">
                                                 <div className="flex items-center justify-between">
                                                   <span className="text-xs font-medium text-yellow-800">
-                                                    Penilaian Atasan:
+                                                    Penilaian :
                                                   </span>
                                                   <div className="flex items-center gap-1">
-                                                    {renderStars(subtask.rating)}
+                                                    {renderStars(subtask.subtask_reviews.rating)}
                                                     <span className="text-xs font-bold text-yellow-600 ml-1">
-                                                      {subtask.rating}/5
+                                                      {subtask.subtask_reviews.rating}/5
                                                     </span>
                                                   </div>
                                                 </div>
@@ -916,7 +937,7 @@ export default function TaskPage() {
                                             )}
                                             
                                             {/* Waiting for Rating */}
-                                            {subtask.is_done && !subtask.rating && !subtask.subtask_submissions && (
+                                            {subtask.is_done && !subtask.subtask_reviews?.rating && !subtask.subtask_submissions && (
                                               <div className="mt-2 p-2 bg-blue-50 rounded-lg border border-blue-200">
                                                 <div className="flex items-center gap-2">
                                                   <Clock className="h-3 w-3 text-blue-600" />

@@ -1,181 +1,274 @@
-import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '@/lib/prisma';
+import { PrismaClient } from '@prisma/client';
+import type { NextApiRequest, NextApiResponse } from 'next';
 
-// Helper function to calculate and update task progress based on subtasks
-async function updateTaskProgress(taskId: number) {
-  try {
-    // Get all subtasks for this task
-    const subtasks = await prisma.subtasks.findMany({
-      where: { task_id: taskId },
-      select: { is_done: true }
-    });
+const prisma = new PrismaClient();
 
-    // Calculate progress percentage
-    const totalSubtasks = subtasks.length;
-    const completedSubtasks = subtasks.filter(subtask => subtask.is_done).length;
-    const progressPercentage = totalSubtasks > 0 ? Math.round((completedSubtasks / totalSubtasks) * 100) : 0;
-
-    // Update task progress
-    await prisma.tasks.update({
-      where: { id: taskId },
-      data: { progress: progressPercentage }
-    });
-
-    console.log(`Updated task ${taskId} progress: ${progressPercentage}% (${completedSubtasks}/${totalSubtasks} subtasks completed)`);
-    
-    return progressPercentage;
-  } catch (error) {
-    console.error('Error updating task progress:', error);
-    throw error;
-  }
+interface WhereClause {
+  task_id?: number;
+  assigned_to?: number;
+  is_done?: boolean;
+  title?: {
+    contains: string;
+    mode: 'insensitive';
+  };
 }
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method === 'GET') {
-    try {
-      const { task_id } = req.query;
-      
-      if (!task_id) {
-        return res.status(400).json({ error: 'Task ID is required' });
+export default async function handler(
+  req: NextApiRequest,
+  res: NextApiResponse
+) {
+  try {
+    if (req.method === 'GET') {
+      // Get all subtasks with optional filters
+      const { 
+        task_id,
+        assigned_to,
+        is_done,
+        search,
+        limit = '50', 
+        offset = '0',
+        include_reviews = 'false',
+        include_submissions = 'false'
+      } = req.query;
+
+      const whereClause: WhereClause = {};
+
+      // Filter by task_id
+      if (task_id && !Array.isArray(task_id)) {
+        const taskId = parseInt(task_id, 10);
+        if (!isNaN(taskId)) {
+          whereClause.task_id = taskId;
+        }
+      }
+
+      // Filter by assigned_to (employee)
+      if (assigned_to && !Array.isArray(assigned_to)) {
+        const empId = parseInt(assigned_to, 10);
+        if (!isNaN(empId)) {
+          whereClause.assigned_to = empId;
+        }
+      }
+
+      // Filter by completion status
+      if (is_done && !Array.isArray(is_done)) {
+        whereClause.is_done = is_done === 'true';
+      }
+
+      // Search in title
+      if (search && !Array.isArray(search)) {
+        whereClause.title = {
+          contains: search,
+          mode: 'insensitive'
+        };
+      }
+
+      const limitNum = parseInt(limit as string, 10);
+      const offsetNum = parseInt(offset as string, 10);
+
+      // Build include clause based on query parameters
+      const includeClause: any = {
+        pegawai: {
+          select: {
+            id: true,
+            nama: true,
+            nip: true,
+            jabatan: true,
+            golongan: true
+          }
+        },
+        tasks: {
+          select: {
+            id: true,
+            title: true,
+            owner: true,
+            status: true,
+            pilar: true,
+            progress: true
+          }
+        }
+      };
+
+      if (include_reviews === 'true') {
+        includeClause.subtask_reviews = {
+          select: {
+            id: true,
+            rating: true,
+            reviewed_by: true,
+            reviewed_at: true
+          }
+        };
+      }
+
+      if (include_submissions === 'true') {
+        includeClause.subtask_submissions = {
+          select: {
+            id: true,
+            file_upload: true,
+            komentar: true,
+            submitted_at: true,
+            is_revised: true
+          }
+        };
       }
 
       const subtasks = await prisma.subtasks.findMany({
-        where: {
-          task_id: parseInt(task_id as string)
-        },
-        include: {
-          pegawai: {
-            select: {
-              id: true,
-              nama: true,
-              jabatan: true
-            }
-          }
-        },
+        where: whereClause,
+        include: includeClause,
         orderBy: {
           created_at: 'desc'
+        },
+        take: limitNum > 0 && limitNum <= 100 ? limitNum : 50,
+        skip: offsetNum >= 0 ? offsetNum : 0
+      });
+
+      // Get total count for pagination
+      const totalCount = await prisma.subtasks.count({
+        where: whereClause
+      });
+
+      // Calculate statistics
+      const stats = await prisma.subtasks.aggregate({
+        where: whereClause,
+        _count: {
+          id: true
         }
       });
 
-      console.log('API GET /subtasks - Found subtasks:', subtasks.length);
-      res.status(200).json(subtasks);
-    } catch (error) {
-      console.error('API GET /subtasks - Error:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  } else if (req.method === 'POST') {
-    try {
-      const { task_id, title, assigned_to } = req.body;
+      const completedCount = await prisma.subtasks.count({
+        where: {
+          ...whereClause,
+          is_done: true
+        }
+      });
+
+      return res.status(200).json({
+        subtasks,
+        pagination: {
+          total: totalCount,
+          limit: limitNum,
+          offset: offsetNum,
+          has_more: totalCount > offsetNum + limitNum
+        },
+        statistics: {
+          total: stats._count.id,
+          completed: completedCount,
+          pending: stats._count.id - completedCount,
+          completion_rate: stats._count.id > 0 ? ((completedCount / stats._count.id) * 100).toFixed(2) + '%' : '0%'
+        }
+      });
+
+    } else if (req.method === 'POST') {
+      // Create new subtask
+      const { task_id, title, assigned_to, is_done = false } = req.body;
 
       if (!task_id || !title) {
-        return res.status(400).json({ error: 'Task ID and title are required' });
+        return res.status(400).json({ error: 'task_id and title are required' });
       }
 
-      console.log('API POST /subtasks - Creating subtask:', { task_id, title, assigned_to });
+      if (typeof task_id !== 'number' || typeof title !== 'string') {
+        return res.status(400).json({ error: 'Invalid data types for task_id or title' });
+      }
 
-      const subtask = await prisma.subtasks.create({
+      // Validate task exists
+      const task = await prisma.tasks.findUnique({
+        where: { id: task_id }
+      });
+
+      if (!task) {
+        return res.status(404).json({ error: 'Task not found' });
+      }
+
+      // Validate employee exists if assigned_to is provided
+      if (assigned_to) {
+        if (typeof assigned_to !== 'number') {
+          return res.status(400).json({ error: 'assigned_to must be a number' });
+        }
+
+        const employee = await prisma.pegawai.findUnique({
+          where: { id: assigned_to }
+        });
+
+        if (!employee) {
+          return res.status(404).json({ error: 'Employee not found' });
+        }
+      }
+
+      const newSubtask = await prisma.subtasks.create({
         data: {
-          task_id: parseInt(task_id),
-          title,
-          assigned_to: assigned_to ? parseInt(assigned_to) : null,
-          is_done: false
+          task_id: task_id,
+          title: title,
+          assigned_to: assigned_to || null,
+          is_done: Boolean(is_done),
+          created_at: new Date()
         },
         include: {
           pegawai: {
             select: {
               id: true,
               nama: true,
-              jabatan: true
+              nip: true,
+              jabatan: true,
+              golongan: true
             }
-          }
-        }
-      });
-
-      // Update task progress after creating subtask
-      await updateTaskProgress(parseInt(task_id));
-
-      console.log('API POST /subtasks - Created subtask:', subtask);
-      res.status(201).json(subtask);
-    } catch (error) {
-      console.error('API POST /subtasks - Error:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  } else if (req.method === 'PUT') {
-    try {
-      const { id, is_done, title, assigned_to } = req.body;
-
-      if (!id) {
-        return res.status(400).json({ error: 'Subtask ID is required' });
-      }
-
-      console.log('API PUT /subtasks - Updating subtask:', { id, is_done, title, assigned_to });
-
-      // Build update data object
-      const updateData: Partial<import('@prisma/client').subtasks> = {};
-      
-      if (is_done !== undefined) updateData.is_done = is_done;
-      if (title !== undefined) updateData.title = title;
-      if (assigned_to !== undefined) updateData.assigned_to = assigned_to ? parseInt(assigned_to) : null;
-
-      const updatedSubtask = await prisma.subtasks.update({
-        where: { id: parseInt(id) },
-        data: updateData,
-        include: {
-          pegawai: {
+          },
+          tasks: {
             select: {
               id: true,
-              nama: true,
-              jabatan: true
+              title: true,
+              owner: true,
+              status: true,
+              pilar: true,
+              progress: true
             }
           }
         }
       });
 
-      // Update task progress after updating subtask (especially when is_done changes)
-      if (is_done !== undefined) {
-        await updateTaskProgress(updatedSubtask.task_id);
+      return res.status(201).json(newSubtask);
+
+    } else if (req.method === 'PUT') {
+      // Bulk update subtasks
+      const { subtasks } = req.body;
+
+      if (!Array.isArray(subtasks) || subtasks.length === 0) {
+        return res.status(400).json({ error: 'subtasks array is required' });
       }
 
-      console.log('API PUT /subtasks - Updated subtask:', updatedSubtask);
-      res.status(200).json(updatedSubtask);
-    } catch (error) {
-      console.error('API PUT /subtasks - Error:', error);
-      res.status(500).json({ error: 'Internal server error' });
-    }
-  } else if (req.method === 'DELETE') {
-    try {
-      const { id } = req.query;
-
-      if (!id) {
-        return res.status(400).json({ error: 'Subtask ID is required' });
+      // Validate each subtask update
+      for (const subtask of subtasks) {
+        if (!subtask.id || typeof subtask.id !== 'number') {
+          return res.status(400).json({ error: 'Each subtask must have a valid id' });
+        }
       }
 
-      console.log('API DELETE /subtasks - Deleting subtask:', id);
+      // Update subtasks in transaction
+      const updatedSubtasks = await prisma.$transaction(
+        subtasks.map((subtask: { id: number; title?: string; assigned_to?: number; is_done?: boolean }) =>
+          prisma.subtasks.update({
+            where: { id: subtask.id },
+            data: {
+              ...(subtask.title && { title: subtask.title }),
+              ...(subtask.assigned_to !== undefined && { assigned_to: subtask.assigned_to }),
+              ...(subtask.is_done !== undefined && { is_done: subtask.is_done })
+            }
+          })
+        )
+      );
 
-      // Get the subtask before deleting to know which task to update
-      const subtaskToDelete = await prisma.subtasks.findUnique({
-        where: { id: parseInt(id as string) },
-        select: { task_id: true }
+      return res.status(200).json({
+        updated_count: updatedSubtasks.length,
+        subtasks: updatedSubtasks
       });
 
-      if (!subtaskToDelete) {
-        return res.status(404).json({ error: 'Subtask not found' });
-      }
-
-      await prisma.subtasks.delete({
-        where: { id: parseInt(id as string) }
-      });
-
-      // Update task progress after deleting subtask
-      await updateTaskProgress(subtaskToDelete.task_id);
-
-      console.log('API DELETE /subtasks - Subtask deleted successfully');
-      res.status(200).json({ message: 'Subtask deleted successfully' });
-    } catch (error) {
-      console.error('API DELETE /subtasks - Error:', error);
-      res.status(500).json({ error: 'Internal server error' });
+    } else {
+      res.setHeader('Allow', ['GET', 'POST', 'PUT']);
+      return res.status(405).json({ error: `Method ${req.method} not allowed` });
     }
-  } else {
-    res.status(405).json({ error: 'Method not allowed' });
+
+  } catch (error) {
+    console.error('Error in subtasks API:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  } finally {
+    await prisma.$disconnect();
   }
 }

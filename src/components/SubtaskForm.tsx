@@ -50,7 +50,7 @@ const SubtaskForm: React.FC<SubtaskFormProps> = ({ selectedTask, setTasks, tasks
     selectedTask ? `/api/subtasks?task_id=${selectedTask.id}` : null,
     fetcher
   );
-  const subtasks: Subtask[] = subtasksData || [];
+  const subtasks: Subtask[] = subtasksData?.subtasks || [];
 
   const handleAddSubtask = async () => {
     if (!title) return;

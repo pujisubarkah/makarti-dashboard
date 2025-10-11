@@ -1,6 +1,6 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useCallback, useMemo } from 'react';
 import Image from 'next/image';
-import { CheckCircle, XCircle, MoreVertical, X, FileText, MessageCircle, Star } from 'lucide-react';
+import { CheckCircle, XCircle, MoreVertical, X, FileText, MessageCircle, Star, User, Loader2, Search, ChevronLeft, ChevronRight, Filter } from 'lucide-react';
 
 // Tipe data
 interface Pegawai {
@@ -61,11 +61,61 @@ interface Props {
   tasks?: Task[];
 }
 
-const getInitials = (name: string) => {
-  if (!name) return '??';
-  const parts = name.trim().split(' ').filter(Boolean);
-  if (parts.length === 1) return parts[0][0].toUpperCase();
-  return (parts[0][0] + parts[parts.length - 1][0]).toUpperCase();
+// Removed unused getInitials function
+
+// Optimized Image Component with better error handling and loading states
+const OptimizedAvatar: React.FC<{
+  src?: string;
+  alt: string;
+  size?: number;
+  className?: string;
+}> = ({ src, alt, size = 40, className = "" }) => {
+  const [imageError, setImageError] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
+  const handleImageError = useCallback(() => {
+    setImageError(true);
+    setIsLoading(false);
+  }, []);
+
+  const handleImageLoad = useCallback(() => {
+    setIsLoading(false);
+  }, []);
+
+  // Use fallback immediately if no src
+  if (!src || imageError) {
+    return (
+      <div 
+        className={`rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white font-bold border-2 border-gray-200 shadow-sm ${className}`}
+        style={{ width: size, height: size }}
+      >
+        <User size={size * 0.6} className="opacity-80" />
+      </div>
+    );
+  }
+
+  return (
+    <div className={`relative rounded-full overflow-hidden border-2 border-gray-200 shadow-sm ${className}`} style={{ width: size, height: size }}>
+      {isLoading && (
+        <div className="absolute inset-0 bg-gray-100 flex items-center justify-center">
+          <Loader2 size={size * 0.4} className="animate-spin text-gray-400" />
+        </div>
+      )}
+      <Image
+        src={src}
+        alt={alt}
+        width={size}
+        height={size}
+        className={`w-full h-full object-cover transition-opacity duration-300 ${isLoading ? 'opacity-0' : 'opacity-100'}`}
+        onError={handleImageError}
+        onLoad={handleImageLoad}
+        loading="lazy"
+        placeholder="blur"
+        blurDataURL="data:image/jpeg;base64,/9j/4AAQSkZJRgABAQAAAQABAAD/2wBDAAYEBQYFBAYGBQYHBwYIChAKCgkJChQODwwQFxQYGBcUFhYaHSUfGhsjHBYWICwgIyYnKSopGR8tMC0oMCUoKSj/2wBDAQcHBwoIChMKChMoGhYaKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCgoKCj/wAARCAABAAEDASIAAhEBAxEB/8QAFQABAQAAAAAAAAAAAAAAAAAAAAv/xAAhEAACAQMDBQAAAAAAAAAAAAABAgMABAUGIWGRkqGx0f/EABUBAQEAAAAAAAAAAAAAAAAAAAMF/8QAGhEAAgIDAAAAAAAAAAAAAAAAAAECEgMRkf/aAAwDAQACEQMRAD8AltJagyeH0AthI5xdrLcNM91BF5pX2HaH9bcfaSXWGaRmknyJckliyjqTzSlT54b6bk+h0R//2Q=="
+        priority={false}
+      />
+    </div>
+  );
 };
 
 const getSubtaskCardBorder = (subtask: Subtask, submissionData?: { id: number; file_upload: string; has_review: boolean }) => {
@@ -94,9 +144,7 @@ const getSubtaskCardBg = (subtask: Subtask, submissionData?: { id: number; file_
   return 'bg-red-50';
 };
 
-const isAllSubtasksDone = (subtasks: Subtask[]) => {
-  return subtasks.length > 0 && subtasks.every((s) => s.is_done);
-};
+// Removed unused isAllSubtasksDone function
 
 const PetaKinerjaPegawai: React.FC<Props> = ({ tasks: fallbackTasks = [] }) => {
   const [apiTasks, setApiTasks] = useState<Task[]>([]);
@@ -109,40 +157,118 @@ const PetaKinerjaPegawai: React.FC<Props> = ({ tasks: fallbackTasks = [] }) => {
   const [hoverRating, setHoverRating] = useState(0);
   const [submittingRating, setSubmittingRating] = useState(false);
   const [submissionsData, setSubmissionsData] = useState<Map<number, { id: number; file_upload: string; has_review: boolean }>>(new Map());
+  const [submissionCache, setSubmissionCache] = useState<Map<number, { data: { id: number; file_upload: string; has_review: boolean }; timestamp: number }>>(new Map());
+  const [isLoadingSubmissions, setIsLoadingSubmissions] = useState(false);
+  
+  // Pagination states
+  const [currentPage, setCurrentPage] = useState(1);
+  const [itemsPerPage, setItemsPerPage] = useState(6); // Default 6 tasks per page
+  const [searchTerm, setSearchTerm] = useState('');
 
-  const fetchAllSubmissions = async (tasks: Task[]) => {
-    const submissions = new Map<number, { id: number; file_upload: string; has_review: boolean }>();
+
+  // Cache expiry time (5 minutes)
+  const CACHE_EXPIRY_MS = 5 * 60 * 1000;
+
+  // Optimized batch submission fetching with caching and error handling
+  const fetchAllSubmissions = useCallback(async (tasks: Task[]) => {
+    if (isLoadingSubmissions) return; // Prevent multiple concurrent calls
     
-    for (const task of tasks) {
-      for (const subtask of task.subtasks) {
-        try {
-          const res = await fetch(`/api/subtasks_submission/${subtask.id}`);
-          if (res.ok) {
-            const submissionData = await res.json();
+    setIsLoadingSubmissions(true);
+    const submissions = new Map<number, { id: number; file_upload: string; has_review: boolean }>();
+    const subtaskIds: number[] = [];
+    
+    // Collect all subtask IDs and check cache validity
+    const now = Date.now();
+    tasks.forEach(task => {
+      task.subtasks.forEach(subtask => {
+        const cached = submissionCache.get(subtask.id);
+        
+        // Check if cache exists and is still valid
+        if (cached && (now - cached.timestamp) < CACHE_EXPIRY_MS) {
+          // Use cached data
+          submissions.set(subtask.id, cached.data);
+        } else {
+          // Need to fetch fresh data
+          subtaskIds.push(subtask.id);
+        }
+      });
+    });
+
+    // Batch process in chunks to avoid overwhelming the network
+    const BATCH_SIZE = 5;
+    const batches = [];
+    for (let i = 0; i < subtaskIds.length; i += BATCH_SIZE) {
+      batches.push(subtaskIds.slice(i, i + BATCH_SIZE));
+    }
+
+    try {
+      for (const batch of batches) {
+        const batchPromises = batch.map(async (subtaskId) => {
+          try {
+            // Use AbortController for better request management
+            const controller = new AbortController();
+            const timeoutId = setTimeout(() => controller.abort(), 5000); // 5s timeout
             
-            // Check if there's a review
-            let hasReview = false;
-            try {
-              const reviewRes = await fetch(`/api/subtask_reviews/${subtask.id}`);
-              hasReview = reviewRes.ok;
-            } catch {
-              hasReview = false;
-            }
-            
-            submissions.set(subtask.id, {
-              id: submissionData.id,
-              file_upload: submissionData.file_upload,
-              has_review: hasReview
+            const submissionRes = await fetch(`/api/subtasks_submission/${subtaskId}`, {
+              signal: controller.signal
             });
+            clearTimeout(timeoutId);
+            
+            if (submissionRes.ok) {
+              const submissionData = await submissionRes.json();
+              
+              // Quick review check with timeout
+              let hasReview = false;
+              try {
+                const reviewController = new AbortController();
+                const reviewTimeoutId = setTimeout(() => reviewController.abort(), 3000); // 3s timeout
+                
+                const reviewRes = await fetch(`/api/subtask_reviews/${subtaskId}`, {
+                  signal: reviewController.signal
+                });
+                clearTimeout(reviewTimeoutId);
+                hasReview = reviewRes.ok;
+              } catch {
+                hasReview = false;
+              }
+              
+              const result = {
+                id: submissionData.id,
+                file_upload: submissionData.file_upload,
+                has_review: hasReview
+              };
+              
+              submissions.set(subtaskId, result);
+              
+              // Cache the result with timestamp
+              setSubmissionCache(prev => new Map(prev).set(subtaskId, {
+                data: result,
+                timestamp: Date.now()
+              }));
+              
+              return { subtaskId, success: true };
+            }
+          } catch (error) {
+            console.warn(`Failed to fetch submission for subtask ${subtaskId}:`, error);
+            return { subtaskId, success: false };
           }
-        } catch {
-          console.log(`No submission found for subtask ${subtask.id}`);
+        });
+
+        // Process batch with some delay to prevent rate limiting
+        await Promise.allSettled(batchPromises);
+        
+        // Small delay between batches
+        if (batches.indexOf(batch) < batches.length - 1) {
+          await new Promise(resolve => setTimeout(resolve, 100));
         }
       }
+    } catch (error) {
+      console.error('Error in batch submission fetching:', error);
+    } finally {
+      setSubmissionsData(submissions);
+      setIsLoadingSubmissions(false);
     }
-    
-    setSubmissionsData(submissions);
-  };
+  }, [isLoadingSubmissions, submissionCache, CACHE_EXPIRY_MS]);
 
   useEffect(() => {
     const fetchTasks = async () => {
@@ -182,8 +308,8 @@ const PetaKinerjaPegawai: React.FC<Props> = ({ tasks: fallbackTasks = [] }) => {
         }));
         setApiTasks(parsedTasks);
         
-        // Fetch submission data for all subtasks
-        await fetchAllSubmissions(parsedTasks);
+        // Initially don't fetch all submissions - will be fetched per page
+        setApiTasks(parsedTasks);
       } catch (err) {
         console.error('💥 Error fetching tasks:', err);
         setError((err instanceof Error ? err.message : 'Gagal memuat data'));
@@ -195,12 +321,82 @@ const PetaKinerjaPegawai: React.FC<Props> = ({ tasks: fallbackTasks = [] }) => {
     fetchTasks();
   }, [fallbackTasks]);
 
-  const dataToShow = apiTasks.length > 0 ? apiTasks : fallbackTasks;
+  const dataToShow = useMemo(() => {
+    return apiTasks.length > 0 ? apiTasks : fallbackTasks;
+  }, [apiTasks, fallbackTasks]);
 
-  const fetchSubmissionData = async (subtaskId: number) => {
+  // Enhanced memoized tasks with search filtering
+  const filteredTasks = useMemo(() => {
+    let filtered = dataToShow.map((task) => ({
+      ...task,
+      allSubtasksDone: task.subtasks.length > 0 && task.subtasks.every((s) => s.is_done),
+      subtaskCount: task.subtasks.length
+    }));
+
+    // Apply search filter
+    if (searchTerm.trim()) {
+      const search = searchTerm.toLowerCase();
+      filtered = filtered.filter(task => 
+        task.title.toLowerCase().includes(search) ||
+        task.subtasks.some(subtask => 
+          subtask.title.toLowerCase().includes(search) ||
+          subtask.pegawai?.nama.toLowerCase().includes(search)
+        )
+      );
+    }
+
+    return filtered;
+  }, [dataToShow, searchTerm]);
+
+  // Pagination calculations
+  const totalPages = Math.ceil(filteredTasks.length / itemsPerPage);
+  const startIndex = (currentPage - 1) * itemsPerPage;
+  const endIndex = startIndex + itemsPerPage;
+  const currentTasks = filteredTasks.slice(startIndex, endIndex);
+
+  // Reset to page 1 when search changes
+  useEffect(() => {
+    setCurrentPage(1);
+  }, [searchTerm, itemsPerPage]);
+
+  // Fetch submissions only for current page tasks (optimized bandwidth usage)
+  useEffect(() => {
+    if (currentTasks.length > 0) {
+      fetchAllSubmissions(currentTasks);
+    }
+  }, [currentTasks, fetchAllSubmissions]);
+
+  // Keyboard navigation for pagination
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.target instanceof HTMLInputElement) return; // Don't interfere with input fields
+      
+      if (e.key === 'ArrowLeft' && currentPage > 1) {
+        setCurrentPage(prev => prev - 1);
+      } else if (e.key === 'ArrowRight' && currentPage < totalPages) {
+        setCurrentPage(prev => prev + 1);
+      }
+    };
+
+    document.addEventListener('keydown', handleKeyPress);
+    return () => document.removeEventListener('keydown', handleKeyPress);
+  }, [currentPage, totalPages]);
+
+  // Throttled submission fetch to prevent rapid clicks
+  const fetchSubmissionData = useCallback(async (subtaskId: number) => {
+    if (loadingSubmission) return; // Prevent multiple concurrent requests
+    
     setLoadingSubmission(true);
     try {
-      const res = await fetch(`/api/subtasks_submission/${subtaskId}`);
+      // Use timeout to prevent hanging requests
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 10000); // 10s timeout
+      
+      const res = await fetch(`/api/subtasks_submission/${subtaskId}`, {
+        signal: controller.signal
+      });
+      clearTimeout(timeoutId);
+      
       if (!res.ok) {
         if (res.status === 404) {
           alert('Belum ada submission untuk subtask ini');
@@ -210,9 +406,16 @@ const PetaKinerjaPegawai: React.FC<Props> = ({ tasks: fallbackTasks = [] }) => {
       }
       const data: SubmissionData = await res.json();
       
-      // Try to fetch existing review
+      // Try to fetch existing review with timeout
       try {
-        const reviewRes = await fetch(`/api/subtask_reviews/${subtaskId}`);
+        const reviewController = new AbortController();
+        const reviewTimeoutId = setTimeout(() => reviewController.abort(), 5000);
+        
+        const reviewRes = await fetch(`/api/subtask_reviews/${subtaskId}`, {
+          signal: reviewController.signal
+        });
+        clearTimeout(reviewTimeoutId);
+        
         if (reviewRes.ok) {
           const reviewData = await reviewRes.json();
           data.subtasks.subtask_reviews = reviewData;
@@ -229,12 +432,17 @@ const PetaKinerjaPegawai: React.FC<Props> = ({ tasks: fallbackTasks = [] }) => {
       setHoverRating(0);
       setShowSubmissionModal(true);
     } catch (err) {
-      console.error('Error fetching submission:', err);
-      alert('Gagal memuat data submission');
+      if (err instanceof Error && err.name === 'AbortError') {
+        console.log('Request was aborted due to timeout');
+        alert('Request timeout - coba lagi dalam beberapa saat');
+      } else {
+        console.error('Error fetching submission:', err);
+        alert('Gagal memuat data submission. Periksa koneksi internet Anda.');
+      }
     } finally {
       setLoadingSubmission(false);
     }
-  };
+  }, [loadingSubmission]);
 
   const formatDate = (dateString: string) => {
     return new Date(dateString).toLocaleDateString('id-ID', {
@@ -331,12 +539,36 @@ const PetaKinerjaPegawai: React.FC<Props> = ({ tasks: fallbackTasks = [] }) => {
     }
   };
 
-  if (loading) {
-    return (
-      <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-8 min-h-[400px] flex items-center justify-center">
-        <p className="text-gray-500">Memuat data...</p>
+  // Skeleton Loading Component
+  const SkeletonLoader = () => (
+    <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 min-h-[400px]">
+      <div className="h-8 bg-gray-200 rounded-lg mb-6 w-64 mx-auto animate-pulse"></div>
+      <div className="flex flex-wrap gap-8 justify-center">
+        {[1, 2, 3].map((i) => (
+          <div key={i} className="flex flex-col items-center w-full max-w-xs">
+            {/* Task skeleton */}
+            <div className="h-12 bg-gray-200 rounded-lg mb-4 w-full animate-pulse"></div>
+            <div className="h-6 w-1 bg-gray-200 my-2 animate-pulse"></div>
+            {/* Subtasks skeleton */}
+            <div className="flex flex-wrap justify-center gap-6">
+              {[1, 2].map((j) => (
+                <div key={j} className="p-4 border-2 border-gray-200 rounded-lg w-48">
+                  <div className="h-4 bg-gray-200 rounded mb-2 animate-pulse"></div>
+                  <div className="flex flex-col items-center gap-2">
+                    <div className="w-10 h-10 bg-gray-200 rounded-full animate-pulse"></div>
+                    <div className="h-3 bg-gray-200 rounded w-20 animate-pulse"></div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        ))}
       </div>
-    );
+    </div>
+  );
+
+  if (loading) {
+    return <SkeletonLoader />;
   }
 
   if (error) {
@@ -349,25 +581,120 @@ const PetaKinerjaPegawai: React.FC<Props> = ({ tasks: fallbackTasks = [] }) => {
 
   return (
     <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-6 min-h-[400px]">
-      <h2 className="text-2xl font-bold text-blue-700 mb-6 text-center">Peta Kinerja Pegawai</h2>
+      {/* Header with title and loading indicator */}
+      <div className="flex items-center justify-between mb-6">
+        <h2 className="text-2xl font-bold text-blue-700">Peta Kinerja Pegawai</h2>
+        {isLoadingSubmissions && (
+          <div className="flex items-center gap-2 text-sm text-blue-600">
+            <Loader2 size={16} className="animate-spin" />
+            <span>Memuat submissions...</span>
+          </div>
+        )}
+      </div>
+
+      {/* Search and Controls */}
+      <div className="mb-6 space-y-4">
+        {/* Search Bar */}
+        <div className="flex flex-col sm:flex-row gap-4 items-start sm:items-center justify-between">
+          <div className="relative flex-1 max-w-md">
+            <Search size={18} className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400" />
+            <input
+              type="text"
+              placeholder="Cari tugas, subtask, atau nama pegawai..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-transparent transition-all"
+            />
+            {searchTerm && (
+              <button
+                onClick={() => setSearchTerm('')}
+                className="absolute right-3 top-1/2 transform -translate-y-1/2 text-gray-400 hover:text-gray-600"
+              >
+                <X size={16} />
+              </button>
+            )}
+          </div>
+          
+          {/* Items per page selector */}
+          <div className="flex items-center gap-2">
+            <Filter size={16} className="text-gray-500" />
+            <span className="text-sm text-gray-600">Tampilkan:</span>
+            <select
+              value={itemsPerPage}
+              onChange={(e) => setItemsPerPage(Number(e.target.value))}
+              className="border border-gray-300 rounded px-3 py-1 text-sm focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+            >
+              <option value={3}>3 tugas</option>
+              <option value={6}>6 tugas</option>
+              <option value={9}>9 tugas</option>
+              <option value={12}>12 tugas</option>
+            </select>
+          </div>
+        </div>
+
+        {/* Results summary */}
+        <div className="flex items-center justify-between text-sm text-gray-600">
+          <div>
+            Menampilkan {currentTasks.length} dari {filteredTasks.length} tugas
+            {searchTerm && (
+              <span className="ml-2 text-blue-600">
+                (hasil pencarian &quot;{searchTerm}&quot;)
+              </span>
+            )}
+          </div>
+          {totalPages > 1 && (
+            <div>
+              Halaman {currentPage} dari {totalPages}
+            </div>
+          )}
+        </div>
+      </div>
       <div className="flex flex-row flex-wrap gap-8 justify-center items-start w-full">
-        {dataToShow.length === 0 ? (
-          <p className="text-gray-500">Tidak ada tugas ditemukan.</p>
+        {currentTasks.length === 0 ? (
+          <div className="flex flex-col items-center gap-4 py-12">
+            <div className="w-16 h-16 bg-gray-100 rounded-full flex items-center justify-center">
+              <FileText size={32} className="text-gray-400" />
+            </div>
+            {searchTerm ? (
+              <>
+                <p className="text-gray-500 text-lg">Tidak ada hasil untuk &quot;{searchTerm}&quot;</p>
+                <p className="text-gray-400 text-sm">Coba kata kunci yang berbeda atau hapus filter pencarian.</p>
+                <button
+                  onClick={() => setSearchTerm('')}
+                  className="mt-2 px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors"
+                >
+                  Hapus Filter
+                </button>
+              </>
+            ) : (
+              <>
+                <p className="text-gray-500 text-lg">Tidak ada tugas ditemukan.</p>
+                <p className="text-gray-400 text-sm">Tugas akan muncul setelah dibuat oleh admin.</p>
+              </>
+            )}
+          </div>
         ) : (
-          dataToShow.map((task) => (
+          currentTasks.map((task) => (
             <div key={task.id} className="flex flex-col items-center w-full max-w-xs min-w-[260px] flex-1">
-              {/* Task Node tanpa status warna, tambahkan icon checklist jika semua subtasks selesai */}
-              <div className="flex items-center px-6 py-3 bg-blue-600 text-white rounded-lg shadow font-bold text-lg mb-4 gap-2 w-full justify-center">
-                <span>{task.title}</span>
-                {isAllSubtasksDone(task.subtasks) ? (
-                  <span title="Semua subtasks selesai">
-                    <CheckCircle size={24} color="#22c55e" />
+              {/* Task Node dengan status indikator yang lebih informatif */}
+              <div className={`flex items-center px-6 py-3 text-white rounded-lg shadow font-bold text-lg mb-4 gap-2 w-full justify-center transition-all duration-300 ${
+                task.allSubtasksDone 
+                  ? 'bg-gradient-to-r from-green-500 to-green-600 hover:from-green-600 hover:to-green-700' 
+                  : 'bg-gradient-to-r from-blue-500 to-blue-600 hover:from-blue-600 hover:to-blue-700'
+              }`}>
+                <span className="text-center leading-tight">{task.title}</span>
+                <div className="flex flex-col items-center gap-1">
+                  <div title={task.allSubtasksDone ? "Semua subtasks selesai" : "Masih ada subtasks belum selesai"}>
+                    {task.allSubtasksDone ? (
+                      <CheckCircle size={20} className="text-green-200" />
+                    ) : (
+                      <XCircle size={20} className="text-red-200" />
+                    )}
+                  </div>
+                  <span className="text-xs opacity-75">
+                    {task.subtasks.filter(s => s.is_done).length}/{task.subtaskCount}
                   </span>
-                ) : (
-                  <span title="Masih ada subtasks belum selesai">
-                    <XCircle size={24} color="#ef4444" />
-                  </span>
-                )}
+                </div>
               </div>
               {/* Garis penghubung */}
               {task.subtasks.length > 0 && (
@@ -397,20 +724,11 @@ const PetaKinerjaPegawai: React.FC<Props> = ({ tasks: fallbackTasks = [] }) => {
                       {/* Nama dan photo pegawai di bawah title */}
                       {subtask.pegawai && (
                         <div className="flex flex-col items-center gap-2">
-                          {subtask.pegawai.photo_url ? (
-                            <Image
-                              src={subtask.pegawai.photo_url}
-                              alt={subtask.pegawai.nama}
-                              width={40}
-                              height={40}
-                              className="w-10 h-10 rounded-full object-cover border-2 border-gray-400"
-                              priority
-                            />
-                          ) : (
-                            <div className="w-10 h-10 rounded-full bg-gray-300 flex items-center justify-center text-sm font-bold text-white border-2 border-gray-400">
-                              {getInitials(subtask.pegawai.nama)}
-                            </div>
-                          )}
+                          <OptimizedAvatar
+                            src={subtask.pegawai.photo_url}
+                            alt={subtask.pegawai.nama}
+                            size={40}
+                          />
                           <span className="text-xs text-gray-700 font-medium text-center px-2">
                             {subtask.pegawai.nama}
                           </span>
@@ -425,6 +743,136 @@ const PetaKinerjaPegawai: React.FC<Props> = ({ tasks: fallbackTasks = [] }) => {
             </div>
           ))
         )}
+      </div>
+
+      {/* Pagination Controls */}
+      {totalPages > 1 && (
+        <div className="mt-8 flex items-center justify-center">
+          <div className="flex items-center gap-2">
+            {/* Previous Button */}
+            <button
+              onClick={() => {
+                setCurrentPage(prev => Math.max(1, prev - 1));
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              disabled={currentPage === 1}
+              className="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <ChevronLeft size={16} />
+              <span className="hidden sm:inline">Sebelumnya</span>
+            </button>
+
+            {/* Page Numbers */}
+            <div className="flex items-center gap-1">
+              {(() => {
+                const pages = [];
+                const showPages = 5; // Show max 5 page numbers
+                let startPage = Math.max(1, currentPage - Math.floor(showPages / 2));
+                const endPage = Math.min(totalPages, startPage + showPages - 1);
+                
+                // Adjust start if we're near the end
+                if (endPage - startPage + 1 < showPages) {
+                  startPage = Math.max(1, endPage - showPages + 1);
+                }
+
+                // First page + ellipsis if needed
+                if (startPage > 1) {
+                  pages.push(
+                    <button
+                      key={1}
+                      onClick={() => {
+                        setCurrentPage(1);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      1
+                    </button>
+                  );
+                  if (startPage > 2) {
+                    pages.push(
+                      <span key="ellipsis1" className="px-2 text-gray-500">...</span>
+                    );
+                  }
+                }
+
+                // Page numbers
+                for (let i = startPage; i <= endPage; i++) {
+                  pages.push(
+                    <button
+                      key={i}
+                      onClick={() => {
+                        setCurrentPage(i);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className={`px-3 py-2 border rounded-lg transition-colors ${
+                        i === currentPage
+                          ? 'bg-blue-600 text-white border-blue-600'
+                          : 'border-gray-300 hover:bg-gray-50'
+                      }`}
+                    >
+                      {i}
+                    </button>
+                  );
+                }
+
+                // Last page + ellipsis if needed
+                if (endPage < totalPages) {
+                  if (endPage < totalPages - 1) {
+                    pages.push(
+                      <span key="ellipsis2" className="px-2 text-gray-500">...</span>
+                    );
+                  }
+                  pages.push(
+                    <button
+                      key={totalPages}
+                      onClick={() => {
+                        setCurrentPage(totalPages);
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }}
+                      className="px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+                    >
+                      {totalPages}
+                    </button>
+                  );
+                }
+
+                return pages;
+              })()}
+            </div>
+
+            {/* Next Button */}
+            <button
+              onClick={() => {
+                setCurrentPage(prev => Math.min(totalPages, prev + 1));
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }}
+              disabled={currentPage === totalPages}
+              className="flex items-center gap-1 px-3 py-2 border border-gray-300 rounded-lg hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              <span className="hidden sm:inline">Selanjutnya</span>
+              <ChevronRight size={16} />
+            </button>
+          </div>
+        </div>
+      )}
+      
+      {/* Performance Info Footer */}
+      <div className="mt-6 pt-4 border-t border-gray-200">
+        <div className="flex items-center justify-between text-xs text-gray-500">
+          <div className="flex items-center gap-4">
+            <span>📊 Data: {filteredTasks.length} tugas</span>
+            <span>📄 Halaman: {currentPage}/{totalPages}</span>
+            <span>🖼️ Gambar: lazy loading aktif</span>
+            <span>⚡ Cache: {submissionCache.size} submissions</span>
+          </div>
+          <div className="flex items-center gap-2">
+            {isLoadingSubmissions && (
+              <span className="text-blue-600">Sinkronisasi...</span>
+            )}
+            <span className="text-gray-400">Optimized for low bandwidth</span>
+          </div>
+        </div>
       </div>
 
       {/* Submission Modal */}
@@ -478,14 +926,23 @@ const PetaKinerjaPegawai: React.FC<Props> = ({ tasks: fallbackTasks = [] }) => {
                     <FileText size={20} className="text-blue-600" />
                     <span className="font-medium text-gray-700">File Upload</span>
                   </div>
-                  <a
-                    href={selectedSubmission.file_upload}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:text-blue-800 underline break-all"
-                  >
-                    {selectedSubmission.file_upload}
-                  </a>
+                  <div className="space-y-2">
+                    <a
+                      href={selectedSubmission.file_upload}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="inline-flex items-center gap-2 px-3 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors text-sm font-medium"
+                    >
+                      <FileText size={16} />
+                      Buka File
+                    </a>
+                    <p className="text-xs text-gray-500 break-all">
+                      {selectedSubmission.file_upload.length > 80 
+                        ? `${selectedSubmission.file_upload.substring(0, 80)}...`
+                        : selectedSubmission.file_upload
+                      }
+                    </p>
+                  </div>
                 </div>
 
                 {/* Komentar */}

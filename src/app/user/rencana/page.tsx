@@ -34,6 +34,7 @@ import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigge
 import SubtaskForm from "../../../components/SubtaskForm"
 import type { Task, Subtask } from "../../../../types/task";
 import PetaKinerjaPegawai from "../../../components/PetaKinerjaPegawai";
+import MindMap from "../../../components/TreeMap";
 
 const categories = [
   { 
@@ -67,7 +68,7 @@ const categories = [
 ]
 
 export default function Page() {
-  const [activeTab, setActiveTab] = useState<'rencana' | 'peta'>('rencana');
+  const [activeTab, setActiveTab] = useState<'rencana' | 'peta' | 'mindmap'>('rencana');
 
   // --- Board logic for Rencana Aksi tab ---
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -391,6 +392,12 @@ export default function Page() {
           onClick={() => setActiveTab('peta')}
         >
           Peta Kinerja Pegawai
+        </button>
+        <button
+          className={`px-4 py-2 rounded-lg font-semibold transition-colors ${activeTab === 'mindmap' ? 'bg-blue-600 text-white' : 'bg-white text-blue-600 border border-blue-600'}`}
+          onClick={() => setActiveTab('mindmap')}
+        >
+          MindMap Visualization
         </button>
       </div>
         {activeTab === 'rencana' ? (
@@ -898,8 +905,10 @@ export default function Page() {
               </>
             )}
           </>
-        ) : (
+        ) : activeTab === 'peta' ? (
           <PetaKinerjaPegawai tasks={tasks} />
+        ) : (
+          <MindMap tasks={tasks} />
         )}
       </div>
     </div>

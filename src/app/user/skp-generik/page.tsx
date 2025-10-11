@@ -112,11 +112,22 @@ export default function SKPGenerikPage() {
   }, [skpList]);
 
   useEffect(() => {
-    const unitKerjaId = localStorage.getItem("id");
-    if (!unitKerjaId) return;
-    fetch(`/api/skp_generik/${unitKerjaId}`)
-      .then(res => res.json())
-      .then(data => {
+    const userId = localStorage.getItem("id");
+    if (!userId) {
+      console.log('SKP: userId not found in localStorage');
+      return;
+    }
+    
+    console.log('SKP: Fetching data for userId:', userId);
+    // Try the new endpoint that handles user lookup
+    fetch(`/api/skp_generik/by-user/${userId}`)
+      .then(res => {
+        console.log('SKP: API response status:', res.status);
+        return res.json();
+      })
+      .then(response => {
+        console.log('SKP: Raw API response:', response);
+        const data = response.data || response; // Handle both response formats
         const mapped = Array.isArray(data)
           ? data.map((item: { [key: string]: unknown }) => ({
               tanggal: typeof item.tanggal === "string" ? item.tanggal.split('T')[0] : "",
@@ -129,12 +140,20 @@ export default function SKPGenerikPage() {
               kendala: typeof item.kendala === "string" ? item.kendala : "",
             }))
           : [];
+        
+        console.log('SKP: Mapped data:', mapped);
+        console.log('SKP: Data is array?', Array.isArray(data));
+        console.log('SKP: Data length:', data?.length);
+        
         setSkpList(mapped);
         // Set first indicator as default if not already selected
         if (mapped.length > 0 && !selectedIndicator) {
           const firstIndicator = mapped.find(item => item.indikator)?.indikator;
           if (firstIndicator) setSelectedIndicator(firstIndicator);
         }
+      })
+      .catch(error => {
+        console.error('SKP: Error fetching data:', error);
       });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
@@ -250,8 +269,15 @@ export default function SKPGenerikPage() {
     const newTanggal = formData.get("tanggal") as string;
     const newUpdateVolume = Number(formData.get("updateVolume"));
 
-    const unitKerjaId = localStorage.getItem("id");
-    if (!unitKerjaId) return;
+    const userId = localStorage.getItem("id");
+    if (!userId) return;
+
+    // First, get the correct unit_kerja_id
+    const userInfoResponse = await fetch(`/api/skp_generik/by-user/${userId}`);
+    const userInfo = await userInfoResponse.json();
+    const unitKerjaId = userInfo.user_info?.unit_kerja_id || userId;
+    
+    console.log('SKP Update: Using unit_kerja_id:', unitKerjaId);
 
     try {
       const response = await fetch(`/api/skp_generik/${unitKerjaId}`, {
@@ -272,9 +298,10 @@ export default function SKPGenerikPage() {
       });
 
       if (response.ok) {
-        // Refresh data
-        const updatedResponse = await fetch(`/api/skp_generik/${unitKerjaId}`);
-        const updatedData = await updatedResponse.json();
+        // Refresh data using the by-user endpoint
+        const updatedResponse = await fetch(`/api/skp_generik/by-user/${userId}`);
+        const updatedResponseData = await updatedResponse.json();
+        const updatedData = updatedResponseData.data || updatedResponseData;
         const mapped = Array.isArray(updatedData)
           ? updatedData.map((item: { [key: string]: unknown }) => ({
               tanggal: typeof item.tanggal === "string" ? item.tanggal.split('T')[0] : "",

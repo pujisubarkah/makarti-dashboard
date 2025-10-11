@@ -78,10 +78,10 @@ export default function SKPGenerikAdminPage() {
       
 	  if (data.users && Array.isArray(data.users)) {
 		// Define a type for user
-		type User = { id: number; unit_kerja: string };
-		// Extract unique unit_kerja values
+		type User = { id: number; unit_kerja: string; role_id: number };
+		// Extract unique unit_kerja values from users with role_id = 2 only
 		const uniqueUnits = data.users
-		  .filter((user: User) => user.unit_kerja)
+		  .filter((user: User) => user.role_id === 2 && user.unit_kerja)
 		  .reduce((acc: UnitKerja[], user: User) => {
 			if (!acc.find(u => u.unit_kerja === user.unit_kerja)) {
 			  acc.push({

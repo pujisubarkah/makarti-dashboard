@@ -17,6 +17,7 @@ export default function PegawaiDetailPage() {
     jenis_kelamin?: string;
     nm_goldar?: string;
     peg_cpns_tmt?: string;
+    photo_url?: string;
   };
   type PegawaiDetail = {
     pegawai_detail: PegawaiDetailItem[];
@@ -77,7 +78,7 @@ export default function PegawaiDetailPage() {
   <Link href="/admin/pegawai" className="inline-block mb-6 px-4 py-2 bg-gray-100 text-gray-700 rounded hover:bg-gray-200 transition">← Kembali</Link>
       <div className="bg-white rounded-lg shadow p-8 flex flex-col items-center">
         <Image
-          src={data.foto_url || "/avatar.png"}
+          src={detail.photo_url || "/avatar.png"}
           alt={data.nama}
           width={112}
           height={112}

@@ -33,6 +33,8 @@ export default function ProfilPage() {
     jabatan: string;
     nip: string;
     users?: { unit_kerja?: string };
+    users_pegawai_unit_kerja_idTousers?: { unit_kerja?: string };
+    unit_kerja_id?: number;
     golongan?: string;
     eselon?: string;
     photo_url?: string
@@ -56,13 +58,16 @@ export default function ProfilPage() {
   useEffect(() => {
     if (!id) return;
     setLoading(true);
+    console.log('Fetching employee data for id:', id);
     fetch(`/api/employee/${id}`)
       .then((res) => res.json())
       .then((res) => {
+        console.log('Employee data loaded:', res);
         setData(res);
         setLoading(false);
       })
-      .catch(() => {
+      .catch((error) => {
+        console.error('Error loading employee data:', error);
         setError("Gagal memuat data pegawai");
         setLoading(false);
       });
@@ -91,23 +96,74 @@ export default function ProfilPage() {
 
   // Save handler for edit mode
   async function handleSave() {
-    if (!id || !data?.users?.unit_kerja || !data?.pegawai_detail?.[0]?.id) return;
+    // Get unit_kerja from different possible locations
+    const unitKerja = data?.users?.unit_kerja || 
+                      data?.users_pegawai_unit_kerja_idTousers?.unit_kerja || 
+                      data?.unit_kerja_id?.toString() ||
+                      localStorage.getItem('id'); // fallback to user ID
+    
+    console.log('Save clicked - Data check:', {
+      id,
+      unitKerja,
+      dataUsers: data?.users,
+      dataUsersRelation: data?.users_pegawai_unit_kerja_idTousers,
+      unitKerjaId: data?.unit_kerja_id,
+      pegawaiDetailId: data?.pegawai_detail?.[0]?.id,
+      form,
+      fullData: data
+    });
+
+    if (!id) {
+      alert("ID tidak ditemukan");
+      return;
+    }
+    
+    if (!unitKerja) {
+      alert("Unit kerja tidak ditemukan. Data tidak lengkap!");
+      return;
+    }
+    
+    if (!data?.pegawai_detail?.[0]?.id) {
+      alert("Data pegawai detail tidak ditemukan");
+      return;
+    }
+
     try {
-      const res = await fetch(`/api/employee/unit/${data.users.unit_kerja}/detail`, {
+      const finalUnitKerja = unitKerja || localStorage.getItem('id'); // final fallback
+      console.log('Sending PUT request to:', `/api/employee/unit/${finalUnitKerja}/detail`);
+      
+      const requestBody = { 
+        id: data.pegawai_detail[0].id, 
+        nip: data.nip, 
+        detail: form 
+      };
+      
+      console.log('Request body:', requestBody);
+
+      const res = await fetch(`/api/employee/unit/${finalUnitKerja}/detail`, {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ id: data.pegawai_detail[0].id, nip: data.nip, detail: form }),
+        body: JSON.stringify(requestBody),
       });
+
+      console.log('Response status:', res.status);
+      console.log('Response ok:', res.ok);
+
       if (res.ok) {
         // Refresh data
         const updated = await res.json();
+        console.log('Updated data:', updated);
         setData((prev) => prev ? { ...prev, pegawai_detail: [updated] } : prev);
         setEditMode(false);
+        alert("Data berhasil disimpan!");
       } else {
-        alert("Gagal menyimpan data");
+        const errorText = await res.text();
+        console.error('Error response:', errorText);
+        alert(`Gagal menyimpan data: ${res.status} - ${errorText}`);
       }
-    } catch {
-      alert("Gagal menyimpan data");
+    } catch (error) {
+      console.error('Save error:', error);
+      alert("Gagal menyimpan data: " + error);
     }
   }
 
@@ -282,8 +338,16 @@ export default function ProfilPage() {
                 </div>
               </div>
               <div className="flex gap-2 mt-4 justify-end">
-                <button className="bg-blue-600 text-white px-4 py-2 rounded" onClick={handleSave}>Simpan</button>
-                <button className="bg-gray-400 text-white px-4 py-2 rounded" onClick={() => setEditMode(false)}>Batal</button>
+                <button 
+                  className="bg-blue-600 text-white px-4 py-2 rounded hover:bg-blue-700 transition-colors" 
+                  onClick={() => {
+                    console.log('Simpan button clicked');
+                    handleSave();
+                  }}
+                >
+                  Simpan
+                </button>
+                <button className="bg-gray-400 text-white px-4 py-2 rounded hover:bg-gray-500 transition-colors" onClick={() => setEditMode(false)}>Batal</button>
               </div>
             </div>
           </div>

@@ -378,6 +378,12 @@ model rekap_skor_unit_kerja {
   bigger_score                   Decimal? @db.Decimal
   smarter_score                  Decimal? @db.Decimal
   better_score                   Decimal? @db.Decimal
+  bigger_generik_score           Decimal? @db.Decimal
+  smarter_generik_score          Decimal? @db.Decimal
+  better_generik_score           Decimal? @db.Decimal
+  bigger_total_score             Decimal? @db.Decimal
+  smarter_total_score            Decimal? @db.Decimal
+  better_total_score             Decimal? @db.Decimal
   users                          users?   @relation(fields: [unit_kerja_id], references: [id], onDelete: NoAction, onUpdate: NoAction, map: "rekap_skor_unit_kerja_users_fk")
 
   @@schema("makarti")

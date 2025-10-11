@@ -18,28 +18,42 @@ INSERT INTO makarti.rekap_skor_unit_kerja (
   inovasi_score,
   bigger_score,
   smarter_score,
-  better_score
+  better_score,
+  bigger_generik_score,
+  smarter_generik_score,
+  better_generik_score,
+  bigger_total_score,
+  smarter_total_score,
+  better_total_score
 )
-SELECT unit_kerja_id,
-    learning_pelatihan_score,
-    learning_penyelenggaraan_score,
-    round((learning_pelatihan_score + learning_penyelenggaraan_score) / 2::numeric, 2) AS total_learning_score,
-    branding_engagement_rate,
-    branding_engagement_score,
-    branding_publikasi_total,
-    branding_publikasi_score,
-    round((branding_engagement_score + branding_publikasi_score) / 2::numeric, 2) AS branding_score,
-    networking_kerjasama_score,
-    networking_koordinasi_score,
-    round(0.8 * networking_kerjasama_score + 0.2 * networking_koordinasi_score, 2) AS networking_score,
-    inovasi_kinerja_score,
-    inovasi_kajian_score,
-    round((inovasi_kinerja_score + inovasi_kajian_score) / 2::numeric, 2) AS inovasi_score,
-    round(((branding_engagement_score + branding_publikasi_score) / 2::numeric + (0.8 * networking_kerjasama_score + 0.2 * networking_koordinasi_score)) / 2::numeric, 2) AS bigger_score,
-    round(((learning_pelatihan_score + learning_penyelenggaraan_score) / 2::numeric + (inovasi_kinerja_score + inovasi_kajian_score) / 2::numeric) / 2::numeric, 2) AS smarter_score,
-    round(((branding_engagement_score + branding_publikasi_score) / 2::numeric + (0.8 * networking_kerjasama_score + 0.2 * networking_koordinasi_score) + (learning_pelatihan_score + learning_penyelenggaraan_score) / 2::numeric + (inovasi_kinerja_score + inovasi_kajian_score) / 2::numeric) / 4::numeric, 2) AS better_score
+SELECT 
+    hasil.unit_kerja_id,
+    hasil.learning_pelatihan_score,
+    hasil.learning_penyelenggaraan_score,
+    round((hasil.learning_pelatihan_score + hasil.learning_penyelenggaraan_score) / 2::numeric, 2) AS total_learning_score,
+    hasil.branding_engagement_rate,
+    hasil.branding_engagement_score,
+    hasil.branding_publikasi_total,
+    hasil.branding_publikasi_score,
+    round((hasil.branding_engagement_score + hasil.branding_publikasi_score) / 2::numeric, 2) AS branding_score,
+    hasil.networking_kerjasama_score,
+    hasil.networking_koordinasi_score,
+    round(0.8 * hasil.networking_kerjasama_score + 0.2 * hasil.networking_koordinasi_score, 2) AS networking_score,
+    hasil.inovasi_kinerja_score,
+    hasil.inovasi_kajian_score,
+    round((hasil.inovasi_kinerja_score + hasil.inovasi_kajian_score) / 2::numeric, 2) AS inovasi_score,
+    round(((hasil.branding_engagement_score + hasil.branding_publikasi_score) / 2::numeric + (0.8 * hasil.networking_kerjasama_score + 0.2 * hasil.networking_koordinasi_score)) / 2::numeric, 2) AS bigger_score,
+    round(((hasil.learning_pelatihan_score + hasil.learning_penyelenggaraan_score) / 2::numeric + (hasil.inovasi_kinerja_score + hasil.inovasi_kajian_score) / 2::numeric) / 2::numeric, 2) AS smarter_score,
+    round(((hasil.branding_engagement_score + hasil.branding_publikasi_score) / 2::numeric + (0.8 * hasil.networking_kerjasama_score + 0.2 * hasil.networking_koordinasi_score) + (hasil.learning_pelatihan_score + hasil.learning_penyelenggaraan_score) / 2::numeric + (hasil.inovasi_kinerja_score + hasil.inovasi_kajian_score) / 2::numeric) / 4::numeric, 2) AS better_score,
+    LEAST(COALESCE(gen.bigger_generik_score, 0), 100) AS bigger_generik_score,
+    LEAST(COALESCE(gen.smarter_generik_score, 0), 100) AS smarter_generik_score,
+    LEAST(COALESCE(gen.better_generik_score, 0), 100) AS better_generik_score,
+    round(0.5 * LEAST(COALESCE(gen.bigger_generik_score, 0), 100) + 0.5 * round(((hasil.branding_engagement_score + hasil.branding_publikasi_score) / 2::numeric + (0.8 * hasil.networking_kerjasama_score + 0.2 * hasil.networking_koordinasi_score)) / 2::numeric, 2), 2) AS bigger_total_score,
+    round(0.5 * LEAST(COALESCE(gen.smarter_generik_score, 0), 100) + 0.5 * round(((hasil.learning_pelatihan_score + hasil.learning_penyelenggaraan_score) / 2::numeric + (hasil.inovasi_kinerja_score + hasil.inovasi_kajian_score) / 2::numeric) / 2::numeric, 2), 2) AS smarter_total_score,
+    round(0.5 * LEAST(COALESCE(gen.better_generik_score, 0), 100) + 0.5 * round(((hasil.branding_engagement_score + hasil.branding_publikasi_score) / 2::numeric + (0.8 * hasil.networking_kerjasama_score + 0.2 * hasil.networking_koordinasi_score) + (hasil.learning_pelatihan_score + hasil.learning_penyelenggaraan_score) / 2::numeric + (hasil.inovasi_kinerja_score + hasil.inovasi_kajian_score) / 2::numeric) / 4::numeric, 2), 2) AS better_total_score
 FROM (
-  SELECT p.unit_kerja_id,
+  SELECT 
+    p.unit_kerja_id,
     round(100.0 * count(DISTINCT CASE WHEN tp.total_jam >= 20 THEN p.id ELSE NULL END)::numeric / count(p.id)::numeric, 2) AS learning_pelatihan_score,
     LEAST(round(COALESCE(pen.total_peserta, 0)::numeric / 5000.0 * 100, 2), 100) AS learning_penyelenggaraan_score,
     eng.avg_engagement AS branding_engagement_rate,
@@ -112,4 +126,23 @@ FROM (
   GROUP BY p.unit_kerja_id, pen.total_peserta, eng.avg_engagement, pub.total_publikasi,
            net.kerjasama_score, kor.koordinasi_score, inv.kinerja_score, kaj.kajian_score
 ) hasil
-ORDER BY unit_kerja_id;
+LEFT JOIN (
+  SELECT 
+    s.unit_kerja_id::integer AS unit_kerja_id,
+    round(LEAST(avg(CASE WHEN pilar = 'BIGGER' THEN skor END), 100), 2) AS bigger_generik_score,
+    round(LEAST(avg(CASE WHEN pilar = 'SMARTER' THEN skor END), 100), 2) AS smarter_generik_score,
+    round(LEAST(avg(CASE WHEN pilar = 'BETTER' THEN skor END), 100), 2) AS better_generik_score
+  FROM (
+    SELECT DISTINCT ON (unit_kerja_id, indikator)
+      unit_kerja_id,
+      indikator,
+      pilar,
+      (update_volume / NULLIF(target_volume, 0)) * 100 AS skor,
+      tanggal
+    FROM makarti.skp_generik
+    WHERE update_volume IS NOT NULL AND target_volume IS NOT NULL
+    ORDER BY unit_kerja_id, indikator, tanggal DESC
+  ) s
+  GROUP BY s.unit_kerja_id
+) gen ON hasil.unit_kerja_id = gen.unit_kerja_id
+ORDER BY hasil.unit_kerja_id;

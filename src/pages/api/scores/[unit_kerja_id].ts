@@ -23,6 +23,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const smarter = {
       smarter_score: data.smarter_score,
+      smarter_generik_score: data.smarter_generik_score,
+      smarter_total_score: data.smarter_total_score,
       learning_score: data.total_learning_score,
       learning_pelatihan_score: data.learning_pelatihan_score,
       learning_penyelenggaraan_score: data.learning_penyelenggaraan_score,
@@ -33,6 +35,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const bigger = {
       bigger_score: data.bigger_score,
+      bigger_generik_score: data.bigger_generik_score,
+      bigger_total_score: data.bigger_total_score,
       branding_score: data.branding_score,
       branding_engagement_score: data.branding_engagement_score,
       branding_publikasi_score: data.branding_publikasi_score,
@@ -43,6 +47,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const better = {
       better_score: data.better_score,
+      better_generik_score: data.better_generik_score,
+      better_total_score: data.better_total_score,
       learning_score: data.total_learning_score,
       inovasi_score: data.inovasi_score,
       branding_score: data.branding_score,

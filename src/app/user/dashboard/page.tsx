@@ -51,6 +51,8 @@ export interface ScoreData {
     networking_kerjasama_score?: number;
     networking_koordinasi_score?: number;
     bigger_score?: number;
+    bigger_generik_score?: number;
+    bigger_total_score?: number;
     branding_score?: number;
     networking_score?: number;
   };
@@ -60,11 +62,15 @@ export interface ScoreData {
     inovasi_kinerja_score?: number;
     inovasi_kajian_score?: number;
     smarter_score?: number;
+    smarter_generik_score?: number;
+    smarter_total_score?: number;
     learning_score?: number;
     inovasi_score?: number;
   };
   better?: {
     better_score?: number;
+    better_generik_score?: number;
+    better_total_score?: number;
     learning_score?: number;
     inovasi_score?: number;
     branding_score?: number;
@@ -277,16 +283,23 @@ export default function UnitKerjaDashboard() {
     ];
 
     // Helper function untuk mengambil skor dari scoreData
-    const getScore = (type: 'bigger' | 'smarter' | 'better') => {
+    const getScore = (type: 'bigger' | 'smarter' | 'better', scoreType: 'total' | 'generic' | 'transform') => {
         if (!scoreData || !scoreData[type]) return 0;
+        
         if (type === 'bigger') {
-            return scoreData.bigger?.bigger_score ?? 0;
+            if (scoreType === 'total') return scoreData.bigger?.bigger_total_score ?? 0;
+            if (scoreType === 'generic') return scoreData.bigger?.bigger_generik_score ?? 0;
+            if (scoreType === 'transform') return scoreData.bigger?.bigger_score ?? 0;
         }
         if (type === 'smarter') {
-            return scoreData.smarter?.smarter_score ?? 0;
+            if (scoreType === 'total') return scoreData.smarter?.smarter_total_score ?? 0;
+            if (scoreType === 'generic') return scoreData.smarter?.smarter_generik_score ?? 0;
+            if (scoreType === 'transform') return scoreData.smarter?.smarter_score ?? 0;
         }
         if (type === 'better') {
-            return scoreData.better?.better_score ?? 0;
+            if (scoreType === 'total') return scoreData.better?.better_total_score ?? 0;
+            if (scoreType === 'generic') return scoreData.better?.better_generik_score ?? 0;
+            if (scoreType === 'transform') return scoreData.better?.better_score ?? 0;
         }
         return 0;
     };
@@ -295,19 +308,19 @@ export default function UnitKerjaDashboard() {
     const biggerBetterSmarterProgress = [
         {
             name: 'BIGGER',
-            value: scoreLoading ? 0 : getScore('bigger'),
+            value: scoreLoading ? 0 : getScore('bigger', 'total'),
             fill: '#3b82f6',
             description: 'Dampak & Jangkauan'
         },
         {
             name: 'SMARTER',
-            value: scoreLoading ? 0 : getScore('smarter'),
+            value: scoreLoading ? 0 : getScore('smarter', 'total'),
             fill: '#8b5cf6',
             description: 'Teknologi & Inovasi'
         },
         {
             name: 'BETTER',
-            value: scoreLoading ? 0 : getScore('better'),
+            value: scoreLoading ? 0 : getScore('better', 'total'),
             fill: '#10b981',
             description: 'Kualitas & Efisiensi'
         },
@@ -342,7 +355,9 @@ export default function UnitKerjaDashboard() {
             bgLight: 'bg-blue-50',
             textColor: 'text-blue-600',
             borderColor: 'border-blue-500',
-            overallScore: scoreLoading ? 0 : getScore('bigger'),
+            overallScore: scoreLoading ? 0 : getScore('bigger', 'total'),
+            genericScore: scoreLoading ? 0 : getScore('bigger', 'generic'),
+            transformScore: scoreLoading ? 0 : getScore('bigger', 'transform'),
             isLoading: scoreLoading,
             error: scoreError
         },
@@ -373,7 +388,9 @@ export default function UnitKerjaDashboard() {
             bgLight: 'bg-purple-50',
             textColor: 'text-purple-600',
             borderColor: 'border-purple-500',
-            overallScore: scoreLoading ? 0 : getScore('smarter'),
+            overallScore: scoreLoading ? 0 : getScore('smarter', 'total'),
+            genericScore: scoreLoading ? 0 : getScore('smarter', 'generic'),
+            transformScore: scoreLoading ? 0 : getScore('smarter', 'transform'),
             isLoading: scoreLoading,
             error: scoreError
         },
@@ -393,7 +410,9 @@ export default function UnitKerjaDashboard() {
             bgLight: 'bg-green-50',
             textColor: 'text-green-600',
             borderColor: 'border-green-500',
-            overallScore: scoreLoading ? 0 : getScore('better'),
+            overallScore: scoreLoading ? 0 : getScore('better', 'total'),
+            genericScore: scoreLoading ? 0 : getScore('better', 'generic'),
+            transformScore: scoreLoading ? 0 : getScore('better', 'transform'),
             isLoading: scoreLoading,
             error: scoreError
         },
@@ -642,15 +661,13 @@ export default function UnitKerjaDashboard() {
                                 </div>
 
                                 {/* Overall Score */}
-                                <div className="mb-6">
+                                <div className="mb-4">
                                     <div className="flex items-center justify-between mb-2">
                                         <span className="text-sm font-medium text-gray-700">Overall Score</span>
                                         <div className="flex items-center space-x-2">
                                             <span className={`text-2xl font-bold ${card.textColor}`}>
                                                 {card.isLoading ? '...' : `${card.overallScore}%`}
                                             </span>
-                                            {/* Show trend for BIGGER card */}
-                                            {/* Removed trend indicator due to missing 'trend' property */}
                                         </div>
                                     </div>
                                     <div className="w-full bg-gray-200 rounded-full h-3">
@@ -659,6 +676,46 @@ export default function UnitKerjaDashboard() {
                                                 card.isLoading ? 'animate-pulse' : ''
                                             }`}
                                             style={{ width: `${card.isLoading ? 20 : card.overallScore}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+
+                                {/* Generic Score */}
+                                <div className="mb-4">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-sm font-medium text-gray-700">Generic Score</span>
+                                        <div className="flex items-center space-x-2">
+                                            <span className={`text-xl font-bold ${card.textColor}`}>
+                                                {card.isLoading ? '...' : `${card.genericScore}%`}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-2">
+                                        <div 
+                                            className={`bg-gradient-to-r ${card.bgGradient} h-2 rounded-full transition-all duration-500 ${
+                                                card.isLoading ? 'animate-pulse' : ''
+                                            }`}
+                                            style={{ width: `${card.isLoading ? 20 : card.genericScore}%` }}
+                                        ></div>
+                                    </div>
+                                </div>
+
+                                {/* Transform Score */}
+                                <div className="mb-6">
+                                    <div className="flex items-center justify-between mb-2">
+                                        <span className="text-sm font-medium text-gray-700">Transform Score</span>
+                                        <div className="flex items-center space-x-2">
+                                            <span className={`text-xl font-bold ${card.textColor}`}>
+                                                {card.isLoading ? '...' : `${card.transformScore}%`}
+                                            </span>
+                                        </div>
+                                    </div>
+                                    <div className="w-full bg-gray-200 rounded-full h-2">
+                                        <div 
+                                            className={`bg-gradient-to-r ${card.bgGradient} h-2 rounded-full transition-all duration-500 ${
+                                                card.isLoading ? 'animate-pulse' : ''
+                                            }`}
+                                            style={{ width: `${card.isLoading ? 20 : card.transformScore}%` }}
                                         ></div>
                                     </div>
                                 </div>

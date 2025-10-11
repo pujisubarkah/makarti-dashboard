@@ -57,22 +57,29 @@ const menuItems: MenuItem[] = [
     type: 'item',
   },
   {
+    type: 'group',
+    label: 'SKP GENERIK',
+  },
+  {
+    label: 'Input SKP Generik',
+    href: '/user/skp-generik',
+    icon: FileSearch,
+    status: 'ready',
+    type: 'item',
+  },
+  {
     label: 'Kegiatan Mingguan',
     href: '/user/kegiatan',
     icon: Coins,
     status: 'ready',
     type: 'item',
   },
-  // Tambahan group SKP GENERIK dan item Input SKP
   {
-    type: 'group',
-    label: 'SKP GENERIK',
-  },
-  {
-    label: 'Input SKP',
-    href: '/user/skp-generik',
-    icon: FileSearch,
+    label: 'Serapan Anggaran',
+    href: '/user/serapan',
+    icon: PieChart,
     status: 'ready',
+    allowedRoles: [3], // hanya untuk role_id 3
     type: 'item',
   },
   {
@@ -136,12 +143,8 @@ const menuItems: MenuItem[] = [
     type: 'item',
   },
   {
-    label: 'Serapan Anggaran',
-    href: '/user/serapan',
-    icon: PieChart,
-    status: 'ready',
-    allowedRoles: [3], // hanya untuk role_id 3
-    type: 'item',
+    type: 'group',
+    label: 'PANDUAN',
   },
   {
     label: 'Panduan Makarti 5.0',

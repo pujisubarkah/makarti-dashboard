@@ -17,9 +17,17 @@ const menuItems = [
     title: "Dashboard",
     icon: LayoutDashboard,
     children: [
-      { title: "Ringkasan MAKARTI", href: "/admin/dashboard" },
-      { title: "Pohon MAKARTI", href: "/admin/dashboard/statistik" },
-      { title: "Report MAKARTI", href: "/admin/dashboard/report" },
+      { title: "RINGKASAN MAKARTI", href: "/admin/dashboard" },
+      { title: "POHON MAKARTI", href: "/admin/dashboard/statistik" },
+      { title: "REPORT MAKARTI", href: "/admin/dashboard/report" },
+    ],
+  },
+   {
+    title: "SKP Transformasional",
+    icon: LayoutDashboard,
+    children: [
+      { title: "Pohon Kinerja (SKP-T)", href: "/admin/skp-transformasional/statistik" },
+      { title: "Report Kinerja (SKP-T)", href: "/admin/skp-transformasional/report" },
     ],
   },
    {
@@ -30,7 +38,7 @@ const menuItems = [
     ],
   },
   {
-    title: "Inovasi",
+    title: "Inovasi (SKP-T)",
     icon: Lightbulb,
     children: [
       { title: "Kinerja Inovasi", href: "/admin/inovasi/kinerja" },
@@ -40,7 +48,7 @@ const menuItems = [
     ],
   },
   {
-    title: "Branding",
+    title: "Branding (SKP-T)",
     icon: Megaphone,
     children: [
       { title: "Publikasi Media", href: "/admin/branding/media" },
@@ -48,7 +56,7 @@ const menuItems = [
     ],
   },
   {
-    title: "Networking",
+    title: "Networking (SKP-T)",
     icon: Users,
     children: [
       { title: "Networking Eksternal", href: "/admin/networking/kunjungan" },
@@ -56,7 +64,7 @@ const menuItems = [
     ],
   },
   {
-    title: "Learning",
+    title: "Learning (SKP-T)",
     icon: BookOpenCheck,
     children: [
       { title: "Bangkom Pegawai Internal", href: "/admin/learning/pelatihan" },

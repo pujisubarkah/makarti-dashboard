@@ -5,43 +5,19 @@ import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
 
 const SCORE_COLUMNS = [
-  {
-    group: "BIGGER",
-    subColumns: [
-      { key: "bigger_generik_score", label: "SKP-G", type: "score" },
-      { key: "bigger_score", label: "SKP-T", type: "score" },
-      { key: "bigger_total_score", label: "Total", type: "score" }
-    ]
-  },
-  {
-    group: "SMARTER", 
-    subColumns: [
-      { key: "smarter_generik_score", label: "SKP-G", type: "score" },
-      { key: "smarter_score", label: "SKP-T", type: "score" },
-      { key: "smarter_total_score", label: "Total", type: "score" }
-    ]
-  },
-  {
-    group: "BETTER",
-    subColumns: [
-      { key: "better_generik_score", label: "SKP-G", type: "score" },
-      { key: "better_score", label: "SKP-T", type: "score" },
-      { key: "better_total_score", label: "Total", type: "score" }
-    ]
-  }
+  { key: "learning_score", label: "Learning" },
+  { key: "branding_score", label: "Branding" },
+  //{ key: "bigger_score", label: "BIGGER" },
+  { key: "networking_score", label: "Networking" },
+  { key: "inovasi_score", label: "Inovasi" },
+  //{ key: "smarter_score", label: "SMARTER" },
+  { key: "better_score", label: "TOTAL" },
 ];
 
-const ADDITIONAL_COLUMNS = [
-  { key: "serapan", label: "Serapan Anggaran (%)", type: "budget" }
+const ALL_COLUMNS = [
+  ...SCORE_COLUMNS,
+  { key: "serapan", label: "Serapan Anggaran (%)" }
 ];
-
-// Flatten all columns for processing
-const ALL_SCORE_KEYS = SCORE_COLUMNS.flatMap(group => group.subColumns.map(col => col.key));
-//const ALL_COLUMNS = [...ALL_SCORE_KEYS.map(key => {
-//  const group = SCORE_COLUMNS.find(g => g.subColumns.some(sc => sc.key === key));
-//  const subCol = group?.subColumns.find(sc => sc.key === key);
-//  return { key, label: subCol?.label || key, group: group?.group };
-//}), ...ADDITIONAL_COLUMNS];
 
 function SortIcon({ direction }: { direction: "asc" | "desc" | null }) {
   if (!direction) return null;
@@ -67,12 +43,9 @@ function InfoPopupGlobal({ show, onClose }: { show: boolean; onClose: () => void
   if (!show) return null;
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
-      <div className="bg-white rounded-lg shadow-xl p-6 max-w-4xl w-full relative max-h-[90vh] overflow-y-auto">
+      <div className="bg-white rounded-lg shadow-xl p-6 max-w-2xl w-full relative">
         <h2 className="text-lg font-bold mb-4 text-gray-800">Penjelasan Indikator & Formula Makarti</h2>
-        
-        {/* Dimensi MAKARTI */}
         <div className="overflow-x-auto mb-6">
-          <h3 className="text-md font-semibold mb-2 text-gray-700">Dimensi MAKARTI</h3>
           <table className="min-w-full text-xs border mb-4">
             <thead>
               <tr className="bg-gray-100">
@@ -93,17 +66,16 @@ function InfoPopupGlobal({ show, onClose }: { show: boolean; onClose: () => void
               </tr>
               <tr>
                 <td className="border px-2 py-1 font-semibold align-top" rowSpan={2}>LEARNING</td>
-                <td className="border px-2 py-1">PELATIHAN PEGAWAI INTERNAL (50%)</td>
-                <td className="border px-2 py-1">Persentase pegawai yang telah mengikuti Pengembangan Kompetensi ASN minimal 20 JP</td>
+              <td className="border px-2 py-1">PELATIHAN PEGAWAI INTERNAL (50%)</td>
+              <td className="border px-2 py-1">Persentase pegawai yang telah mengikuti Pengembangan Kompetensi ASN minimal 20 JP</td>
               </tr>
               <tr>
                 <td className="border px-2 py-1">PENYELENGGARAAN BANGKOM UNIT (50%)</td>
                 <td className="border px-2 py-1">Total peserta dari daftar kehadiran dibagi 5000 x 100%</td>
               </tr>
-              <tr>
-                <td className="border px-2 py-1 font-semibold align-top" rowSpan={2}>BRANDING</td>
-                <td className="border px-2 py-1">ENGAGEMENT (50%)</td>
-                <td className="border px-2 py-1">(Jumlah Likes / Jumlah Views) x 100% dibagi 0.06 x 100%</td>
+              <tr><td className="border px-2 py-1 font-semibold align-top" rowSpan={2}>BRANDING</td>
+              <td className="border px-2 py-1">ENGAGEMENT (50%)</td>
+              <td className="border px-2 py-1">(Jumlah Likes / Jumlah Views) x 100% dibagi 0.06 x 100%</td>
               </tr>
               <tr>
                 <td className="border px-2 py-1">JUMLAH PUBLIKASI (50%)</td>
@@ -111,79 +83,33 @@ function InfoPopupGlobal({ show, onClose }: { show: boolean; onClose: () => void
               </tr>
               <tr>
                 <td className="border px-2 py-1 font-semibold align-top" rowSpan={2}>NETWORKING</td>
-                <td className="border px-2 py-1">KERJASAMA (80%)</td>
-                <td className="border px-2 py-1">Persentase kerjasama dengan status MoU Ditandatangani atau Selesai</td>
+              <td className="border px-2 py-1">KERJASAMA (80%)</td>
+              <td className="border px-2 py-1">Persentase kerjasama dengan status MoU Ditandatangani atau Selesai</td>
               </tr>
-              <tr>
-                <td className="border px-2 py-1">KOORDINASI (20%)</td>
-                <td className="border px-2 py-1">Persentase koordinasi dengan status SELESAI</td>
+              <tr><td className="border px-2 py-1">KOORDINASI (20%)</td>
+              <td className="border px-2 py-1">Persentase koordinasi dengan status SELESAI</td>
               </tr>
             </tbody>
           </table>
-
-          {/* Pilar BSB (Bigger, Smarter, Better) */}
-          <h3 className="text-md font-semibold mb-2 text-gray-700">Pilar Bigger, Smarter, Better</h3>
-          <table className="min-w-full text-xs border mb-4">
+          <table className="min-w-full text-xs border">
             <thead>
               <tr className="bg-gray-100">
-                <th className="border px-2 py-1">PILAR BSB</th>
-                <th className="border px-2 py-1">JENIS SKOR</th>
-                <th className="border px-2 py-1">FORMULA PENGHITUNGAN</th>
+                <th className="border px-2 py-1">PILAR MAKARTI</th>
+                <th className="border px-2 py-1">DIMENSI & BOBOT</th>
               </tr>
             </thead>
             <tbody>
-              <tr>
-                <td className="border px-2 py-1 font-semibold align-top" rowSpan={3}>BIGGER</td>
-                <td className="border px-2 py-1 font-medium">SKP-T</td>
-                <td className="border px-2 py-1">50% Skor Branding SKP-T + 50% Skor Networking SKP-T</td>
-              </tr>
-              <tr>
-                <td className="border px-2 py-1 font-medium">SKP-G</td>
-                <td className="border px-2 py-1">Rata-rata capaian indikator SKP Generik pilar BIGGER (dalam persen)</td>
-              </tr>
-              <tr>
-                <td className="border px-2 py-1 font-medium">Total</td>
-                <td className="border px-2 py-1">50% BIGGER SKP-T + 50% BIGGER SKP-G</td>
-              </tr>
-              <tr>
-                <td className="border px-2 py-1 font-semibold align-top" rowSpan={3}>SMARTER</td>
-                <td className="border px-2 py-1 font-medium">SKP-T</td>
-                <td className="border px-2 py-1">50% Skor Learning SKP-T + 50% Skor Inovasi SKP-T</td>
-              </tr>
-              <tr>
-                <td className="border px-2 py-1 font-medium">SKP-G</td>
-                <td className="border px-2 py-1">Rata-rata capaian indikator SKP Generik pilar SMARTER (dalam persen)</td>
-              </tr>
-              <tr>
-                <td className="border px-2 py-1 font-medium">Total</td>
-                <td className="border px-2 py-1">50% SMARTER SKP-T + 50% SMARTER SKP-G</td>
-              </tr>
-              <tr>
-                <td className="border px-2 py-1 font-semibold align-top" rowSpan={3}>BETTER</td>
-                <td className="border px-2 py-1 font-medium">SKP-T</td>
-                <td className="border px-2 py-1">25% Branding SKP-T + 25% Networking SKP-T + 25% Learning SKP-T + 25% Inovasi SKP-T</td>
-              </tr>
-              <tr>
-                <td className="border px-2 py-1 font-medium">SKP-G</td>
-                <td className="border px-2 py-1">Rata-rata capaian indikator SKP Generik pilar BETTER (dalam persen)</td>
-              </tr>
-              <tr>
-                <td className="border px-2 py-1 font-medium">Total</td>
-                <td className="border px-2 py-1">50% BETTER SKP-T + 50% BETTER SKP-G</td>
-              </tr>
+              <tr><td className="border px-2 py-1 font-semibold align-top" rowSpan={2}>BIGGER</td><td className="border px-2 py-1">BRANDING (50%)</td></tr>
+              <tr><td className="border px-2 py-1">NETWORKING (50%)</td></tr>
+              <tr><td className="border px-2 py-1 font-semibold align-top" rowSpan={2}>SMARTER</td><td className="border px-2 py-1">LEARNING (50%)</td></tr>
+              <tr><td className="border px-2 py-1">INOVASI (50%)</td></tr>
+              <tr><td className="border px-2 py-1 font-semibold align-top" rowSpan={4}>BETTER</td><td className="border px-2 py-1">BRANDING (25%)</td></tr>
+              <tr><td className="border px-2 py-1">NETWORKING (25%)</td></tr>
+              <tr><td className="border px-2 py-1">LEARNING (25%)</td></tr>
+              <tr><td className="border px-2 py-1">INOVASI (25%)</td></tr>
             </tbody>
           </table>
-
-          {/* Penjelasan Kolom Tabel */}
-          <h3 className="text-md font-semibold mb-2 text-gray-700">Penjelasan Kolom Tabel</h3>
-          <div className="text-xs space-y-2">
-            <div><strong>SKP-G:</strong> Skor dari SKP Generik</div>
-            <div><strong>SKP-T:</strong> Skor dari SKP Transformasional</div>
-            <div><strong>Total:</strong> Gabungan skor SKP-G dan SKP-T dengan bobot 50%-50%</div>
-            <div><strong>Serapan Anggaran:</strong> Persentase realisasi anggaran terhadap pagu anggaran unit kerja</div>
-          </div>
         </div>
-        
         <button className="absolute top-2 right-2 text-gray-500 hover:text-blue-600 text-sm" onClick={onClose}>Tutup</button>
       </div>
     </div>
@@ -220,7 +146,7 @@ export default function ReportRekapPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [search, setSearch] = useState("");
-  const [sortKey, setSortKey] = useState("better_total_score");
+  const [sortKey, setSortKey] = useState("better_score");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [infoOpen, setInfoOpen] = useState(false);
   const [selectedDept, setSelectedDept] = useState<string>("");
@@ -334,14 +260,7 @@ export default function ReportRekapPage() {
 
   // Hitung ranking untuk setiap kolom (termasuk serapan)
   const rankingsByCol: { [key: string]: number[] } = {};
-  
-  // Calculate rankings for all score keys
-  ALL_SCORE_KEYS.forEach(key => {
-    rankingsByCol[key] = getRankings(sorted, key);
-  });
-  
-  // Calculate ranking for additional columns
-  ADDITIONAL_COLUMNS.forEach(col => {
+  ALL_COLUMNS.forEach(col => {
     if (col.key === "serapan") {
       const values = sorted.map((item, idx) => ({ idx, value: getSerapanValue(item) }));
       const sortedVals = [...values].sort((a, b) => b.value - a.value);
@@ -356,63 +275,44 @@ export default function ReportRekapPage() {
   });
 
   // Helper untuk style kolom
-  //function getColClass(key: string, isHeader = false) {
-  //  if (key === "bigger_score" || key === "smarter_score") {
-  //    return isHeader ? "bg-gray-50" : "bg-gray-50";
-  //  }
-  //  if (key === "better_score" || key === "serapan") {
-  //    return isHeader ? "bg-blue-50" : "bg-blue-50";
-  //  }
-  //  return "";
-  //}
+  function getColClass(key: string, isHeader = false) {
+    if (key === "bigger_score" || key === "smarter_score") {
+      return isHeader ? "bg-gray-50" : "bg-gray-50";
+    }
+    if (key === "better_score" || key === "serapan") {
+      return isHeader ? "bg-blue-50" : "bg-blue-50";
+    }
+    return "";
+  }
 
   function handleExportPDF() {
     const doc = new jsPDF({ orientation: "landscape" });
     doc.setFontSize(14);
     doc.text("Rekapitulasi Capaian Makarti Unit Kerja", 14, 16);
-    
-    // Create headers with grouped columns
-    const headerGroups = ["Unit Kerja"];
-    SCORE_COLUMNS.forEach(group => {
-      group.subColumns.forEach(subCol => {
-        headerGroups.push(`${group.group} ${subCol.label}`);
-      });
-    });
-    ADDITIONAL_COLUMNS.forEach(col => {
-      headerGroups.push(col.label);
-    });
-    
-    const head = [headerGroups];
-    
+    const head = [
+      ["Unit Kerja", ...ALL_COLUMNS.map((col) => col.label)]
+    ];
     const body = sorted.map((item) => {
-      const row = [item.name ?? "-"];
-      
-      // Add score columns
-      SCORE_COLUMNS.forEach(group => {
-        group.subColumns.forEach(subCol => {
-          const val = item.scores?.[subCol.key];
-          row.push(typeof val === "number" ? val.toFixed(1) : "-");
-        });
-      });
-      
-      // Add additional columns
-      ADDITIONAL_COLUMNS.forEach(col => {
-        if (col.key === "serapan") {
-          const val = getSerapanPersenById(item.unit_kerja_id);
-          row.push(typeof val === "number" ? `${val}%` : "-");
-        }
-      });
-      
-      return row;
+      return [
+        item.name ?? "-",
+        ...ALL_COLUMNS.map((col) => {
+          if (col.key === "serapan") {
+            const val = getSerapanPersenById(item.unit_kerja_id);
+            return typeof val === "number" ? `${val}%` : "-";
+          } else {
+            const val = item.scores?.[col.key];
+            return typeof val === "number" || typeof val === "string" ? val : "-";
+          }
+        })
+      ];
     });
-    
     autoTable(doc, {
       head,
       body,
       startY: 22,
       styles: {
-        fontSize: 8,
-        cellPadding: 1,
+        fontSize: 10,
+        cellPadding: 2,
       },
       headStyles: {
         fillColor: [240, 240, 240],
@@ -467,11 +367,9 @@ export default function ReportRekapPage() {
       ) : (
         <table className="min-w-full text-sm">
           <thead className="bg-gray-50">
-            {/* First row - Group headers */}
             <tr>
               <th
-                rowSpan={2}
-                className="px-6 py-3 text-left font-semibold text-gray-700 cursor-pointer select-none relative border-b border-gray-300"
+                className="px-6 py-3 text-left font-semibold text-gray-700 cursor-pointer select-none relative"
                 onClick={() => handleSort("unit_kerja")}
               >
                 <div className="flex flex-col items-start">
@@ -479,26 +377,10 @@ export default function ReportRekapPage() {
                 </div>
                 <SortIcon direction={sortKey === "unit_kerja" ? sortDir : null} />
               </th>
-              {SCORE_COLUMNS.map((group) => (
-                <th
-                  key={group.group}
-                  colSpan={group.subColumns.length}
-                  className="px-6 py-2 text-center font-semibold text-gray-700 border-b border-gray-300"
-                >
-                  <div className="flex items-center justify-center">
-                    <span>Skor {group.group}</span>
-                    <InfoButton onClick={(e) => {
-                      e.stopPropagation();
-                      setInfoOpen(true);
-                    }} />
-                  </div>
-                </th>
-              ))}
-              {ADDITIONAL_COLUMNS.map((col) => (
+              {ALL_COLUMNS.map((col) => (
                 <th
                   key={col.key}
-                  rowSpan={2}
-                  className="px-6 py-3 text-center font-semibold text-gray-700 cursor-pointer select-none relative border-b border-gray-300"
+                  className={`px-6 py-3 text-center font-semibold text-gray-700 cursor-pointer select-none relative ${getColClass(col.key, true)}`}
                   onClick={() => handleSort(col.key)}
                 >
                   <div className="flex flex-col items-center">
@@ -508,73 +390,22 @@ export default function ReportRekapPage() {
                 </th>
               ))}
             </tr>
-            {/* Second row - Sub headers */}
-            <tr>
-              {SCORE_COLUMNS.map((group) =>
-                group.subColumns.map((subCol) => (
-                  <th
-                    key={subCol.key}
-                    className="px-3 py-2 text-center font-medium text-gray-600 cursor-pointer select-none relative text-xs border-l border-gray-200"
-                    onClick={() => handleSort(subCol.key)}
-                  >
-                    <div className="flex flex-col items-center">
-                      <span>{subCol.label}</span>
-                    </div>
-                    <SortIcon direction={sortKey === subCol.key ? sortDir : null} />
-                  </th>
-                ))
-              )}
-            </tr>
           </thead>
           <tbody className="divide-y divide-gray-200">
             {sorted.length === 0 ? (
               <tr>
-                <td colSpan={ALL_SCORE_KEYS.length + ADDITIONAL_COLUMNS.length + 1} className="text-center py-8 text-gray-500">Tidak ada data unit kerja level 3.</td>
+                <td colSpan={ALL_COLUMNS.length + 1} className="text-center py-8 text-gray-500">Tidak ada data unit kerja level 3.</td>
               </tr>
             ) : (
               sorted.map((item, idx) => (
                 <tr key={idx} className="hover:bg-blue-50 transition">
                   <td className="px-6 py-4 font-medium text-gray-800">{item.name}</td>
-                  
-                  {/* Score columns for each group */}
-                  {SCORE_COLUMNS.map((group) =>
-                    group.subColumns.map((subCol) => {
-                      const val = item.scores?.[subCol.key] ?? '-';
-                      const rank = rankingsByCol[subCol.key] ? rankingsByCol[subCol.key][idx] : null;
-                      let badge = null, numClass = "";
-                      
-                      if (val === 0 || val === "-") {
-                        badge = <span className="mr-1 px-1 py-0.5 rounded bg-red-100 text-red-600 text-xs font-bold">⚠️</span>;
-                        numClass = "text-red-600 font-bold";
-                      } else if (rank === 1) {
-                        badge = <span className="mr-1 px-1 py-0.5 rounded bg-yellow-100 text-yellow-700 text-xs font-bold">🥇</span>;
-                        numClass = "text-green-600 font-bold";
-                      } else if (rank === 2) {
-                        badge = <span className="mr-1 px-1 py-0.5 rounded bg-gray-100 text-gray-700 text-xs font-bold">🥈</span>;
-                        numClass = "text-green-600 font-bold";
-                      } else if (rank === 3) {
-                        badge = <span className="mr-1 px-1 py-0.5 rounded bg-orange-100 text-orange-700 text-xs font-bold">🥉</span>;
-                        numClass = "text-green-600 font-bold";
-                      } else if (rank && (rank > sorted.length - 2 || rank === sorted.length)) {
-                        badge = <span className="mr-1 px-1 py-0.5 rounded bg-red-100 text-red-600 text-xs font-bold">⚠️</span>;
-                        numClass = "text-red-600 font-bold";
-                      }
-                      
-                      return (
-                        <td key={subCol.key} className="px-3 py-4 text-center text-xs border-l border-gray-200">
-                          {badge}
-                          <span className={numClass}>{val !== '-' ? (typeof val === 'number' ? val.toFixed(1) : val) : '-'}</span>
-                        </td>
-                      );
-                    })
-                  )}
-                  
-                  {/* Additional columns (like Serapan Anggaran) */}
-                  {ADDITIONAL_COLUMNS.map((col) => {
+                  {ALL_COLUMNS.map((col) => {
                     let val, rank, badge = null, numClass = "";
+                    const cellClass = getColClass(col.key);
                     if (col.key === "serapan") {
                       val = getSerapanPersenById(item.unit_kerja_id);
-                      rank = rankingsByCol[col.key] ? rankingsByCol[col.key][idx] : null;
+                      rank = rankingsByCol[col.key][idx];
                       if (val === 0 || val === null || val === undefined) {
                         badge = <span className="mr-1 px-2 py-0.5 rounded bg-red-100 text-red-600 text-xs font-bold">⚠️</span>;
                         numClass = "text-red-600 font-bold";
@@ -587,18 +418,42 @@ export default function ReportRekapPage() {
                       } else if (rank === 3) {
                         badge = <span className="mr-1 px-2 py-0.5 rounded bg-orange-100 text-orange-700 text-xs font-bold">🥉</span>;
                         numClass = "text-green-600 font-bold";
-                      } else if (rank && (rank > sorted.length - 2 || rank === sorted.length)) {
+                      } else if (rank > sorted.length - 2 || rank === sorted.length) {
                         badge = <span className="mr-1 px-2 py-0.5 rounded bg-red-100 text-red-600 text-xs font-bold">⚠️</span>;
                         numClass = "text-red-600 font-bold";
                       }
                       return (
-                        <td key={col.key} className="px-6 py-4 text-center">
+                        <td key={col.key} className={`px-6 py-4 text-center ${cellClass}`}>
                           {badge}
                           <span className={numClass}>{val !== null && val !== undefined ? `${val}%` : '-'}</span>
                         </td>
                       );
+                    } else {
+                      val = item.scores?.[col.key] ?? '-';
+                      rank = rankingsByCol[col.key][idx];
+                      if (val === 0 || val === "-") {
+                        badge = <span className="mr-1 px-2 py-0.5 rounded bg-red-100 text-red-600 text-xs font-bold">⚠️</span>;
+                        numClass = "text-red-600 font-bold";
+                      } else if (rank === 1) {
+                        badge = <span className="mr-1 px-2 py-0.5 rounded bg-yellow-100 text-yellow-700 text-xs font-bold">🥇</span>;
+                        numClass = "text-green-600 font-bold";
+                      } else if (rank === 2) {
+                        badge = <span className="mr-1 px-2 py-0.5 rounded bg-gray-100 text-gray-700 text-xs font-bold">🥈</span>;
+                        numClass = "text-green-600 font-bold";
+                      } else if (rank === 3) {
+                        badge = <span className="mr-1 px-2 py-0.5 rounded bg-orange-100 text-orange-700 text-xs font-bold">🥉</span>;
+                        numClass = "text-green-600 font-bold";
+                      } else if (rank > sorted.length - 2 || rank === sorted.length) {
+                        badge = <span className="mr-1 px-2 py-0.5 rounded bg-red-100 text-red-600 text-xs font-bold">⚠️</span>;
+                        numClass = "text-red-600 font-bold";
+                      }
+                      return (
+                        <td key={col.key} className={`px-6 py-4 text-center ${cellClass}`}>
+                          {badge}
+                          <span className={numClass}>{val !== '-' ? val : '-'}</span>
+                        </td>
+                      );
                     }
-                    return null;
                   })}
                 </tr>
               ))

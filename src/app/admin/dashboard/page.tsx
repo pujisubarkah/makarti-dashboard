@@ -188,8 +188,14 @@ export default function RingkasanMakartiPage() {
     };
     calculated_summary?: {
       bigger_score?: number;
+      bigger_generik_score?: number;
+      bigger_total_score?: number;
       smarter_score?: number;
+      smarter_generik_score?: number;
+      smarter_total_score?: number;
       better_score?: number;
+      better_generik_score?: number;
+      better_total_score?: number;
     };
   }
   const [scoreData, setScoreData] = useState<ScoreData | null>(null);
@@ -391,7 +397,9 @@ export default function RingkasanMakartiPage() {
         { label: 'Branding', value: scoreData?.average_components?.branding_score?.toFixed(2) || '0', unit: '%', progress: Math.round(scoreData?.average_components?.branding_score || 0), source: 'Branding' },
         { label: 'Networking', value: scoreData?.average_components?.networking_score?.toFixed(2) || '0', unit: '%', progress: Math.round(scoreData?.average_components?.networking_score || 0), source: 'Networking' }
       ],
-      overallScore: scoreLoading ? '...' : scoreData?.calculated_summary?.bigger_score?.toFixed(2) || '0',
+      overallScore: scoreLoading ? '...' : scoreData?.calculated_summary?.bigger_total_score?.toFixed(2) || '0',
+      genericScore: scoreLoading ? '...' : scoreData?.calculated_summary?.bigger_generik_score?.toFixed(2) || '0',
+      transformScore: scoreLoading ? '...' : scoreData?.calculated_summary?.bigger_score?.toFixed(2) || '0',
       icon: <Rocket className="w-6 h-6" />,
       color: 'blue',
       bgLight: 'bg-blue-50',
@@ -410,7 +418,9 @@ export default function RingkasanMakartiPage() {
         { label: 'Inovasi', value: scoreData?.average_components?.inovasi_score?.toFixed(2) || '0', unit: '%', progress: Math.round(scoreData?.average_components?.inovasi_score || 0), source: 'Inovasi' },
         { label: 'Learning', value: scoreData?.average_components?.learning_score?.toFixed(2) || '0', unit: '%', progress: Math.round(scoreData?.average_components?.learning_score || 0), source: 'Learning' }
       ],
-      overallScore: scoreLoading ? '...' : scoreData?.calculated_summary?.smarter_score?.toFixed(2) || '0',
+      overallScore: scoreLoading ? '...' : scoreData?.calculated_summary?.smarter_total_score?.toFixed(2) || '0',
+      genericScore: scoreLoading ? '...' : scoreData?.calculated_summary?.smarter_generik_score?.toFixed(2) || '0',
+      transformScore: scoreLoading ? '...' : scoreData?.calculated_summary?.smarter_score?.toFixed(2) || '0',
       icon: <Brain className="w-6 h-6" />,
       color: 'purple',
       bgLight: 'bg-purple-50',
@@ -433,7 +443,9 @@ export default function RingkasanMakartiPage() {
         { label: 'Inovasi', value: scoreData?.average_components?.inovasi_score?.toFixed(2) || '0', unit: '%', progress: Math.round(scoreData?.average_components?.inovasi_score || 0), source: 'Inovasi' },
         { label: 'Learning', value: scoreData?.average_components?.learning_score?.toFixed(2) || '0', unit: '%', progress: Math.round(scoreData?.average_components?.learning_score || 0), source: 'Learning' }
       ],
-      overallScore: scoreLoading ? '...' : scoreData?.calculated_summary?.better_score?.toFixed(2) || '0',
+      overallScore: scoreLoading ? '...' : scoreData?.calculated_summary?.better_total_score?.toFixed(2) || '0',
+      genericScore: scoreLoading ? '...' : scoreData?.calculated_summary?.better_generik_score?.toFixed(2) || '0',
+      transformScore: scoreLoading ? '...' : scoreData?.calculated_summary?.better_score?.toFixed(2) || '0',
       icon: <Star className="w-6 h-6" />,
       color: 'green',
       bgLight: 'bg-green-50',
@@ -528,17 +540,49 @@ export default function RingkasanMakartiPage() {
               </div>
             </div>
             <p className="text-gray-700 text-sm mb-4">{achievement.description}</p>
-            <div className="mb-4">
+            
+            {/* Skor Keseluruhan (Total Score) */}
+            <div className="mb-3">
               <div className="flex items-center justify-between">
                 <span className="text-xs text-gray-500">Skor Keseluruhan</span>
                 <span className={`text-2xl font-bold ${achievement.textColor}`}>{achievement.overallScore} %</span>
               </div>
-              <div className="w-full bg-gray-200 rounded-full h-2.5 mt-1">
-                <div className={`h-2.5 rounded-full transition-all duration-1000 ${
+              <div className="w-full bg-gray-200 rounded-full h-3 mt-1">
+                <div className={`h-3 rounded-full transition-all duration-1000 ${
                   Number(achievement.overallScore) >= 80 ? 'bg-gradient-to-r from-green-500 to-green-600' :
                   Number(achievement.overallScore) >= 60 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' :
                   'bg-gradient-to-r from-red-500 to-red-600'
                 }`} style={{ width: `${achievement.overallScore}%` }}></div>
+              </div>
+            </div>
+
+            {/* Skor SKP Generik */}
+            <div className="mb-3">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">Skor SKP Generik</span>
+                <span className={`text-lg font-bold ${achievement.textColor}`}>{achievement.genericScore} %</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                <div className={`h-2 rounded-full transition-all duration-1000 ${
+                  Number(achievement.genericScore) >= 80 ? 'bg-gradient-to-r from-green-500 to-green-600' :
+                  Number(achievement.genericScore) >= 60 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' :
+                  'bg-gradient-to-r from-red-500 to-red-600'
+                }`} style={{ width: `${achievement.genericScore}%` }}></div>
+              </div>
+            </div>
+
+            {/* Skor SKP Transformasional */}
+            <div className="mb-4">
+              <div className="flex items-center justify-between">
+                <span className="text-xs text-gray-500">Skor SKP Transformasional</span>
+                <span className={`text-lg font-bold ${achievement.textColor}`}>{achievement.transformScore} %</span>
+              </div>
+              <div className="w-full bg-gray-200 rounded-full h-2 mt-1">
+                <div className={`h-2 rounded-full transition-all duration-1000 ${
+                  Number(achievement.transformScore) >= 80 ? 'bg-gradient-to-r from-green-500 to-green-600' :
+                  Number(achievement.transformScore) >= 60 ? 'bg-gradient-to-r from-yellow-500 to-yellow-600' :
+                  'bg-gradient-to-r from-red-500 to-red-600'
+                }`} style={{ width: `${achievement.transformScore}%` }}></div>
               </div>
             </div>
             {/* Metrics Section */}
@@ -567,21 +611,21 @@ export default function RingkasanMakartiPage() {
       <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-4">
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg p-4 text-white">
           <div className="text-center">
-            <div className="text-2xl font-bold">{scoreLoading ? '...' : scoreData?.calculated_summary?.bigger_score?.toFixed(2) || '0'}%</div>
+            <div className="text-2xl font-bold">{scoreLoading ? '...' : scoreData?.calculated_summary?.bigger_total_score?.toFixed(2) || '0'}%</div>
             <div className="text-sm opacity-90">BIGGER Score</div>
             <div className="text-xs opacity-75">via Branding & Networking</div>
           </div>
         </div>
         <div className="bg-gradient-to-r from-purple-500 to-purple-600 rounded-lg p-4 text-white">
           <div className="text-center">
-            <div className="text-2xl font-bold">{scoreLoading ? '...' : scoreData?.calculated_summary?.smarter_score?.toFixed(2) || '0'}%</div>
+            <div className="text-2xl font-bold">{scoreLoading ? '...' : scoreData?.calculated_summary?.smarter_total_score?.toFixed(2) || '0'}%</div>
             <div className="text-sm opacity-90">SMARTER Score</div>
             <div className="text-xs opacity-75">via Inovasi & Learning</div>
           </div>
         </div>
         <div className="bg-gradient-to-r from-green-500 to-green-600 rounded-lg p-4 text-white">
           <div className="text-center">
-            <div className="text-2xl font-bold">{scoreLoading ? '...' : scoreData?.calculated_summary?.better_score?.toFixed(2) || '0'}%</div>
+            <div className="text-2xl font-bold">{scoreLoading ? '...' : scoreData?.calculated_summary?.better_total_score?.toFixed(2) || '0'}%</div>
             <div className="text-sm opacity-90">BETTER Score</div>
             <div className="text-xs opacity-75">via Branding, Networking, Inovasi & Learning</div>
           </div>
@@ -834,10 +878,40 @@ export default function RingkasanMakartiPage() {
                   <h3 className={`font-medium ${achievement.textColor} text-sm`}>{achievement.category}</h3>
                 </div>
                 <p className={`text-xs ${achievement.textColor}`}>{achievement.subtitle}</p>
-                <div className="mt-2 flex items-center justify-between">
-                  <div className={`text-2xl font-bold ${achievement.textColor}`}>{achievement.overallScore}%</div>
-                  <div className={`w-12 ${achievement.bgLight} rounded-full h-2`}>
-                    <div className={`${achievement.textColor} h-2 rounded-full`} style={{ width: `${achievement.overallScore}%` }}></div>
+                
+                {/* Compact Score Display */}
+                <div className="mt-2 space-y-1">
+                  {/* Overall Score */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">Keseluruhan</span>
+                    <div className="flex items-center gap-2">
+                      <div className={`text-lg font-bold ${achievement.textColor}`}>{achievement.overallScore}%</div>
+                      <div className={`w-8 ${achievement.bgLight} rounded-full h-1.5`}>
+                        <div className={`${achievement.textColor} h-1.5 rounded-full`} style={{ width: `${achievement.overallScore}%` }}></div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Generic Score */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">SKP Generik</span>
+                    <div className="flex items-center gap-2">
+                      <div className={`text-sm font-semibold ${achievement.textColor}`}>{achievement.genericScore}%</div>
+                      <div className={`w-8 ${achievement.bgLight} rounded-full h-1`}>
+                        <div className={`${achievement.textColor} h-1 rounded-full`} style={{ width: `${achievement.genericScore}%` }}></div>
+                      </div>
+                    </div>
+                  </div>
+                  
+                  {/* Transform Score */}
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-600">SKP Transform</span>
+                    <div className="flex items-center gap-2">
+                      <div className={`text-sm font-semibold ${achievement.textColor}`}>{achievement.transformScore}%</div>
+                      <div className={`w-8 ${achievement.bgLight} rounded-full h-1`}>
+                        <div className={`${achievement.textColor} h-1 rounded-full`} style={{ width: `${achievement.transformScore}%` }}></div>
+                      </div>
+                    </div>
                   </div>
                 </div>
                 {/* Metrics for highlight */}

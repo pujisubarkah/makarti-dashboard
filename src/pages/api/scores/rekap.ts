@@ -32,8 +32,14 @@ interface UnitWithScores {
     inovasi_kajian_score: number | null
     inovasi_score: number | null
     bigger_score: number | null
+    bigger_generik_score: number | null
+    bigger_total_score: number | null
     smarter_score: number | null
+    smarter_generik_score: number | null
+    smarter_total_score: number | null
     better_score: number | null
+    better_generik_score: number | null
+    better_total_score: number | null
   }
 }
 
@@ -56,8 +62,14 @@ function calculateAverageScores(children: UnitWithScores[]) {
     inovasi_kajian_score: 0,
     inovasi_score: 0,
     bigger_score: 0,
+    bigger_generik_score: 0,
+    bigger_total_score: 0,
     smarter_score: 0,
-    better_score: 0
+    smarter_generik_score: 0,
+    smarter_total_score: 0,
+    better_score: 0,
+    better_generik_score: 0,
+    better_total_score: 0
   }
 
   const scoreKeys = Object.keys(averages)
@@ -127,8 +139,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           inovasi_kajian_score: scores?.inovasi_kajian_score ? Number(scores.inovasi_kajian_score) : null,
           inovasi_score: scores?.inovasi_score ? Number(scores.inovasi_score) : null,
           bigger_score: scores?.bigger_score ? Number(scores.bigger_score) : null,
+          bigger_generik_score: scores?.bigger_generik_score ? Number(scores.bigger_generik_score) : null,
+          bigger_total_score: scores?.bigger_total_score ? Number(scores.bigger_total_score) : null,
           smarter_score: scores?.smarter_score ? Number(scores.smarter_score) : null,
+          smarter_generik_score: scores?.smarter_generik_score ? Number(scores.smarter_generik_score) : null,
+          smarter_total_score: scores?.smarter_total_score ? Number(scores.smarter_total_score) : null,
           better_score: scores?.better_score ? Number(scores.better_score) : null,
+          better_generik_score: scores?.better_generik_score ? Number(scores.better_generik_score) : null,
+          better_total_score: scores?.better_total_score ? Number(scores.better_total_score) : null,
         }
       }
     })

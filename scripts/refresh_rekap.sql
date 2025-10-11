@@ -129,18 +129,20 @@ FROM (
 LEFT JOIN (
   SELECT 
     s.unit_kerja_id::integer AS unit_kerja_id,
-    round(LEAST(avg(CASE WHEN pilar = 'BIGGER' THEN skor END), 100), 2) AS bigger_generik_score,
-    round(LEAST(avg(CASE WHEN pilar = 'SMARTER' THEN skor END), 100), 2) AS smarter_generik_score,
-    round(LEAST(avg(CASE WHEN pilar = 'BETTER' THEN skor END), 100), 2) AS better_generik_score
+    ROUND(AVG(CASE WHEN TRIM(UPPER(s.pilar)) = 'BIGGER' THEN LEAST(s.skor, 100) END), 2) AS bigger_generik_score,
+    ROUND(AVG(CASE WHEN TRIM(UPPER(s.pilar)) = 'SMARTER' THEN LEAST(s.skor, 100) END), 2) AS smarter_generik_score,
+    ROUND(AVG(CASE WHEN TRIM(UPPER(s.pilar)) = 'BETTER' THEN LEAST(s.skor, 100) END), 2) AS better_generik_score
   FROM (
     SELECT DISTINCT ON (unit_kerja_id, indikator)
       unit_kerja_id,
       indikator,
       pilar,
-      (update_volume / NULLIF(target_volume, 0)) * 100 AS skor,
+      LEAST((update_volume::numeric / NULLIF(target_volume::numeric, 0)) * 100, 100) AS skor,
       tanggal
     FROM makarti.skp_generik
-    WHERE update_volume IS NOT NULL AND target_volume IS NOT NULL
+    WHERE update_volume IS NOT NULL 
+      AND target_volume IS NOT NULL
+      AND target_volume::numeric > 0
     ORDER BY unit_kerja_id, indikator, tanggal DESC
   ) s
   GROUP BY s.unit_kerja_id

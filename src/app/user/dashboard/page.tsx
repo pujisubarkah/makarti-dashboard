@@ -78,6 +78,144 @@ export interface ScoreData {
   };
 }
 
+function InfoPopupGlobal({ show, onClose }: { show: boolean; onClose: () => void }) {
+  if (!show) return null;
+  return (
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-30">
+      <div className="bg-white rounded-lg shadow-xl p-6 max-w-4xl w-full relative max-h-[90vh] overflow-y-auto">
+        <h2 className="text-lg font-bold mb-4 text-gray-800">Penjelasan Indikator & Formula Makarti</h2>
+        
+        {/* Dimensi MAKARTI */}
+        <div className="overflow-x-auto mb-6">
+          <h3 className="text-md font-semibold mb-2 text-gray-700">Dimensi MAKARTI</h3>
+          <table className="min-w-full text-xs border mb-4">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border px-2 py-1">DIMENSI MAKARTI</th>
+                <th className="border px-2 py-1">INDIKATOR & BOBOT</th>
+                <th className="border px-2 py-1">FORMULA PENGHITUNGAN</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="border px-2 py-1 font-semibold align-top" rowSpan={2}>INOVASI</td>
+                <td className="border px-2 py-1">KINERJA INOVASI (50%)</td>
+                <td className="border px-2 py-1">Rata-rata kinerja inovasi: Ide (40%), Perencanaan (60%), Uji Coba (80%), Implementasi (100%)</td>
+              </tr>
+              <tr>
+                <td className="border px-2 py-1">PRODUK KAJIAN (50%)</td>
+                <td className="border px-2 py-1">Rata-rata progres kajian: Draft (40%), Revisi (60%), Review (80%), Selesai (100%)</td>
+              </tr>
+              <tr>
+                <td className="border px-2 py-1 font-semibold align-top" rowSpan={2}>LEARNING</td>
+                <td className="border px-2 py-1">PELATIHAN PEGAWAI INTERNAL (50%)</td>
+                <td className="border px-2 py-1">Persentase pegawai yang telah mengikuti Pengembangan Kompetensi ASN minimal 20 JP</td>
+              </tr>
+              <tr>
+                <td className="border px-2 py-1">PENYELENGGARAAN BANGKOM UNIT (50%)</td>
+                <td className="border px-2 py-1">Total peserta dari daftar kehadiran dibagi 5000 x 100%</td>
+              </tr>
+              <tr>
+                <td className="border px-2 py-1 font-semibold align-top" rowSpan={2}>BRANDING</td>
+                <td className="border px-2 py-1">ENGAGEMENT (50%)</td>
+                <td className="border px-2 py-1">(Jumlah Likes / Jumlah Views) x 100% dibagi 0.06 x 100%</td>
+              </tr>
+              <tr>
+                <td className="border px-2 py-1">JUMLAH PUBLIKASI (50%)</td>
+                <td className="border px-2 py-1">Jumlah publikasi unit kerja dibagi 60 x 100%</td>
+              </tr>
+              <tr>
+                <td className="border px-2 py-1 font-semibold align-top" rowSpan={2}>NETWORKING</td>
+                <td className="border px-2 py-1">KERJASAMA (80%)</td>
+                <td className="border px-2 py-1">Persentase kerjasama dengan status MoU Ditandatangani atau Selesai</td>
+              </tr>
+              <tr>
+                <td className="border px-2 py-1">KOORDINASI (20%)</td>
+                <td className="border px-2 py-1">Persentase koordinasi dengan status SELESAI</td>
+              </tr>
+            </tbody>
+          </table>
+
+          {/* Pilar BSB (Bigger, Smarter, Better) */}
+          <h3 className="text-md font-semibold mb-2 text-gray-700">Pilar Bigger, Smarter, Better</h3>
+          <table className="min-w-full text-xs border mb-4">
+            <thead>
+              <tr className="bg-gray-100">
+                <th className="border px-2 py-1">PILAR BSB</th>
+                <th className="border px-2 py-1">JENIS SKOR</th>
+                <th className="border px-2 py-1">FORMULA PENGHITUNGAN</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr>
+                <td className="border px-2 py-1 font-semibold align-top" rowSpan={3}>BIGGER</td>
+                <td className="border px-2 py-1 font-medium">SKP-T</td>
+                <td className="border px-2 py-1">50% Skor Branding SKP-T + 50% Skor Networking SKP-T</td>
+              </tr>
+              <tr>
+                <td className="border px-2 py-1 font-medium">SKP-G</td>
+                <td className="border px-2 py-1">Rata-rata capaian indikator SKP Generik pilar BIGGER (dalam persen)</td>
+              </tr>
+              <tr>
+                <td className="border px-2 py-1 font-medium">Total</td>
+                <td className="border px-2 py-1">50% BIGGER SKP-T + 50% BIGGER SKP-G</td>
+              </tr>
+              <tr>
+                <td className="border px-2 py-1 font-semibold align-top" rowSpan={3}>SMARTER</td>
+                <td className="border px-2 py-1 font-medium">SKP-T</td>
+                <td className="border px-2 py-1">50% Skor Learning SKP-T + 50% Skor Inovasi SKP-T</td>
+              </tr>
+              <tr>
+                <td className="border px-2 py-1 font-medium">SKP-G</td>
+                <td className="border px-2 py-1">Rata-rata capaian indikator SKP Generik pilar SMARTER (dalam persen)</td>
+              </tr>
+              <tr>
+                <td className="border px-2 py-1 font-medium">Total</td>
+                <td className="border px-2 py-1">50% SMARTER SKP-T + 50% SMARTER SKP-G</td>
+              </tr>
+              <tr>
+                <td className="border px-2 py-1 font-semibold align-top" rowSpan={3}>BETTER</td>
+                <td className="border px-2 py-1 font-medium">SKP-T</td>
+                <td className="border px-2 py-1">25% Branding SKP-T + 25% Networking SKP-T + 25% Learning SKP-T + 25% Inovasi SKP-T</td>
+              </tr>
+              <tr>
+                <td className="border px-2 py-1 font-medium">SKP-G</td>
+                <td className="border px-2 py-1">Rata-rata capaian indikator SKP Generik pilar BETTER (dalam persen)</td>
+              </tr>
+              <tr>
+                <td className="border px-2 py-1 font-medium">Total</td>
+                <td className="border px-2 py-1">50% BETTER SKP-T + 50% BETTER SKP-G</td>
+              </tr>
+            </tbody>
+          </table>
+
+          {/* Penjelasan Kolom Tabel */}
+          <h3 className="text-md font-semibold mb-2 text-gray-700">Penjelasan Kolom Tabel</h3>
+          <div className="text-xs space-y-2">
+            <div><strong>SKP-G:</strong> Skor dari SKP Generik</div>
+            <div><strong>SKP-T:</strong> Skor dari SKP Transformasional</div>
+            <div><strong>Total:</strong> Gabungan skor SKP-G dan SKP-T dengan bobot 50%-50%</div>
+            <div><strong>Serapan Anggaran:</strong> Persentase realisasi anggaran terhadap pagu anggaran unit kerja</div>
+          </div>
+        </div>
+        
+        <button className="absolute top-2 right-2 text-gray-500 hover:text-blue-600 text-sm" onClick={onClose}>Tutup</button>
+      </div>
+    </div>
+  );
+}
+
+function InfoButton({ onClick }: { onClick: (e: React.MouseEvent<HTMLButtonElement>) => void }) {
+  return (
+    <button type="button" className="ml-2 align-middle" onClick={onClick} aria-label="Info">
+      <svg width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
+        <circle cx="10" cy="10" r="9" stroke="#2563eb" strokeWidth="2" fill="#fff" />
+        <path d="M10 7.5a1 1 0 110-2 1 1 0 010 2zm-1 2.5a1 1 0 012 0v5a1 1 0 11-2 0v-5z" fill="#2563eb" />
+      </svg>
+    </button>
+  );
+}
+
 export default function UnitKerjaDashboard() {
     const [unitData, setUnitData] = useState<UnitKerjaData | null>(null);
     const [scoreData, setScoreData] = useState<ScoreData | null>(null);
@@ -88,6 +226,7 @@ export default function UnitKerjaDashboard() {
     const [showCalendar, setShowCalendar] = useState(false);
     const [showManageTeam, setShowManageTeam] = useState(false);
     const [showReportView, setShowReportView] = useState(false);
+    const [infoOpen, setInfoOpen] = useState(false);
 
     // Fetch data unit kerja berdasarkan ID dari localStorage
     useEffect(() => {
@@ -201,6 +340,17 @@ export default function UnitKerjaDashboard() {
             fetchScoreData();
         }
     }, [unitData, loading]);
+
+    // Untuk menutup popup info jika klik di luar
+      useEffect(() => {
+        function handleClick() {
+          setInfoOpen(false);
+        }
+        if (infoOpen) {
+          window.addEventListener("click", handleClick);
+          return () => window.removeEventListener("click", handleClick);
+        }
+      }, [infoOpen]);
 
     // Loading state
     if (loading) {
@@ -571,12 +721,15 @@ export default function UnitKerjaDashboard() {
                     <Building2 className="w-8 h-8 text-blue-600" />
                 </div>
                 <div>
-                    <h1 className="text-3xl font-bold text-blue-800">Dashboard Unit Kerja</h1>
+                    <h1 className="text-3xl font-bold text-blue-800">Dashboard Unit Kerja
+                    <InfoButton onClick={(e) => { e.stopPropagation(); setInfoOpen(true); }} />
+                        </h1>
                     <p className="text-blue-600">
                         Monitor dan kelola aktivitas {unitData?.nama_unit_kerja}
                     </p>
                 </div>
             </div>
+            <InfoPopupGlobal show={infoOpen} onClose={() => setInfoOpen(false)} />
 
             {/* Enhanced Summary Cards */}
             <section className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

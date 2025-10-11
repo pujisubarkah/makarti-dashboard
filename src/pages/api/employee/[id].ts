@@ -1,5 +1,7 @@
+import { PrismaClient } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '@/lib/prisma';
+
+const prisma = new PrismaClient();
 
 export default async function handler(
 	req: NextApiRequest,
@@ -44,11 +46,23 @@ export default async function handler(
 					if (!pegawai) {
 						return res.status(404).json({ error: 'Pegawai tidak ditemukan' });
 					}
-					// Tambahkan foto_url
+					// Tambahkan foto_url dan pastikan unit_kerja_id tersedia
 					const foto_url = pegawai.nip
 						? `https://dtjrketxxozstcwvotzh.supabase.co/storage/v1/object/public/foto_pegawai/${pegawai.nip}.jpg`
 						: null;
-					return res.status(200).json({ ...pegawai, foto_url });
+						
+					// Pastikan ada unit_kerja info untuk frontend
+					const result = { 
+						...pegawai, 
+						foto_url,
+						// Add users object if it doesn't exist but we have unit_kerja_id
+						users: pegawai.users_pegawai_unit_kerja_idTousers || { 
+							unit_kerja: pegawai.unit_kerja_id?.toString() 
+						}
+					};
+					
+					console.log('Employee API returning data:', result);
+					return res.status(200).json(result);
 		} catch (error) {
 			console.error('Error fetching pegawai by id:', error);
 			return res.status(500).json({ error: 'Gagal mengambil data pegawai' });

@@ -45,6 +45,9 @@ interface OrgNode {
     bigger_score: number | null
     smarter_score: number | null
     better_score: number | null
+    bigger_total_score: number | null
+    smarter_total_score: number | null
+    better_total_score: number | null
   }
   children?: OrgNode[]
   isDashedConnection?: boolean
@@ -64,6 +67,14 @@ const getStatusFromScore = (score: number | null): "excellent" | "good" | "warni
   if (score >= 80) return "good"
   if (score >= 70) return "warning"
   return "poor"
+}
+
+// Function to calculate average of BIGGER, SMARTER, BETTER total scores
+const getAverageScore = (scores: OrgNode['scores']): number => {
+  const biggerScore = scores.bigger_total_score || 0
+  const smarterScore = scores.smarter_total_score || 0
+  const betterScore = scores.better_total_score || 0
+  return (biggerScore + smarterScore + betterScore) / 3
 }
 
 const getStatusColor = (status: string) => {
@@ -113,9 +124,9 @@ function OrgChart({ node }: {
 
   const isNodeExpanded = expandedNodes.has(node.id)
   
-  // Get status from better_score
-  const betterScore = node.scores.better_score || 0
-  const status = getStatusFromScore(betterScore)
+  // Get status from average total score
+  const averageScore = getAverageScore(node.scores)
+  const status = getStatusFromScore(averageScore)
   // Separate different types of children by department
   const regularChildren = node.children?.filter(child => 
     !child.isDashedConnection && 
@@ -164,13 +175,13 @@ function OrgChart({ node }: {
 
           <p className="text-xs text-gray-600 mb-2">{node.position.title}</p>
 
-          {/* KPI Section - Using better_score */}
+          {/* KPI Section - Using average total score */}
           <div className="mb-2">
             <div className="flex items-center justify-between mb-1">
-              <span className="text-xs font-medium text-gray-700">KPI (Better)</span>
+              <span className="text-xs font-medium text-gray-700">KPI (Average)</span>
               <div className={`flex items-center px-1 py-0.5 rounded-full text-xs font-bold ${getStatusColor(status)}`}>
                 {getStatusIcon(status)}
-                <span className="ml-1">{Math.round(betterScore)}%</span>
+                <span className="ml-1">{Math.round(averageScore)}%</span>
               </div>
             </div>
             <div className="w-full bg-gray-200 rounded-full h-1">
@@ -180,7 +191,7 @@ function OrgChart({ node }: {
                   status === 'good' ? 'bg-blue-500' :
                   status === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
                 }`}
-                style={{ width: `${Math.min(betterScore, 100)}%` }}
+                style={{ width: `${Math.min(averageScore, 100)}%` }}
               ></div>
             </div>
           </div>
@@ -189,31 +200,24 @@ function OrgChart({ node }: {
           <div className="grid grid-cols-1 gap-1">
             <div className="flex items-center justify-between">
               <div className="flex items-center">
-                <div className="w-1 h-1 bg-yellow-500 rounded-full mr-1"></div>
-                <span className="text-xs text-gray-600">Inovasi</span>
+                <div className="w-1 h-1 bg-blue-500 rounded-full mr-1"></div>
+                <span className="text-xs text-gray-600">BIGGER</span>
               </div>
-              <span className="text-xs font-medium text-gray-800">{Math.round(node.scores.inovasi_score || 0)}%</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="w-1 h-1 bg-pink-500 rounded-full mr-1"></div>
-                <span className="text-xs text-gray-600">Branding</span>
-              </div>
-              <span className="text-xs font-medium text-gray-800">{Math.round(node.scores.branding_score || 0)}%</span>
-            </div>
-            <div className="flex items-center justify-between">
-              <div className="flex items-center">
-                <div className="w-1 h-1 bg-cyan-500 rounded-full mr-1"></div>
-                <span className="text-xs text-gray-600">Networking</span>
-              </div>
-              <span className="text-xs font-medium text-gray-800">{Math.round(node.scores.networking_score || 0)}%</span>
+              <span className="text-xs font-medium text-gray-800">{Math.round(node.scores.bigger_total_score || 0)}%</span>
             </div>
             <div className="flex items-center justify-between">
               <div className="flex items-center">
                 <div className="w-1 h-1 bg-green-500 rounded-full mr-1"></div>
-                <span className="text-xs text-gray-600">Learning</span>
+                <span className="text-xs text-gray-600">SMARTER</span>
               </div>
-              <span className="text-xs font-medium text-gray-800">{Math.round(node.scores.learning_score || 0)}%</span>
+              <span className="text-xs font-medium text-gray-800">{Math.round(node.scores.smarter_total_score || 0)}%</span>
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center">
+                <div className="w-1 h-1 bg-purple-500 rounded-full mr-1"></div>
+                <span className="text-xs text-gray-600">BETTER</span>
+              </div>
+              <span className="text-xs font-medium text-gray-800">{Math.round(node.scores.better_total_score || 0)}%</span>
             </div>
           </div>
         </div>
@@ -323,56 +327,49 @@ function OrgChart({ node }: {
                           <h3 className="font-bold text-gray-800 text-xs leading-tight mt-1">{pusat.name}</h3>
                         </div>                        <p className="text-xs text-gray-600 mb-2">{pusat.position.title}</p>
 
-                        {/* KPI Section - Using better_score */}
+                        {/* KPI Section - Using average total score */}
                         <div className="mb-2">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-medium text-gray-700">KPI (Better)</span>
-                            <div className={`flex items-center px-1 py-0.5 rounded-full text-xs font-bold ${getStatusColor(getStatusFromScore(pusat.scores.better_score))}`}>
-                              {getStatusIcon(getStatusFromScore(pusat.scores.better_score))}
-                              <span className="ml-1">{Math.round(pusat.scores.better_score || 0)}%</span>
+                            <span className="text-xs font-medium text-gray-700">KPI (Average)</span>
+                            <div className={`flex items-center px-1 py-0.5 rounded-full text-xs font-bold ${getStatusColor(getStatusFromScore(getAverageScore(pusat.scores)))}`}>
+                              {getStatusIcon(getStatusFromScore(getAverageScore(pusat.scores)))}
+                              <span className="ml-1">{Math.round(getAverageScore(pusat.scores))}%</span>
                             </div>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-1">
                             <div 
                               className={`h-1 rounded-full transition-all duration-500 ${
-                                getStatusFromScore(pusat.scores.better_score) === 'excellent' ? 'bg-green-500' :
-                                getStatusFromScore(pusat.scores.better_score) === 'good' ? 'bg-blue-500' :
-                                getStatusFromScore(pusat.scores.better_score) === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                                getStatusFromScore(getAverageScore(pusat.scores)) === 'excellent' ? 'bg-green-500' :
+                                getStatusFromScore(getAverageScore(pusat.scores)) === 'good' ? 'bg-blue-500' :
+                                getStatusFromScore(getAverageScore(pusat.scores)) === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
                               }`}
-                              style={{ width: `${Math.min(pusat.scores.better_score || 0, 100)}%` }}
+                              style={{ width: `${Math.min(getAverageScore(pusat.scores), 100)}%` }}
                             ></div>
                           </div>
                         </div>
 
-                        {/* MAKARTI Metrics */}
+                        {/* Total Scores */}
                         <div className="grid grid-cols-1 gap-1">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
-                              <div className="w-1 h-1 bg-yellow-500 rounded-full mr-1"></div>
-                              <span className="text-xs text-gray-600">Inovasi</span>
+                              <div className="w-1 h-1 bg-blue-500 rounded-full mr-1"></div>
+                              <span className="text-xs text-gray-600">BIGGER</span>
                             </div>
-                            <span className="text-xs font-medium text-gray-800">{Math.round(pusat.scores.inovasi_score || 0)}%</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <div className="w-1 h-1 bg-pink-500 rounded-full mr-1"></div>
-                              <span className="text-xs text-gray-600">Branding</span>
-                            </div>
-                            <span className="text-xs font-medium text-gray-800">{Math.round(pusat.scores.branding_score || 0)}%</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <div className="w-1 h-1 bg-cyan-500 rounded-full mr-1"></div>
-                              <span className="text-xs text-gray-600">Networking</span>
-                            </div>
-                            <span className="text-xs font-medium text-gray-800">{Math.round(pusat.scores.networking_score || 0)}%</span>
+                            <span className="text-xs font-medium text-gray-800">{Math.round(pusat.scores.bigger_total_score || 0)}%</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
                               <div className="w-1 h-1 bg-green-500 rounded-full mr-1"></div>
-                              <span className="text-xs text-gray-600">Learning</span>
+                              <span className="text-xs text-gray-600">SMARTER</span>
                             </div>
-                            <span className="text-xs font-medium text-gray-800">{Math.round(pusat.scores.learning_score || 0)}%</span>
+                            <span className="text-xs font-medium text-gray-800">{Math.round(pusat.scores.smarter_total_score || 0)}%</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <div className="w-1 h-1 bg-purple-500 rounded-full mr-1"></div>
+                              <span className="text-xs text-gray-600">BETTER</span>
+                            </div>
+                            <span className="text-xs font-medium text-gray-800">{Math.round(pusat.scores.better_total_score || 0)}%</span>
                           </div>
                         </div>
                       </div>
@@ -422,56 +419,49 @@ function OrgChart({ node }: {
                           <h3 className="font-bold text-gray-800 text-xs leading-tight mt-1">{director.name}</h3>
                         </div>                        <p className="text-xs text-gray-600 mb-2">{director.position.title}</p>
 
-                        {/* KPI Section - Using better_score */}
+                        {/* KPI Section - Using average total score */}
                         <div className="mb-2">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-medium text-gray-700">KPI (Better)</span>
-                            <div className={`flex items-center px-1 py-0.5 rounded-full text-xs font-bold ${getStatusColor(getStatusFromScore(director.scores.better_score))}`}>
-                              {getStatusIcon(getStatusFromScore(director.scores.better_score))}
-                              <span className="ml-1">{Math.round(director.scores.better_score || 0)}%</span>
+                            <span className="text-xs font-medium text-gray-700">KPI (Average)</span>
+                            <div className={`flex items-center px-1 py-0.5 rounded-full text-xs font-bold ${getStatusColor(getStatusFromScore(getAverageScore(director.scores)))}`}>
+                              {getStatusIcon(getStatusFromScore(getAverageScore(director.scores)))}
+                              <span className="ml-1">{Math.round(getAverageScore(director.scores))}%</span>
                             </div>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-1">
                             <div 
                               className={`h-1 rounded-full transition-all duration-500 ${
-                                getStatusFromScore(director.scores.better_score) === 'excellent' ? 'bg-green-500' :
-                                getStatusFromScore(director.scores.better_score) === 'good' ? 'bg-blue-500' :
-                                getStatusFromScore(director.scores.better_score) === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                                getStatusFromScore(getAverageScore(director.scores)) === 'excellent' ? 'bg-green-500' :
+                                getStatusFromScore(getAverageScore(director.scores)) === 'good' ? 'bg-blue-500' :
+                                getStatusFromScore(getAverageScore(director.scores)) === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
                               }`}
-                              style={{ width: `${Math.min(director.scores.better_score || 0, 100)}%` }}
+                              style={{ width: `${Math.min(getAverageScore(director.scores), 100)}%` }}
                             ></div>
                           </div>
                         </div>
 
-                        {/* MAKARTI Metrics */}
+                        {/* Total Scores */}
                         <div className="grid grid-cols-1 gap-1">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
-                              <div className="w-1 h-1 bg-yellow-500 rounded-full mr-1"></div>
-                              <span className="text-xs text-gray-600">Inovasi</span>
+                              <div className="w-1 h-1 bg-blue-500 rounded-full mr-1"></div>
+                              <span className="text-xs text-gray-600">BIGGER</span>
                             </div>
-                            <span className="text-xs font-medium text-gray-800">{Math.round(director.scores.inovasi_score || 0)}%</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <div className="w-1 h-1 bg-pink-500 rounded-full mr-1"></div>
-                              <span className="text-xs text-gray-600">Branding</span>
-                            </div>
-                            <span className="text-xs font-medium text-gray-800">{Math.round(director.scores.branding_score || 0)}%</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <div className="w-1 h-1 bg-cyan-500 rounded-full mr-1"></div>
-                              <span className="text-xs text-gray-600">Networking</span>
-                            </div>
-                            <span className="text-xs font-medium text-gray-800">{Math.round(director.scores.networking_score || 0)}%</span>
+                            <span className="text-xs font-medium text-gray-800">{Math.round(director.scores.bigger_total_score || 0)}%</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
                               <div className="w-1 h-1 bg-green-500 rounded-full mr-1"></div>
-                              <span className="text-xs text-gray-600">Learning</span>
+                              <span className="text-xs text-gray-600">SMARTER</span>
                             </div>
-                            <span className="text-xs font-medium text-gray-800">{Math.round(director.scores.learning_score || 0)}%</span>
+                            <span className="text-xs font-medium text-gray-800">{Math.round(director.scores.smarter_total_score || 0)}%</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <div className="w-1 h-1 bg-purple-500 rounded-full mr-1"></div>
+                              <span className="text-xs text-gray-600">BETTER</span>
+                            </div>
+                            <span className="text-xs font-medium text-gray-800">{Math.round(director.scores.better_total_score || 0)}%</span>
                           </div>
                         </div>
                       </div>
@@ -525,56 +515,49 @@ function OrgChart({ node }: {
 
                         <p className="text-xs text-gray-600 mb-2">{inspektorat.position.title}</p>
 
-                        {/* KPI Section - Using better_score */}
+                        {/* KPI Section - Using average total score */}
                         <div className="mb-2">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-medium text-gray-700">KPI (Better)</span>
-                            <div className={`flex items-center px-1 py-0.5 rounded-full text-xs font-bold ${getStatusColor(getStatusFromScore(inspektorat.scores.better_score))}`}>
-                              {getStatusIcon(getStatusFromScore(inspektorat.scores.better_score))}
-                              <span className="ml-1">{Math.round(inspektorat.scores.better_score || 0)}%</span>
+                            <span className="text-xs font-medium text-gray-700">KPI (Average)</span>
+                            <div className={`flex items-center px-1 py-0.5 rounded-full text-xs font-bold ${getStatusColor(getStatusFromScore(getAverageScore(inspektorat.scores)))}`}>
+                              {getStatusIcon(getStatusFromScore(getAverageScore(inspektorat.scores)))}
+                              <span className="ml-1">{Math.round(getAverageScore(inspektorat.scores))}%</span>
                             </div>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-1">
                             <div 
                               className={`h-1 rounded-full transition-all duration-500 ${
-                                getStatusFromScore(inspektorat.scores.better_score) === 'excellent' ? 'bg-green-500' :
-                                getStatusFromScore(inspektorat.scores.better_score) === 'good' ? 'bg-blue-500' :
-                                getStatusFromScore(inspektorat.scores.better_score) === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                                getStatusFromScore(getAverageScore(inspektorat.scores)) === 'excellent' ? 'bg-green-500' :
+                                getStatusFromScore(getAverageScore(inspektorat.scores)) === 'good' ? 'bg-blue-500' :
+                                getStatusFromScore(getAverageScore(inspektorat.scores)) === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
                               }`}
-                              style={{ width: `${Math.min(inspektorat.scores.better_score || 0, 100)}%` }}
+                              style={{ width: `${Math.min(getAverageScore(inspektorat.scores), 100)}%` }}
                             ></div>
                           </div>
                         </div>
 
-                        {/* MAKARTI Metrics */}
+                        {/* Total Scores */}
                         <div className="grid grid-cols-1 gap-1">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
-                              <div className="w-1 h-1 bg-yellow-500 rounded-full mr-1"></div>
-                              <span className="text-xs text-gray-600">Inovasi</span>
+                              <div className="w-1 h-1 bg-blue-500 rounded-full mr-1"></div>
+                              <span className="text-xs text-gray-600">BIGGER</span>
                             </div>
-                            <span className="text-xs font-medium text-gray-800">{Math.round(inspektorat.scores.inovasi_score || 0)}%</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <div className="w-1 h-1 bg-pink-500 rounded-full mr-1"></div>
-                              <span className="text-xs text-gray-600">Branding</span>
-                            </div>
-                            <span className="text-xs font-medium text-gray-800">{Math.round(inspektorat.scores.branding_score || 0)}%</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <div className="w-1 h-1 bg-cyan-500 rounded-full mr-1"></div>
-                              <span className="text-xs text-gray-600">Networking</span>
-                            </div>
-                            <span className="text-xs font-medium text-gray-800">{Math.round(inspektorat.scores.networking_score || 0)}%</span>
+                            <span className="text-xs font-medium text-gray-800">{Math.round(inspektorat.scores.bigger_total_score || 0)}%</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
                               <div className="w-1 h-1 bg-green-500 rounded-full mr-1"></div>
-                              <span className="text-xs text-gray-600">Learning</span>
+                              <span className="text-xs text-gray-600">SMARTER</span>
                             </div>
-                            <span className="text-xs font-medium text-gray-800">{Math.round(inspektorat.scores.learning_score || 0)}%</span>
+                            <span className="text-xs font-medium text-gray-800">{Math.round(inspektorat.scores.smarter_total_score || 0)}%</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <div className="w-1 h-1 bg-purple-500 rounded-full mr-1"></div>
+                              <span className="text-xs text-gray-600">BETTER</span>
+                            </div>
+                            <span className="text-xs font-medium text-gray-800">{Math.round(inspektorat.scores.better_total_score || 0)}%</span>
                           </div>
                         </div>
                       </div>
@@ -628,56 +611,49 @@ function OrgChart({ node }: {
 
                         <p className="text-xs text-gray-600 mb-2">{balai.position.title}</p>
 
-                        {/* KPI Section - Using better_score */}
+                        {/* KPI Section - Using average total score */}
                         <div className="mb-2">
                           <div className="flex items-center justify-between mb-1">
-                            <span className="text-xs font-medium text-gray-700">KPI (Better)</span>
-                            <div className={`flex items-center px-1 py-0.5 rounded-full text-xs font-bold ${getStatusColor(getStatusFromScore(balai.scores.better_score))}`}>
-                              {getStatusIcon(getStatusFromScore(balai.scores.better_score))}
-                              <span className="ml-1">{Math.round(balai.scores.better_score || 0)}%</span>
+                            <span className="text-xs font-medium text-gray-700">KPI (Average)</span>
+                            <div className={`flex items-center px-1 py-0.5 rounded-full text-xs font-bold ${getStatusColor(getStatusFromScore(getAverageScore(balai.scores)))}`}>
+                              {getStatusIcon(getStatusFromScore(getAverageScore(balai.scores)))}
+                              <span className="ml-1">{Math.round(getAverageScore(balai.scores))}%</span>
                             </div>
                           </div>
                           <div className="w-full bg-gray-200 rounded-full h-1">
                             <div 
                               className={`h-1 rounded-full transition-all duration-500 ${
-                                getStatusFromScore(balai.scores.better_score) === 'excellent' ? 'bg-green-500' :
-                                getStatusFromScore(balai.scores.better_score) === 'good' ? 'bg-blue-500' :
-                                getStatusFromScore(balai.scores.better_score) === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
+                                getStatusFromScore(getAverageScore(balai.scores)) === 'excellent' ? 'bg-green-500' :
+                                getStatusFromScore(getAverageScore(balai.scores)) === 'good' ? 'bg-blue-500' :
+                                getStatusFromScore(getAverageScore(balai.scores)) === 'warning' ? 'bg-yellow-500' : 'bg-red-500'
                               }`}
-                              style={{ width: `${Math.min(balai.scores.better_score || 0, 100)}%` }}
+                              style={{ width: `${Math.min(getAverageScore(balai.scores), 100)}%` }}
                             ></div>
                           </div>
                         </div>
 
-                        {/* MAKARTI Metrics */}
+                        {/* Total Scores */}
                         <div className="grid grid-cols-1 gap-1">
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
-                              <div className="w-1 h-1 bg-yellow-500 rounded-full mr-1"></div>
-                              <span className="text-xs text-gray-600">Inovasi</span>
+                              <div className="w-1 h-1 bg-blue-500 rounded-full mr-1"></div>
+                              <span className="text-xs text-gray-600">BIGGER</span>
                             </div>
-                            <span className="text-xs font-medium text-gray-800">{Math.round(balai.scores.inovasi_score || 0)}%</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <div className="w-1 h-1 bg-pink-500 rounded-full mr-1"></div>
-                              <span className="text-xs text-gray-600">Branding</span>
-                            </div>
-                            <span className="text-xs font-medium text-gray-800">{Math.round(balai.scores.branding_score || 0)}%</span>
-                          </div>
-                          <div className="flex items-center justify-between">
-                            <div className="flex items-center">
-                              <div className="w-1 h-1 bg-cyan-500 rounded-full mr-1"></div>
-                              <span className="text-xs text-gray-600">Networking</span>
-                            </div>
-                            <span className="text-xs font-medium text-gray-800">{Math.round(balai.scores.networking_score || 0)}%</span>
+                            <span className="text-xs font-medium text-gray-800">{Math.round(balai.scores.bigger_total_score || 0)}%</span>
                           </div>
                           <div className="flex items-center justify-between">
                             <div className="flex items-center">
                               <div className="w-1 h-1 bg-green-500 rounded-full mr-1"></div>
-                              <span className="text-xs text-gray-600">Learning</span>
+                              <span className="text-xs text-gray-600">SMARTER</span>
                             </div>
-                            <span className="text-xs font-medium text-gray-800">{Math.round(balai.scores.learning_score || 0)}%</span>
+                            <span className="text-xs font-medium text-gray-800">{Math.round(balai.scores.smarter_total_score || 0)}%</span>
+                          </div>
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center">
+                              <div className="w-1 h-1 bg-purple-500 rounded-full mr-1"></div>
+                              <span className="text-xs text-gray-600">BETTER</span>
+                            </div>
+                            <span className="text-xs font-medium text-gray-800">{Math.round(balai.scores.better_total_score || 0)}%</span>
                           </div>
                         </div>
                       </div>
@@ -892,11 +868,11 @@ export default function StatistikPage() {
   }
   const allNodes = getAllNodes(organizationData)
   const totalNodes = allNodes.length
-  const excellentNodes = allNodes.filter(node => getStatusFromScore(node.scores.better_score) === 'excellent').length
-  const goodNodes = allNodes.filter(node => getStatusFromScore(node.scores.better_score) === 'good').length
-  const warningNodes = allNodes.filter(node => getStatusFromScore(node.scores.better_score) === 'warning').length
-  const poorNodes = allNodes.filter(node => getStatusFromScore(node.scores.better_score) === 'poor').length
-  const averageKPI = Math.round(allNodes.reduce((sum, node) => sum + (node.scores.better_score || 0), 0) / allNodes.length || 0)
+  const excellentNodes = allNodes.filter(node => getStatusFromScore(getAverageScore(node.scores)) === 'excellent').length
+  const goodNodes = allNodes.filter(node => getStatusFromScore(getAverageScore(node.scores)) === 'good').length
+  const warningNodes = allNodes.filter(node => getStatusFromScore(getAverageScore(node.scores)) === 'warning').length
+  const poorNodes = allNodes.filter(node => getStatusFromScore(getAverageScore(node.scores)) === 'poor').length
+  const averageKPI = Math.round(allNodes.reduce((sum, node) => sum + getAverageScore(node.scores), 0) / allNodes.length || 0)
   
   return (
     <div className="p-6 bg-gray-50 min-h-screen">
@@ -1007,7 +983,7 @@ export default function StatistikPage() {
           </h3>
           <div className="space-y-3">
             {allNodes
-              .sort((a, b) => (b.scores.better_score || 0) - (a.scores.better_score || 0))
+              .sort((a, b) => getAverageScore(b.scores) - getAverageScore(a.scores))
               .slice(0, 3)
               .map((node, index) => (
                 <div key={node.id} className="flex items-center justify-between p-3 bg-green-50 rounded-lg">
@@ -1021,7 +997,7 @@ export default function StatistikPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-green-600">{Math.round(node.scores.better_score || 0)}%</p>
+                    <p className="font-bold text-green-600">{Math.round(getAverageScore(node.scores))}%</p>
                     <p className="text-xs text-gray-500">KPI</p>
                   </div>
                 </div>
@@ -1036,8 +1012,8 @@ export default function StatistikPage() {
           </h3>
           <div className="space-y-3">
             {allNodes
-              .filter(node => getStatusFromScore(node.scores.better_score) === 'poor' || getStatusFromScore(node.scores.better_score) === 'warning')
-              .sort((a, b) => (a.scores.better_score || 0) - (b.scores.better_score || 0))
+              .filter(node => getStatusFromScore(getAverageScore(node.scores)) === 'poor' || getStatusFromScore(getAverageScore(node.scores)) === 'warning')
+              .sort((a, b) => getAverageScore(a.scores) - getAverageScore(b.scores))
               .slice(0, 3)
               .map((node, index) => (
                 <div key={node.id} className="flex items-center justify-between p-3 bg-red-50 rounded-lg">
@@ -1051,7 +1027,7 @@ export default function StatistikPage() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <p className="font-bold text-red-600">{Math.round(node.scores.better_score || 0)}%</p>
+                    <p className="font-bold text-red-600">{Math.round(getAverageScore(node.scores))}%</p>
                     <p className="text-xs text-gray-500">KPI</p>
                   </div>
                 </div>

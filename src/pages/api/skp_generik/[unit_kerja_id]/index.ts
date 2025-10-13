@@ -41,6 +41,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 		// Create SKP Generik for unit_kerja_id
 		try {
 			const body = req.body;
+			console.log('SKP API POST: Received data:', body);
+			console.log('SKP API POST: unit_kerja_id:', unit_kerja_id);
+			
 			const newSKP = await prisma.skp_generik.create({
 				data: {
 					unit_kerja_id,
@@ -54,9 +57,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 					kendala: body.kendala || null,
 				},
 			});
+			console.log('SKP API POST: Successfully created:', newSKP);
 			return res.status(201).json(newSKP);
-		} catch {
-			return res.status(500).json({ error: 'Failed to create data' });
+		} catch (error) {
+			console.error('SKP API POST: Error creating data:', error);
+			return res.status(500).json({ 
+				error: 'Failed to create data', 
+				details: error instanceof Error ? error.message : 'Unknown error' 
+			});
 		}
 	}
 

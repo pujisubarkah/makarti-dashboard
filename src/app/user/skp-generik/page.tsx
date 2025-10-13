@@ -3,6 +3,7 @@ import React, { useState, useEffect } from "react";
 import { Pencil, Trash2, Plus } from "lucide-react";
 // ChartContainer dihapus karena tidak digunakan
 type SKPItem = {
+  id?: number;
   tanggal: string;
   pilar: string;
   indikator: string;
@@ -130,6 +131,7 @@ export default function SKPGenerikPage() {
         const data = response.data || response; // Handle both response formats
         const mapped = Array.isArray(data)
           ? data.map((item: { [key: string]: unknown }) => ({
+              id: typeof item.id === "number" ? item.id : Number(item.id) || undefined,
               tanggal: typeof item.tanggal === "string" ? item.tanggal.split('T')[0] : "",
               pilar: typeof item.pilar === "string" ? item.pilar : "",
               indikator: typeof item.indikator === "string" ? item.indikator : "",
@@ -157,12 +159,30 @@ export default function SKPGenerikPage() {
       });
   }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleSubmit = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    const formData = new FormData(e.currentTarget);
+    const form = e.currentTarget;
+    const formData = new FormData(form);
     const newItem: Partial<SKPItem> = Object.fromEntries(formData.entries());
+    
+    console.log('SKP Add: Form data received:', newItem);
+    
+    // Validate required fields
+    if (!newItem.tanggal || !newItem.pilar || !newItem.indikator || 
+        !newItem.targetVolume || !newItem.targetSatuan || 
+        !newItem.updateVolume || !newItem.updateSatuan) {
+      alert("Semua field wajib diisi kecuali kendala.");
+      return;
+    }
+    
+    const userId = localStorage.getItem("id");
+    if (!userId) {
+      alert("User ID tidak ditemukan. Silakan login ulang.");
+      return;
+    }
+
     if (editIndex !== null) {
-      // edit mode
+      // edit mode - TODO: Implement update API call
       const updatedList = [...skpList];
       updatedList[editIndex] = {
         ...updatedList[editIndex],
@@ -172,19 +192,95 @@ export default function SKPGenerikPage() {
       } as SKPItem;
       setSkpList(updatedList);
       setEditIndex(null);
-    } else {
-      // add mode
-      setSkpList([
-        ...skpList,
-        {
-          ...newItem,
-          targetVolume: Number(newItem.targetVolume),
-          updateVolume: Number(newItem.updateVolume),
-        } as SKPItem,
-      ]);
+      form.reset();
+      setShowModal(false);
+      return;
     }
-    setShowModal(false);
-    e.currentTarget.reset();
+
+    // add mode - Save to database
+    try {
+      console.log('SKP Add: Starting save process...');
+      
+      // Get unit_kerja_id
+      const userInfoResponse = await fetch(`/api/skp_generik/by-user/${userId}`);
+      if (!userInfoResponse.ok) {
+        throw new Error('Failed to get user information');
+      }
+      
+      const userInfo = await userInfoResponse.json();
+      const unitKerjaId = userInfo.user_info?.unit_kerja_id || userId;
+      
+      console.log('SKP Add: Using unit_kerja_id:', unitKerjaId);
+
+      const requestData = {
+        tanggal: newItem.tanggal,
+        pilar: newItem.pilar,
+        indikator: newItem.indikator,
+        target_volume: Number(newItem.targetVolume),
+        target_satuan: newItem.targetSatuan,
+        update_volume: Number(newItem.updateVolume),
+        update_satuan: newItem.updateSatuan,
+        kendala: newItem.kendala || null,
+      };
+      
+      console.log('SKP Add: Sending data:', requestData);
+
+      // Save to database
+      const response = await fetch(`/api/skp_generik/${unitKerjaId}`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(requestData),
+      });
+
+      console.log('SKP Add: Response status:', response.status);
+      
+      if (!response.ok) {
+        const errorText = await response.text();
+        console.error('SKP Add: Error response:', errorText);
+        throw new Error(`Server returned ${response.status}: ${errorText}`);
+      }
+
+      const responseData = await response.json();
+      console.log('SKP Add: Success response:', responseData);
+
+      // Add the new item to local state immediately for better UX
+      const newSKPItem: SKPItem = {
+        id: responseData.id,
+        tanggal: typeof responseData.tanggal === "string" ? responseData.tanggal.split('T')[0] : newItem.tanggal as string,
+        pilar: responseData.pilar || newItem.pilar as string,
+        indikator: responseData.indikator || newItem.indikator as string,
+        targetVolume: responseData.target_volume || Number(newItem.targetVolume),
+        targetSatuan: responseData.target_satuan || newItem.targetSatuan as string,
+        updateVolume: responseData.update_volume || Number(newItem.updateVolume),
+        updateSatuan: responseData.update_satuan || newItem.updateSatuan as string,
+        kendala: responseData.kendala || newItem.kendala as string || "",
+      };
+      
+      // Update state immediately
+      setSkpList(prevList => [...prevList, newSKPItem]);
+
+      // Reset form and close modal since save was successful
+      form.reset();
+      setShowModal(false);
+
+      console.log('SKP Add: Data saved and added to local state successfully');
+      
+    } catch (error) {
+      console.error('SKP Add: Error:', error);
+      
+      if (error instanceof Error) {
+        // Check if it's a network error
+        if (error.message.includes('fetch') || error.message.includes('network')) {
+          alert('Tidak dapat terhubung ke server. Periksa koneksi internet Anda.');
+        } else {
+          alert(`Terjadi kesalahan saat menyimpan data: ${error.message}`);
+        }
+      } else {
+        alert('Terjadi kesalahan tidak diketahui saat menyimpan data. Silakan coba lagi.');
+      }
+    }
   };
 
   const handleEdit = (index: number) => {
@@ -192,8 +288,63 @@ export default function SKPGenerikPage() {
     setShowModal(true);
   };
 
-  const handleDelete = (index: number) => {
-    setSkpList(skpList.filter((_, i) => i !== index));
+  const handleDelete = async (index: number) => {
+    if (!confirm('Apakah Anda yakin ingin menghapus data ini?')) return;
+    
+    const itemToDelete = skpList[index];
+    const userId = localStorage.getItem("id");
+    if (!userId || !itemToDelete.id) {
+      alert("Data tidak valid atau user ID tidak ditemukan.");
+      return;
+    }
+
+    try {
+      console.log('SKP Delete: Deleting item from database, ID:', itemToDelete.id);
+      
+      // First, get the correct unit_kerja_id
+      const userInfoResponse = await fetch(`/api/skp_generik/by-user/${userId}`);
+      const userInfo = await userInfoResponse.json();
+      const unitKerjaId = userInfo.user_info?.unit_kerja_id || userId;
+      
+      console.log('SKP Delete: Using unit_kerja_id:', unitKerjaId);
+
+      const response = await fetch(`/api/skp_generik/${unitKerjaId}/${itemToDelete.id}`, {
+        method: 'DELETE',
+      });
+
+      if (response.ok) {
+        console.log('SKP Delete: Successfully deleted from database');
+        
+        // Refresh data from database
+        const updatedResponse = await fetch(`/api/skp_generik/by-user/${userId}`);
+        const updatedResponseData = await updatedResponse.json();
+        const updatedData = updatedResponseData.data || updatedResponseData;
+        const mapped = Array.isArray(updatedData)
+          ? updatedData.map((item: { [key: string]: unknown }) => ({
+              id: typeof item.id === "number" ? item.id : Number(item.id) || undefined,
+              tanggal: typeof item.tanggal === "string" ? item.tanggal.split('T')[0] : "",
+              pilar: typeof item.pilar === "string" ? item.pilar : "",
+              indikator: typeof item.indikator === "string" ? item.indikator : "",
+              targetVolume: typeof item.target_volume === "number" ? item.target_volume : Number(item.target_volume) || 0,
+              targetSatuan: typeof item.target_satuan === "string" ? item.target_satuan : "",
+              updateVolume: typeof item.update_volume === "number" ? item.update_volume : Number(item.update_volume) || 0,
+              updateSatuan: typeof item.update_satuan === "string" ? item.update_satuan : "",
+              kendala: typeof item.kendala === "string" ? item.kendala : "",
+            }))
+          : [];
+        
+        setSkpList(mapped);
+        console.log('SKP Delete: Updated local state with fresh data');
+      } else {
+        const errorData = await response.json();
+        console.error('SKP Delete: Failed to delete:', errorData);
+        alert(`Gagal menghapus data: ${errorData.error || 'Error tidak diketahui'}`);
+      }
+      
+    } catch (error) {
+      console.error('SKP Delete: Error:', error);
+      alert('Terjadi kesalahan saat menghapus data.');
+    }
   };
 
   const handleUpdateCapaian = (item: SKPItem) => {
@@ -304,6 +455,7 @@ export default function SKPGenerikPage() {
         const updatedData = updatedResponseData.data || updatedResponseData;
         const mapped = Array.isArray(updatedData)
           ? updatedData.map((item: { [key: string]: unknown }) => ({
+              id: typeof item.id === "number" ? item.id : Number(item.id) || undefined,
               tanggal: typeof item.tanggal === "string" ? item.tanggal.split('T')[0] : "",
               pilar: typeof item.pilar === "string" ? item.pilar : "",
               indikator: typeof item.indikator === "string" ? item.indikator : "",
@@ -545,6 +697,7 @@ export default function SKPGenerikPage() {
                   type="date"
                   id="tanggal"
                   name="tanggal"
+                  required
                   className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
                   defaultValue={
                     editIndex !== null && skpList[editIndex] ? skpList[editIndex].tanggal : ""
@@ -562,6 +715,7 @@ export default function SKPGenerikPage() {
                 <select
                   id="pilar"
                   name="pilar"
+                  required
                   className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
                   defaultValue={
                     editIndex !== null && skpList[editIndex] ? skpList[editIndex].pilar : "BIGGER"
@@ -584,6 +738,7 @@ export default function SKPGenerikPage() {
                   id="indikator"
                   name="indikator"
                   rows={2}
+                  required
                   className="flex-1 border border-gray-300 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-blue-400"
                   placeholder="Masukkan indikator kinerja..."
                   defaultValue={
@@ -622,6 +777,8 @@ export default function SKPGenerikPage() {
                     type="number"
                     id="targetVolume"
                     name="targetVolume"
+                    required
+                    min="0"
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
                     defaultValue={
                       editIndex !== null && skpList[editIndex] ? skpList[editIndex].targetVolume : ""
@@ -639,6 +796,7 @@ export default function SKPGenerikPage() {
                     type="text"
                     id="targetSatuan"
                     name="targetSatuan"
+                    required
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
                     defaultValue={
                       editIndex !== null && skpList[editIndex] ? skpList[editIndex].targetSatuan : ""
@@ -659,6 +817,8 @@ export default function SKPGenerikPage() {
                     type="number"
                     id="updateVolume"
                     name="updateVolume"
+                    required
+                    min="0"
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
                     defaultValue={
                       editIndex !== null && skpList[editIndex] ? skpList[editIndex].updateVolume : ""
@@ -676,6 +836,7 @@ export default function SKPGenerikPage() {
                     type="text"
                     id="updateSatuan"
                     name="updateSatuan"
+                    required
                     className="border border-gray-300 rounded-lg px-3 py-2 w-full focus:outline-none focus:ring-2 focus:ring-blue-400"
                     defaultValue={
                       editIndex !== null && skpList[editIndex] ? skpList[editIndex].updateSatuan : ""

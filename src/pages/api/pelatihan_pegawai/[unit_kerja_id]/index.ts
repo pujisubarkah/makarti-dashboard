@@ -49,15 +49,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         return res.status(400).json({ error: "unit_kerja_id tidak valid" });
       }
 
-      const { username, judul, jam, tanggal, sertifikat } = req.body;
+      const { pegawai_id, judul, jam, tanggal, sertifikat } = req.body;
 
-      if (!judul || !tanggal || !username || !jam) {
-        return res.status(400).json({ error: "Data pelatihan tidak lengkap. Username diperlukan." });
+      console.log('Received data:', { pegawai_id, judul, jam, tanggal, sertifikat, unitKerjaId });
+
+      // Validasi data yang diterima
+      if (!judul || !tanggal || !jam) {
+        return res.status(400).json({ error: "Data pelatihan tidak lengkap. judul, jam, dan tanggal diperlukan." });
       }
 
-      // Cari pegawai berdasarkan username (yang di tabel users akan match dengan nip di tabel pegawai)
+      if (!pegawai_id || pegawai_id === 0 || pegawai_id === "0") {
+        return res.status(400).json({ error: "pegawai_id tidak valid. Pilih pegawai terlebih dahulu." });
+      }
+
+      // Validasi tipe data
+      const jamInt = parseInt(jam);
+      if (isNaN(jamInt) || jamInt <= 0) {
+        return res.status(400).json({ error: "Jam pelatihan harus berupa angka positif." });
+      }
+
+      // Cari pegawai berdasarkan pegawai_id
       const pegawai = await prisma.pegawai.findFirst({
-        where: { nip: username },
+        where: { id: Number(pegawai_id) },
         include: {
           users_pegawai_unit_kerja_idTousers: {
             select: { id: true, unit_kerja: true }
@@ -66,7 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
 
       if (!pegawai) {
-        return res.status(404).json({ error: "Pegawai tidak ditemukan dengan username/nip tersebut" });
+        return res.status(404).json({ error: "Pegawai tidak ditemukan dengan ID tersebut" });
       }
 
       // Debug info untuk melihat data pegawai
@@ -75,6 +88,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         nama: pegawai.nama,
         nip: pegawai.nip,
         unit_kerja_id: pegawai.unit_kerja_id,
+        received_pegawai_id: pegawai_id,
         expected_unit: unitKerjaId
       });
 
@@ -90,12 +104,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const pelatihanBaru = await prisma.pelatihan.create({
         data: {
           judul,
-          jam: parseInt(jam),
+          jam: jamInt, // Gunakan jamInt yang sudah divalidasi
           tanggal: new Date(tanggal),
           sertifikat: sertifikat ?? null,
           unit_kerja_id: pegawai.unit_kerja_id, // Sekarang sudah dipastikan tidak null
-          pegawai_id: pegawai.id, // Gunakan id pegawai yang ditemukan
+          pegawai_id: Number(pegawai_id), // Gunakan pegawai_id yang diteriman langsung
         },
+      });
+
+      console.log('Pelatihan berhasil dibuat:', {
+        id: pelatihanBaru.id,
+        pegawai_id: pelatihanBaru.pegawai_id,
+        unit_kerja_id: pelatihanBaru.unit_kerja_id,
+        judul: pelatihanBaru.judul
       });
 
       // Format respons sesuai frontend

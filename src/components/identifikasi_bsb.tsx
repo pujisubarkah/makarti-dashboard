@@ -90,12 +90,15 @@ export default function IdentifikasiBSB() {
           {competencies.map((item, index) => (
             <div
               key={index}
-              className="bg-white p-6 rounded-2xl shadow-md border border-blue-200"
+              className="bg-white p-6 rounded-2xl shadow-md border border-blue-200 relative"
             >
-              <p className="font-semibold mb-2">
+              <div className="absolute -top-4 -left-4 bg-blue-100 rounded-full p-2 shadow-md flex items-center justify-center">
+                <svg width="32" height="32" viewBox="0 0 24 24" fill="none"><circle cx="12" cy="12" r="12" fill="#2563eb"/><text x="12" y="17" textAnchor="middle" fontSize="16" fill="white" fontFamily="Arial" fontWeight="bold">?</text></svg>
+              </div>
+              <p className="font-semibold mb-2 pl-8">
                 {index + 1}. {item.question}
               </p>
-              <div className="flex gap-4">
+              <div className="flex gap-4 pl-8">
                 {[1, 2, 3, 4, 5].map((n) => (
                   <label
                     key={n}
@@ -113,7 +116,7 @@ export default function IdentifikasiBSB() {
                   </label>
                 ))}
               </div>
-              <p className="text-sm text-gray-400 mt-2">
+              <p className="text-sm text-gray-400 mt-2 pl-8">
                 1 = Sangat Tidak Setuju, 5 = Sangat Setuju
               </p>
             </div>

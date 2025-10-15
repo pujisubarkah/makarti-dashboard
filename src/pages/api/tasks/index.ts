@@ -112,6 +112,33 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } catch {
       res.status(500).json({ error: 'Internal server error' });
     }
+  } else if (req.method === 'DELETE') {
+    // Bulk or single delete: accept id (number or array) in query or body
+    let ids: number[] = [];
+    if (req.query.id) {
+      if (Array.isArray(req.query.id)) {
+        ids = req.query.id.map((v) => parseInt(v, 10)).filter((v) => !isNaN(v));
+      } else {
+        const parsed = parseInt(req.query.id as string, 10);
+        if (!isNaN(parsed)) ids = [parsed];
+      }
+    } else if (req.body && req.body.id) {
+      if (Array.isArray(req.body.id)) {
+        ids = req.body.id.map((v: any) => parseInt(v, 10)).filter((v: number) => !isNaN(v));
+      } else {
+        const parsed = parseInt(req.body.id, 10);
+        if (!isNaN(parsed)) ids = [parsed];
+      }
+    }
+    if (!ids.length) {
+      return res.status(400).json({ error: 'No valid id(s) provided for deletion' });
+    }
+    try {
+      const deleted = await prisma.tasks.deleteMany({ where: { id: { in: ids } } });
+      return res.status(200).json({ deleted_count: deleted.count, ids });
+    } catch (error) {
+      return res.status(500).json({ error: 'Failed to delete task(s)', details: error });
+    }
   } else {
     res.status(405).json({ error: 'Method not allowed' });
   }

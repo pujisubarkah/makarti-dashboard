@@ -710,7 +710,26 @@ export default function Page() {
                                           <Edit className="h-4 w-4 mr-2" />
                                           Edit
                                         </DropdownMenuItem>
-                                        <DropdownMenuItem className="text-red-600">
+                                        <DropdownMenuItem
+                                          className="text-red-600"
+                                          onClick={async () => {
+                                            if (window.confirm('Yakin ingin menghapus rencana ini?')) {
+                                              try {
+                                                const response = await fetch(`/api/tasks/${task.id}`, {
+                                                  method: 'DELETE',
+                                                });
+                                                if (response.ok) {
+                                                  setTasks(tasks.filter(t => t.id !== task.id));
+                                                } else {
+                                                  const errorData = await response.json();
+                                                  alert(errorData.error || 'Gagal menghapus rencana');
+                                                }
+                                              } catch {
+                                                alert('Gagal menghapus rencana');
+                                              }
+                                            }
+                                          }}
+                                        >
                                           <Trash2 className="h-4 w-4 mr-2" />
                                           Hapus
                                         </DropdownMenuItem>

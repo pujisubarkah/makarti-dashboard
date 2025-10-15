@@ -313,8 +313,21 @@ export default async function handler(
         subtasks: updatedSubtasks
       });
 
+    } else if (req.method === 'DELETE') {
+      // Delete a subtask by id (from query param)
+      const { id } = req.query;
+      const subtaskId = typeof id === 'string' ? parseInt(id, 10) : Array.isArray(id) ? parseInt(id[0], 10) : undefined;
+      if (!subtaskId || isNaN(subtaskId)) {
+        return res.status(400).json({ error: 'Invalid or missing subtask id' });
+      }
+      const subtask = await prisma.subtasks.findUnique({ where: { id: subtaskId } });
+      if (!subtask) {
+        return res.status(404).json({ error: 'Subtask not found' });
+      }
+      await prisma.subtasks.delete({ where: { id: subtaskId } });
+      return res.status(200).json({ success: true, message: 'Subtask deleted' });
     } else {
-      res.setHeader('Allow', ['GET', 'POST', 'PUT']);
+      res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
       return res.status(405).json({ error: `Method ${req.method} not allowed` });
     }
 

@@ -1,26 +1,27 @@
-'use client'
 
-import { useState } from 'react'
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import Tabs, { TabsContent, TabsList, TabsTrigger } from './ui/tabs'
-// Or update the path according to your project structure, e.g.:
-// import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
+'use client';
+
+import { useState } from 'react';
+import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import Tabs, { TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import {
   BarChart, Bar, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
   PieChart, Pie, Cell
-} from 'recharts'
+} from 'recharts';
+
 
 export default function HSDPDashboard() {
-  const [activeTab, setActiveTab] = useState('kompetensi')
+  const [activeTab, setActiveTab] = useState('kompetensi');
 
+  // Data
   const kompetensiData = [
     { name: 'Digital Skill', value: 24 },
     { name: 'Leadership', value: 15 },
     { name: 'Communication', value: 12 },
     { name: 'Data Analysis', value: 10 },
     { name: 'Innovation', value: 8 },
-  ]
+  ];
 
   const gapData = [
     { aspect: 'Teknis', current: 60, target: 90 },
@@ -28,22 +29,22 @@ export default function HSDPDashboard() {
     { aspect: 'Sosial-Kultural', current: 65, target: 80 },
     { aspect: 'Digitalisasi', current: 50, target: 90 },
     { aspect: 'Inovasi', current: 55, target: 85 },
-  ]
+  ];
 
   const kegiatanData = [
     { name: 'Pelatihan', value: 40 },
     { name: 'Coaching', value: 25 },
     { name: 'E-Learning', value: 20 },
     { name: 'Magang', value: 15 },
-  ]
+  ];
 
   const progressData = [
     { name: 'Belum Dimulai', value: 10 },
     { name: 'Sedang Berjalan', value: 25 },
     { name: 'Selesai', value: 8 },
-  ]
+  ];
 
-  const COLORS = ['#60A5FA', '#34D399', '#FBBF24', '#F87171']
+  const COLORS = ['#60A5FA', '#34D399', '#FBBF24', '#F87171'];
 
   return (
     <Card className="w-full shadow-lg rounded-2xl">
@@ -62,7 +63,7 @@ export default function HSDPDashboard() {
             <TabsTrigger value="progress">Progress IDP</TabsTrigger>
           </TabsList>
 
-          {/* 1️⃣ Distribusi Kompetensi */}
+          {/* Distribusi Kompetensi */}
           <TabsContent value="kompetensi">
             <div className="h-80">
               <ResponsiveContainer width="100%" height="100%">
@@ -77,7 +78,7 @@ export default function HSDPDashboard() {
             </div>
           </TabsContent>
 
-          {/* 2️⃣ Gap Kompetensi */}
+          {/* Gap Kompetensi */}
           <TabsContent value="gap">
             <div className="h-80 flex justify-center">
               <ResponsiveContainer width="90%" height="100%">
@@ -93,7 +94,7 @@ export default function HSDPDashboard() {
             </div>
           </TabsContent>
 
-          {/* 3️⃣ Jenis Kegiatan */}
+          {/* Jenis Kegiatan */}
           <TabsContent value="kegiatan">
             <div className="h-80 flex justify-center">
               <ResponsiveContainer width="80%" height="100%">
@@ -117,7 +118,7 @@ export default function HSDPDashboard() {
             </div>
           </TabsContent>
 
-          {/* 4️⃣ Progress IDP */}
+          {/* Progress IDP */}
           <TabsContent value="progress">
             <div className="h-80 flex justify-center">
               <ResponsiveContainer width="80%" height="100%">
@@ -144,5 +145,5 @@ export default function HSDPDashboard() {
         </Tabs>
       </CardContent>
     </Card>
-  )
+  );
 }

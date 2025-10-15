@@ -25,8 +25,10 @@ export default function ProfilPage() {
   
   type PegawaiDetailItem = {
     id?: number;
+    pegawai_id?: number;
     nip?: string;
     email?: string;
+    unit_kerja?: string | null;
     status_kepegawaian?: string;
     alamat?: string;
     pendidikan?: string;
@@ -38,21 +40,23 @@ export default function ProfilPage() {
     peg_cpns_tmt?: string;
     photo_url?: string;
     agama?: string;
+    peg_npwp?: string;
+    nik?: string;
     tempat_lahir?: string;
   };
   
   type PegawaiDetail = {
-    pegawai_detail: PegawaiDetailItem[];
-    foto_url?: string;
-    nama: string;
-    jabatan: string;
+    id: number;
+    created_at?: string;
     nip: string;
-    users?: { unit_kerja?: string };
-    users_pegawai_unit_kerja_idTousers?: { unit_kerja?: string };
+    nama: string;
     unit_kerja_id?: number;
+    jabatan?: string;
     golongan?: string;
     eselon?: string;
-    photo_url?: string
+    users_pegawai_unit_kerja_idTousers?: { unit_kerja?: string };
+    pegawai_detail: PegawaiDetailItem[];
+    photo_url?: string;
   };
   
   type Pelatihan = {
@@ -112,15 +116,13 @@ export default function ProfilPage() {
   // Save handler for edit mode
   async function handleSave() {
     // Get unit_kerja from different possible locations
-    const unitKerja = data?.users?.unit_kerja || 
-                      data?.users_pegawai_unit_kerja_idTousers?.unit_kerja || 
+    const unitKerja = data?.users_pegawai_unit_kerja_idTousers?.unit_kerja || 
                       data?.unit_kerja_id?.toString() ||
                       localStorage.getItem('id'); // fallback to user ID
     
     console.log('Save clicked - Data check:', {
       id,
       unitKerja,
-      dataUsers: data?.users,
       dataUsersRelation: data?.users_pegawai_unit_kerja_idTousers,
       unitKerjaId: data?.unit_kerja_id,
       pegawaiDetailId: data?.pegawai_detail?.[0]?.id,
@@ -237,9 +239,9 @@ export default function ProfilPage() {
               )}
             </div>
             <h2 className="text-2xl font-bold text-blue-600 mb-6">Informasi Profil</h2>
-            <div className="flex items-start space-x-6">
-              {/* ...existing code for profile photo and info ... */}
-              <div className="w-48 h-48 bg-gray-200 flex items-center justify-center overflow-hidden border border-gray-300 rounded-full">
+            <div className="flex flex-wrap gap-6 items-start">
+              {/* Profile Photo and Edit */}
+              <div className="w-48 h-48 bg-gradient-to-br from-blue-100 to-blue-300 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg rounded-full mb-4">
                 <div className="flex flex-col items-center w-full">
                   <div className="relative group w-full h-full flex items-center justify-center">
                     <label htmlFor="edit-photo" className="absolute inset-0 cursor-pointer z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-30 rounded-full">
@@ -278,27 +280,59 @@ export default function ProfilPage() {
                   </div>
                 </div>
               </div>
-              <div className="flex-1">
-                <div className="border border-gray-300 rounded-md divide-y divide-gray-300">
-                  <div className="flex justify-between p-3 bg-gray-100">
-                    <div className="font-semibold">NIP</div>
-                    <div>{detail.nip || "-"}</div>
+              {/* Card 1: Identitas Utama */}
+              <div className="flex-1 min-w-[260px] max-w-sm mb-4">
+                <div className="bg-white border border-blue-100 rounded-2xl shadow-xl p-6 mb-4 transition-transform hover:scale-[1.02] hover:shadow-2xl">
+                  <h3 className="font-bold text-blue-700 mb-4 text-lg tracking-wide border-b border-blue-100 pb-2">Identitas Utama</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">NIP</span><span className="font-mono text-blue-800">{detail.nip || data.nip || "-"}</span></div>
+                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Nama Lengkap</span><span>{data.nama || "-"}</span></div>
+                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Jabatan</span><span>{data.jabatan || "-"}</span></div>
+                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Unit Kerja</span><span>{data.users_pegawai_unit_kerja_idTousers?.unit_kerja || "-"}</span></div>
+                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Email</span><span>{detail.email || "-"}</span></div>
+                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Status Kepegawaian</span><span>{detail.status_kepegawaian || "-"}</span></div>
                   </div>
-                  <div className="flex justify-between p-3">
-                    <div className="font-semibold">Nama Lengkap</div>
-                    <div>{data.nama || "-"}</div>
+                </div>
+              </div>
+              {/* Card 2: Pendidikan & Pribadi */}
+              <div className="flex-1 min-w-[260px] max-w-sm mb-4">
+                <div className="bg-white border border-blue-100 rounded-2xl shadow-xl p-6 mb-4 transition-transform hover:scale-[1.02] hover:shadow-2xl">
+                  <h3 className="font-bold text-blue-700 mb-4 text-lg tracking-wide border-b border-blue-100 pb-2">Pendidikan & Pribadi</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Tingkat Pendidikan</span><span>{detail.tingkat_pendidikan || "-"}</span></div>
+                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Pendidikan</span><span>{detail.pendidikan || "-"}</span></div>
+                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Telp</span><span>{detail.telp || "-"}</span></div>
+                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Tanggal Lahir</span><span>{detail.tanggal_lahir ? new Date(detail.tanggal_lahir).toLocaleDateString('id-ID') : "-"}</span></div>
+                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Jenis Kelamin</span><span>{detail.jenis_kelamin === 'L' ? 'Laki-laki' : detail.jenis_kelamin === 'P' ? 'Perempuan' : '-'}</span></div>
                   </div>
-                  <div className="flex justify-between p-3 bg-gray-100">
-                    <div className="font-semibold">Jabatan</div>
-                    <div>{data.jabatan || "-"}</div>
+                </div>
+              </div>
+              {/* Card 3: Lainnya */}
+              <div className="flex-1 min-w-[260px] max-w-sm mb-4">
+                <div className="bg-white border border-blue-100 rounded-2xl shadow-xl p-6 mb-4 transition-transform hover:scale-[1.02] hover:shadow-2xl">
+                  <h3 className="font-bold text-blue-700 mb-4 text-lg tracking-wide border-b border-blue-100 pb-2">Lainnya</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Golongan Darah</span><span>{detail.nm_goldar || "-"}</span></div>
+                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">TMT CPNS</span><span>{detail.peg_cpns_tmt ? new Date(detail.peg_cpns_tmt).toLocaleDateString('id-ID') : "-"}</span></div>
+                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Agama</span><span>{detail.agama || "-"}</span></div>
+                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Tempat Lahir</span><span>{detail.tempat_lahir || "-"}</span></div>
+                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Golongan</span><span>{data.golongan || "-"}</span></div>
+                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Eselon</span><span>{data.eselon || "-"}</span></div>
                   </div>
-                  <div className="flex justify-between p-3">
-                    <div className="font-semibold">Email</div>
-                    <div>{detail.email || "-"}</div>
-                  </div>
-                  <div className="flex justify-between p-3 bg-gray-100">
-                    <div className="font-semibold">Status Kepegawaian</div>
-                    <div>{detail.status_kepegawaian || "-"}</div>
+                </div>
+              </div>
+
+              {/* Card 4: Identitas Kependudukan */}
+              <div className="flex-1 min-w-[260px] max-w-sm mb-4">
+                <div className="bg-white border border-blue-100 rounded-2xl shadow-xl p-6 mb-4 transition-transform hover:scale-[1.02] hover:shadow-2xl">
+                  <h3 className="font-bold text-blue-700 mb-4 text-lg tracking-wide border-b border-blue-100 pb-2">Identitas Kependudukan</h3>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">NIK</span><span>{detail.nik || "-"}</span></div>
+                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">NPWP</span><span>{detail.peg_npwp || "-"}</span></div>
+                    <div className="flex justify-between items-start text-gray-700">
+                      <span className="font-medium mt-1">Alamat</span>
+                      <span className="text-right break-words max-w-[180px] whitespace-pre-line">{detail.alamat || "-"}</span>
+                    </div>
                   </div>
                 </div>
               </div>

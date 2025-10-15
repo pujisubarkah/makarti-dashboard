@@ -327,8 +327,29 @@ export default async function handler(
 
       return res.status(201).json(newSubtask);
 
+    } else if (req.method === 'DELETE') {
+      // Delete a subtask by id (from query param)
+      const { id } = req.query;
+      const subtaskId = typeof id === 'string' ? parseInt(id, 10) : Array.isArray(id) ? parseInt(id[0], 10) : undefined;
+      if (!subtaskId || isNaN(subtaskId)) {
+        return res.status(400).json({ error: 'Invalid or missing subtask id' });
+      }
+      // Optionally, check if subtask belongs to this NIP
+      const employee = await prisma.pegawai.findFirst({ where: { nip: nipString }, select: { id: true } });
+      if (!employee) {
+        return res.status(404).json({ error: `Employee with NIP ${nipString} not found` });
+      }
+      const subtask = await prisma.subtasks.findUnique({ where: { id: subtaskId } });
+      if (!subtask) {
+        return res.status(404).json({ error: 'Subtask not found' });
+      }
+      if (subtask.assigned_to !== employee.id) {
+        return res.status(403).json({ error: 'Subtask does not belong to this employee' });
+      }
+      await prisma.subtasks.delete({ where: { id: subtaskId } });
+      return res.status(200).json({ success: true, message: 'Subtask deleted' });
     } else {
-      res.setHeader('Allow', ['GET', 'POST']);
+      res.setHeader('Allow', ['GET', 'POST', 'DELETE']);
       return res.status(405).json({ error: `Method ${req.method} not allowed` });
     }
 

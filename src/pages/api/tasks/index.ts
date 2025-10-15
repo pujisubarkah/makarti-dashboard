@@ -124,7 +124,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     } else if (req.body && req.body.id) {
       if (Array.isArray(req.body.id)) {
-        ids = req.body.id.map((v: any) => parseInt(v, 10)).filter((v: number) => !isNaN(v));
+  ids = req.body.id.map((v: string | number) => parseInt(v as string, 10)).filter((v: number) => !isNaN(v));
       } else {
         const parsed = parseInt(req.body.id, 10);
         if (!isNaN(parsed)) ids = [parsed];

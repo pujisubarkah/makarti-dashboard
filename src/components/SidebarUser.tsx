@@ -46,6 +46,13 @@ const menuItems: MenuItem[] = [
     type: 'item',
   },
   {
+    label: 'HSDP',
+    href: '/user/hsdp',
+    icon: PieChart,
+    status: 'ready',
+    type: 'item',
+  },
+  {
     type: 'group',
     label: 'RENCANA AKSI',
   },

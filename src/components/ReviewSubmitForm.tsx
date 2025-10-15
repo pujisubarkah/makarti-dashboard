@@ -1,6 +1,11 @@
 'use client'
 
-export default function ReviewSubmitForm({ data, onSubmit }: any) {
+export interface ReviewSubmitFormProps {
+  data: unknown;
+  onSubmit?: () => void;
+}
+
+export default function ReviewSubmitForm({ data, onSubmit }: ReviewSubmitFormProps) {
   return (
     <div className="space-y-6 max-h-[60vh] overflow-y-auto pr-2">
       <h2 className="text-lg font-bold text-blue-700 mb-2 text-center">Review & Submit</h2>

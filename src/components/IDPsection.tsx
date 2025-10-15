@@ -3,42 +3,13 @@ import IdpFormWizard from "@/components/IdpFormWizard";
 
 export default function IDPSection() {
   const [showModal, setShowModal] = useState(false);
-  const [form, setForm] = useState({
-    nama: "",
-    kompetensi: "",
-    metode: "",
-    penyelenggara: "",
-  });
-  const [rencana, setRencana] = useState<null | typeof form>(null);
-  const [aiRekomendasi, setAiRekomendasi] = useState("");
-  const [loading, setLoading] = useState(false);
-
-  function rekomendasiAI() {
-    setLoading(true);
-    setAiRekomendasi("");
-    setTimeout(() => {
-      if (form.kompetensi.toLowerCase().includes("leadership")) {
-        setAiRekomendasi(
-          "Experiential (On the Job, Project) sangat efektif untuk Leadership."
-        );
-      } else if (form.kompetensi.toLowerCase().includes("data")) {
-        setAiRekomendasi(
-          "Formal (Pelatihan, Sertifikasi) cocok untuk Data Analysis."
-        );
-      } else {
-        setAiRekomendasi(
-          "Sosial (Mentoring, Sharing) bisa dipertimbangkan."
-        );
-      }
-      setLoading(false);
-    }, 1200);
-  }
-
-  function onSubmit(e: React.FormEvent) {
-    e.preventDefault();
-    setRencana({ ...form });
-    setShowModal(false);
-  }
+  type FormType = {
+    nama: string;
+    kompetensi: string;
+    metode: string;
+    penyelenggara: string;
+  };
+  const [rencana] = useState<null | FormType>(null);
 
   return (
     <div>

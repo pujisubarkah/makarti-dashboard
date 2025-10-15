@@ -6,9 +6,29 @@ import DevelopmentActivitiesForm from './DevelopmentActivitiesForm'
 import ImplementationPlanForm from './ImplementationPlanForm'
 import ReviewSubmitForm from './ReviewSubmitForm'
 
+
+
+type SwotForm = {
+  strength: string;
+  weakness: string;
+  opportunities: string;
+  threats: string;
+};
+type Goal = {
+  kompetensi: string;
+  alasan: string;
+  target: string;
+  indikator: string;
+};
+// Update the import path below to the correct relative path where Activity is defined
+import { Activity } from '../../types/activity';
+// Update the import path below to the correct relative path where Plan is defined
+import type { Plan } from '../../types/plan';
+type StepData = SwotForm | Goal[] | Activity[] | Plan[];
+
 export default function IdpFormWizard() {
   const [step, setStep] = useState(0)
-  const [data, setData] = useState<any>({})
+  const [data, setData] = useState<Record<string, StepData>>({})
 
   const steps = [
     { label: 'Analisis SWOT', comp: SwotAnalysisForm },
@@ -18,16 +38,46 @@ export default function IdpFormWizard() {
     { label: 'Review & Submit', comp: ReviewSubmitForm }
   ]
 
-  const StepComponent = steps[step].comp
 
-  const handleChange = (value: any) => {
-    setData({ ...data, [steps[step].label]: value })
-  }
+  const handleSwotChange = (value: SwotForm) => {
+    setData({ ...data, [steps[0].label]: value });
+  };
+
+  const handleGoalsChange = (value: Goal[]) => {
+    setData({ ...data, [steps[1].label]: value });
+  };
+
+  const handleActivitiesChange = (value: Activity[]) => {
+    setData({ ...data, [steps[2].label]: value });
+  };
+
 
   return (
-    <div className="max-w-3xl mx-auto p-6 bg-white shadow rounded-xl space-y-6">
-      <h1 className="text-2xl font-bold">Form Individual Development Plan (IDP)</h1>
-      <StepComponent data={data[steps[step].label]} onChange={handleChange} onSubmit={() => alert('Submitted!')} />
+    <div>
+      {step === 0 ? (
+        <SwotAnalysisForm
+          data={data[steps[0].label] as SwotForm}
+          onChange={handleSwotChange}
+        />
+      ) : step === 1 ? (
+        <DevelopmentGoalsForm
+          data={data[steps[1].label] as Goal[]}
+          onChange={handleGoalsChange}
+        />
+      ) : step === 2 ? (
+        <DevelopmentActivitiesForm
+          data={data[steps[2].label] as Activity[]}
+          onChange={handleActivitiesChange}
+        />
+      ) : step === 3 ? (
+        <ImplementationPlanForm
+          data={data[steps[3].label] as Plan[]}
+        />
+      ) : step === 4 ? (
+        <ReviewSubmitForm
+          data={data}
+        />
+      ) : null}
 
       <div className="flex justify-between pt-4">
         <button
@@ -46,5 +96,5 @@ export default function IdpFormWizard() {
         </button>
       </div>
     </div>
-  )
+  );
 }

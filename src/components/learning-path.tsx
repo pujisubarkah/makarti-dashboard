@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from "react";
+import Image from "next/image";
 import {
   ResponsiveContainer,
   RadarChart,
@@ -66,8 +67,7 @@ export default function LearningPath() {
           }))
         );
       } catch (e) {
-        // eslint-disable-next-line no-console
-        console.error("Gagal memuat learning path", e);
+  console.error("Gagal memuat learning path", e);
       } finally {
         setLoading(false);
       }
@@ -125,10 +125,13 @@ export default function LearningPath() {
                   </h3>
                   {rec.courses.map((course) => (
                     <div key={course.id} className="mb-6">
-                      <img
+                      <Image
                         src={course.thumbnail_url}
-                        alt=""
+                        alt={course.title}
+                        width={400}
+                        height={160}
                         className="w-full h-40 object-cover rounded-lg mb-4"
+                        unoptimized
                       />
                       <h4 className="font-bold text-md mb-2">{course.title}</h4>
                       <p className="text-gray-600 mb-2">{course.description}</p>

@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
-import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
+import Tabs, { TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 // Or update the path according to your project structure, e.g.:
 // import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs'
 import {

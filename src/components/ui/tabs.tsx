@@ -1,5 +1,6 @@
 import * as React from "react";
 
+// value and onValueChange are provided via context, not used directly here
 export interface TabsProps {
   value: string;
   onValueChange: (value: string) => void;
@@ -7,7 +8,7 @@ export interface TabsProps {
   children: React.ReactNode;
 }
 
-export function Tabs({ value, onValueChange, className, children }: TabsProps) {
+export function Tabs({ className, children }: TabsProps) {
   return (
     <div className={className}>{children}</div>
   );

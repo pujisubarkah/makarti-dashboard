@@ -7,7 +7,12 @@ interface Plan {
   dampak: string;
 }
 
-export default function ImplementationPlanForm({ data, onChange }: any) {
+
+interface ImplementationPlanFormProps {
+  data?: Plan[];
+}
+
+export default function ImplementationPlanForm({ data }: ImplementationPlanFormProps) {
   const [plans, setPlans] = useState<Plan[]>(data || [
     { hasil: '', penerapan: '', dampak: '' }
   ])

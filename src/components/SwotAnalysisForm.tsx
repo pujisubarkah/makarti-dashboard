@@ -1,8 +1,21 @@
 'use client'
 import { useState } from 'react'
 
-export default function SwotAnalysisForm({ data, onChange }: any) {
-  const [form, setForm] = useState(data || {
+
+interface SwotForm {
+  strength: string;
+  weakness: string;
+  opportunities: string;
+  threats: string;
+}
+
+interface SwotAnalysisFormProps {
+  data?: SwotForm;
+  onChange?: (form: SwotForm) => void;
+}
+
+export default function SwotAnalysisForm({ data, onChange }: SwotAnalysisFormProps) {
+  const [form, setForm] = useState<SwotForm>(data || {
     strength: '',
     weakness: '',
     opportunities: '',
@@ -30,7 +43,7 @@ export default function SwotAnalysisForm({ data, onChange }: any) {
             <textarea
               className="w-full p-2 border border-blue-200 rounded-md focus:ring-2 focus:ring-blue-200 focus:border-blue-400 transition min-h-[60px]"
               rows={3}
-              value={(form as any)[key]}
+              value={form[key as keyof SwotForm]}
               onChange={(e) => handleChange(key, e.target.value)}
               placeholder={`Tuliskan ${label.toLowerCase()} Anda...`}
             />

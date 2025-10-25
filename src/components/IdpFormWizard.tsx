@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import SwotAnalysisForm from './SwotAnalysisForm'
 import DevelopmentGoalsForm from './DevelopmentGoalsForm'
 import DevelopmentActivitiesForm from './DevelopmentActivitiesForm'
@@ -26,13 +26,17 @@ import { Activity } from '../../types/activity';
 import type { Plan } from '../../types/plan';
 type StepData = SwotForm | Goal[] | Activity[] | Plan[];
 
+type AiSuggestions = {
+  goals?: Goal[];
+  activities?: Activity[];
+};
+
 export default function IdpFormWizard() {
   const [step, setStep] = useState(0)
   const [data, setData] = useState<Record<string, StepData>>({})
   const [aiLoading, setAiLoading] = useState(false)
   const [aiResult, setAiResult] = useState<string | null>(null)
   const [showAiModal, setShowAiModal] = useState(false)
-  const [aiSuggestions, setAiSuggestions] = useState<any | null>(null)
 
   const steps = [
     { label: 'Analisis SWOT', comp: SwotAnalysisForm },
@@ -68,7 +72,6 @@ export default function IdpFormWizard() {
     const payload = gatherPayload();
     setAiLoading(true);
     setAiResult(null);
-    setAiSuggestions(null);
     try {
       const res = await fetch('/api/ai', {
         method: 'POST',
@@ -78,7 +81,7 @@ export default function IdpFormWizard() {
       if (!res.ok) throw new Error('AI API error');
       const body = await res.json();
       // Try to extract structured suggestions. API may return { result: '...', suggestions: {...} } or direct object
-      let suggestions: any = null;
+      let suggestions: AiSuggestions | null = null;
       if (body.suggestions) suggestions = body.suggestions;
       else if (body.result) {
         // result may be text or JSON string
@@ -94,7 +97,6 @@ export default function IdpFormWizard() {
 
       // If we have structured suggestions, try to apply to form
       if (suggestions) {
-        setAiSuggestions(suggestions);
         // Auto-apply goals
         if (suggestions.goals && Array.isArray(suggestions.goals)) {
           // Ensure shape matches Goal[] (kompetensi, alasan, target, indikator)

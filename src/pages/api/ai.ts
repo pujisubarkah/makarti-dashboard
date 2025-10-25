@@ -1,7 +1,19 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
 
+type AiPayload = {
+  swot?: { strength: string; weakness: string; opportunities: string; threats: string };
+  goals?: Array<{ kompetensi: string; alasan: string; target: string; indikator: string }>;
+  activities?: Array<{ jenis: string; judul: string; penyelenggara: string }>;
+  implementation?: unknown[];
+};
+
+type AiSuggestions = {
+  goals?: Array<{ kompetensi: string; alasan: string; target: string; indikator: string }>;
+  activities?: Array<{ jenis: string; judul: string; penyelenggara: string }>;
+};
+
 // Simple helper to build a user prompt from payload
-function buildUserPrompt(type: string | undefined, payload: any) {
+function buildUserPrompt(type: string | undefined, payload: AiPayload) {
   if (!payload) return 'Tolong berikan saran IDP umum (goals dan activities).'
   // Prefer a compact human-readable summary for the model
   try {
@@ -12,7 +24,7 @@ function buildUserPrompt(type: string | undefined, payload: any) {
     if (payload.implementation) parts.push(`Implementation notes:\n${JSON.stringify(payload.implementation)}`)
     const joined = parts.join('\n\n')
     return `Analisis IDP berikut dan sarankan 3 goals dan 3 activities yang relevan, ringkas dan actionable. Berikan juga alasan singkat untuk tiap saran.\n\n${joined}`
-  } catch (e) {
+  } catch {
     return `Analisis IDP berikut dan sarankan 3 goals dan 3 activities yang relevan, ringkas dan actionable. Payload: ${String(payload)}`
   }
 }
@@ -20,7 +32,7 @@ function buildUserPrompt(type: string | undefined, payload: any) {
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed' })
 
-  const { type, payload } = req.body ?? {}
+  const { type, payload } = req.body as { type?: string; payload?: AiPayload } ?? {}
 
   // Build messages ensuring messages[1].content exists
   const messages = [
@@ -29,7 +41,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       content:
         'You are an HR assistant. Provide concise, actionable IDP recommendations. IMPORTANT: Reply with a single JSON object and ONLY that JSON. The object must have a top-level key "suggestions". Inside "suggestions", include optional keys "goals" (array of objects with keys: kompetensi, alasan, target, indikator) and "activities" (array of objects with keys: jenis, judul, penyelenggara). Do NOT include any explanatory text outside the JSON.'
     },
-    { role: 'user', content: buildUserPrompt(type, payload) }
+    { role: 'user', content: buildUserPrompt(type, payload || {}) }
   ]
 
   // Log for debugging — remove or redact in production
@@ -70,7 +82,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         if (choice.message && choice.message.content) textContent = String(choice.message.content)
         else if (choice.text) textContent = String(choice.text)
       }
-    } catch (e) {
+    } catch {
       // ignore
     }
 
@@ -78,10 +90,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     if (!textContent) textContent = JSON.stringify(json)
 
     // Heuristic: try to parse textContent as JSON directly
-    let suggestions: any = null
+    let suggestions: AiSuggestions | null = null
     try {
       suggestions = JSON.parse(textContent)
-    } catch (e) {
+    } catch {
       // If direct parse fails, try to extract JSON block between ``` or between first {..}
       const fenceMatch = textContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
       if (fenceMatch && fenceMatch[1]) {

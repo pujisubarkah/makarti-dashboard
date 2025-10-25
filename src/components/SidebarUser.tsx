@@ -46,8 +46,8 @@ const menuItems: MenuItem[] = [
     type: 'item',
   },
   {
-    label: 'HSDP',
-    href: '/user/hsdp',
+    label: 'HCDP',
+    href: '/user/hcdp',
     icon: PieChart,
     status: 'ready',
     type: 'item',

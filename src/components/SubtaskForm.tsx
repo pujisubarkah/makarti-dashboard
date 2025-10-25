@@ -112,8 +112,10 @@ const SubtaskForm: React.FC<SubtaskFormProps> = ({ selectedTask, setTasks, tasks
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          id: subtaskId,
-          is_done: !currentStatus,
+          subtasks: [{
+            id: subtaskId,
+            is_done: !currentStatus,
+          }]
         })
       });
 

@@ -1,10 +1,19 @@
-// app/[slug]/pelatihan/page.tsx
+
 'use client'
 
 import { useParams } from 'next/navigation'
 import { useState, useEffect, useMemo, useRef } from 'react'
 import { GraduationCap, Calendar, Clock, Plus, Edit, Trash2, FileText, Award, TrendingUp } from 'lucide-react'
 import { LineChart, Line, XAxis, YAxis, Tooltip, Legend, ResponsiveContainer } from 'recharts'
+
+// Local type for champion summary (from /api/pelatihan_pegawai/summary)
+interface ChampionData {
+  nama: string
+  unit_kerja: string
+  total_jam: number
+  jumlah_pelatihan: number
+  rata_rata_jam: number
+}
 
 type PelatihanItem = {
   id?: number
@@ -21,12 +30,70 @@ export default function PelatihanPage() {
   const slug = params?.slug as string
   const formRef = useRef<HTMLFormElement>(null)
 
+  // Champion modal state (moved inside component)
+  const [showChampionModal, setShowChampionModal] = useState(false)
+  const [championData, setChampionData] = useState<ChampionData | null>(null)
+  const [championShown, setChampionShown] = useState(false)
+
+  // Fetch champion summary once and show modal with a short delay
+  useEffect(() => {
+    let mounted = true
+    const fetchChampion = async () => {
+      try {
+        const res = await fetch('/api/pelatihan_pegawai/summary')
+        if (!res.ok) return
+        const list: ChampionData[] = await res.json()
+        if (!mounted || !Array.isArray(list) || list.length === 0) return
+        const champ = list.reduce((max, cur) => (cur.total_jam > max.total_jam ? cur : max), list[0])
+        setChampionData(champ)
+        if (!championShown && champ.total_jam > 0) {
+          setTimeout(() => {
+            if (mounted) {
+              setShowChampionModal(true)
+              setChampionShown(true)
+            }
+          }, 2000)
+        }
+      } catch {
+        // ignore
+      }
+    }
+    fetchChampion()
+    return () => { mounted = false }
+  }, [championShown])
+
+  // Close modal on Escape key
+  useEffect(() => {
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') setShowChampionModal(false)
+    }
+    if (showChampionModal) window.addEventListener('keydown', onKey)
+    return () => window.removeEventListener('keydown', onKey)
+  }, [showChampionModal])
+
+  // Derived champion metrics for modal (level, progress)
+  const levelNames = ['Cupu', 'Rajin', 'Jago', 'Pro', 'Hero', 'Legend', 'Suhu']
+  const championLevel = championData ? Math.floor(championData.total_jam / 20) + 1 : 1
+  const championLevelIndex = Math.max(0, Math.min(championLevel - 1, levelNames.length - 1))
+  const championTotalJam = championData?.total_jam ?? 0
+  const championLevelName = championTotalJam > 1000 ? 'You Know Who' : levelNames[championLevelIndex]
+  const progressPercent = ((championTotalJam % 20) / 20) * 100
+  const jamToNext = Math.max(0, (championLevel * 20) - championTotalJam)
+
+  // ...user level will be derived after pelatihanList is declared
+
   const [showModal, setShowModal] = useState(false)
   const [editIndex, setEditIndex] = useState<number | null>(null)
   const [pelatihanList, setPelatihanList] = useState<PelatihanItem[]>([])
   const [loading, setLoading] = useState(false)
   const [showAchievement, setShowAchievement] = useState(false)
   const [achievementMessage, setAchievementMessage] = useState('')
+
+  // Current user's level derived from their pelatihanList
+  const userTotalJam = pelatihanList.reduce((s, p) => s + (p.jam || 0), 0)
+  const userLevel = Math.floor(userTotalJam / 20) + 1
+  const userLevelIndex = Math.max(0, Math.min(userLevel - 1, levelNames.length - 1))
+  const userLevelName = userTotalJam > 1000 ? 'You Know Who' : levelNames[userLevelIndex]
 
   // Generate chart data per bulan
   const chartData = useMemo(() => {
@@ -708,6 +775,101 @@ export default function PelatihanPage() {
         </div>
       )}
       </div>
+    {/* Champion Modal (inline) */}
+    {showChampionModal && (
+      <div onClick={() => setShowChampionModal(false)} className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="max-w-lg w-full p-0 overflow-hidden bg-transparent shadow-2xl max-h-[90vh]">
+          <div onClick={(e) => e.stopPropagation()} className="relative bg-gradient-to-br from-yellow-400 via-yellow-500 to-orange-500 rounded-2xl shadow-2xl overflow-hidden">
+            <div className="absolute inset-0 overflow-hidden">
+              <div className="absolute top-0 left-0 w-20 h-20 bg-white bg-opacity-20 rounded-full mb-4 animate-bounce" style={{ animationDelay: '0s', animationDuration: '3s' }}></div>
+              <div className="absolute top-1/4 right-0 w-16 h-16 bg-white bg-opacity-15 rounded-full mb-4 animate-ping" style={{ animationDelay: '1s', animationDuration: '4s' }}></div>
+              <div className="absolute bottom-0 left-1/4 w-12 h-12 bg-white bg-opacity-25 rounded-full mb-4 animate-pulse" style={{ animationDelay: '2s' }}></div>
+              <div className="absolute top-3/4 right-1/4 w-8 h-8 bg-white bg-opacity-30 rounded-full mb-4 animate-bounce" style={{ animationDelay: '0.5s', animationDuration: '2.5s' }}></div>
+              <div className="absolute top-1/2 left-0 w-6 h-6 bg-white bg-opacity-20 rounded-full mb-4 animate-ping" style={{ animationDelay: '1.5s' }}></div>
+            </div>
+
+            <div className="absolute inset-0">
+              <div className="absolute top-8 left-8 text-2xl animate-pulse" style={{ animationDelay: '0s' }}>✨</div>
+              <div className="absolute top-12 right-12 text-xl animate-bounce" style={{ animationDelay: '1s' }}>⭐</div>
+              <div className="absolute bottom-16 left-12 text-lg animate-pulse" style={{ animationDelay: '2s' }}>🌟</div>
+              <div className="absolute bottom-8 right-8 text-2xl animate-bounce" style={{ animationDelay: '0.5s' }}>💫</div>
+              <div className="absolute top-1/2 left-6 text-sm animate-ping" style={{ animationDelay: '1.5s' }}>✨</div>
+              <div className="absolute top-20 right-20 text-lg animate-pulse" style={{ animationDelay: '2.5s' }}>🎊</div>
+            </div>
+
+            <div className="relative z-10 p-8 text-center text-white overflow-y-auto max-h-[85vh] scrollbar-custom">
+              <div className="mb-8">
+                <div className="inline-flex items-center justify-center w-20 h-20 bg-white bg-opacity-20 rounded-full mb-4 animate-pulse">
+                  <Award className="w-10 h-10 text-white" />
+                </div>
+                <h1 className="text-3xl font-bold mb-2 animate-bounce">🏆 LEARNING CHAMPION! 🏆</h1>
+                <div className="flex justify-center space-x-1 mb-4">
+                  <span className="animate-bounce text-2xl" style={{ animationDelay: '0s' }}>🥇</span>
+                  <span className="animate-bounce text-2xl" style={{ animationDelay: '0.2s' }}>🎉</span>
+                  <span className="animate-bounce text-2xl" style={{ animationDelay: '0.4s' }}>🚀</span>
+                </div>
+                <div className="bg-white bg-opacity-90 rounded-full px-4 py-1 inline-block">
+                  <span className="text-yellow-600 font-bold text-sm">🌟 OUTSTANDING ACHIEVEMENT 🌟</span>
+                </div>
+              </div>
+
+              {championData && (
+                <>
+                  <div className="bg-white bg-opacity-95 rounded-xl p-6 mb-6 text-gray-800 shadow-lg">
+                    <div className="flex items-center justify-center gap-4 mb-3">
+                      <div className="text-5xl">{championLevel >= 7 ? '🔥' : championLevel >=6 ? '⚡' : championLevel >=5 ? '🦸' : championLevel >=4 ? '🏆' : championLevel >=3 ? '🎯' : championLevel >=2 ? '�' : '🐣'}</div>
+                      <div className="text-left">
+                        <h2 className="text-2xl font-bold text-gray-800 mb-1">{championData.nama}</h2>
+                        <p className="text-gray-600 mb-1 font-medium">{championData.unit_kerja}</p>
+                        <div className="inline-flex items-center bg-gradient-to-r from-yellow-400 to-orange-400 text-white px-3 py-1 rounded-full text-sm font-bold shadow-md">{`Level ${championLevel} — ${championLevelName}`}</div>
+                      </div>
+                    </div>
+                    <div className="mt-4">
+                      <div className="text-sm text-gray-600 mb-2">Progress menuju Level {championLevel + 1}: {jamToNext} JP lagi</div>
+                      <div className="w-full bg-white rounded-full h-3 bg-opacity-40">
+                        <div className="bg-yellow-400 h-3 rounded-full transition-all" style={{ width: `${progressPercent}%` }} />
+                      </div>
+                    </div>
+                  </div>
+
+                  <div className="bg-white bg-opacity-95 rounded-xl p-6 mb-6 shadow-lg">
+                    <h3 className="text-lg font-bold text-gray-800 mb-3 text-center">Statistik Singkat</h3>
+                    <div className="grid grid-cols-3 gap-3 text-center">
+                      <div>
+                        <div className="text-2xl font-bold text-blue-600">{championData.total_jam}</div>
+                        <div className="text-xs text-gray-500">Total Jam</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-green-600">{championData.jumlah_pelatihan}</div>
+                        <div className="text-xs text-gray-500">Pelatihan</div>
+                      </div>
+                      <div>
+                        <div className="text-2xl font-bold text-purple-600">{championData.rata_rata_jam.toFixed(1)}</div>
+                        <div className="text-xs text-gray-500">Rata-rata/Jam</div>
+                      </div>
+                    </div>
+                    <p className="text-sm text-gray-600 mt-4">{`${championData.nama} menunjukkan konsistensi dan dedikasi. Ingat, level Anda saat ini adalah ${userLevel} — ${userLevelName}. Jangan mau kalah, ayo input pelatihan yang Anda ikuti!`}</p>
+                    <div className="mt-4 flex gap-3">
+                      <button onClick={() => { setShowChampionModal(false); setShowModal(true); }} className="flex-1 bg-yellow-400 text-white font-bold py-3 rounded-xl shadow">Input Pelatihan Anda — Tambah Pelatihan</button>
+                      <button onClick={() => setShowChampionModal(false)} className="flex-1 bg-white text-yellow-600 font-bold py-3 rounded-xl border border-yellow-200">Nanti</button>
+                    </div>
+                  </div>
+                </>
+              )}
+
+              <div className="space-y-3">
+                <button onClick={() => setShowChampionModal(false)} className="w-full bg-white text-yellow-600 hover:bg-yellow-50 font-bold py-4 px-8 rounded-xl shadow-lg hover:shadow-xl transition-all duration-300 hover:scale-105 border-2 border-yellow-200">
+                  <span className="text-xl mr-2">✨</span>Terima Kasih Champion!<span className="text-xl ml-2">✨</span>
+                </button>
+                <div className="text-center"><span className="text-white text-xs bg-white bg-opacity-20 px-3 py-1 rounded-full">🎯 Keep up the excellent work! 🎯</span></div>
+              </div>
+
+              <div className="flex justify-center mt-4 pb-2"><div className="flex space-x-1"><div className="w-2 h-2 bg-white bg-opacity-40 rounded-full animate-bounce" style={{ animationDelay: '0s' }}></div><div className="w-2 h-2 bg-white bg-opacity-40 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div><div className="w-2 h-2 bg-white bg-opacity-40 rounded-full animate-bounce" style={{ animationDelay: '0.4s' }}></div></div></div>
+            </div>
+          </div>
+        </div>
+      </div>
+    )}
     </>
   )
 }

@@ -1,0 +1,50 @@
+import type { NextApiRequest, NextApiResponse } from "next";
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST") {
+    return res.status(405).json({ error: "Metode harus POST" });
+  }
+
+  // Validate environment variables
+  const baseUrl = process.env.AIMLAPI_BASE_URL;
+  const apiKey = process.env.AIMLAPI_KEY;
+
+  if (!baseUrl) {
+    return res.status(500).json({ error: "AIMLAPI_BASE_URL tidak dikonfigurasi" });
+  }
+
+  if (!apiKey) {
+    return res.status(500).json({ error: "AIMLAPI_KEY tidak dikonfigurasi" });
+  }
+
+  try {
+    const { prompt } = req.body;
+
+    const response = await fetch(`${baseUrl}/chat/completions`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${process.env.AIMLAPI_KEY}`,
+      },
+      body: JSON.stringify({
+        model: "gpt-3.5-turbo",
+        messages: [
+          {
+            role: "system",
+            content: "Kamu adalah AI yang membantu analisis hasil IDP/HCDP pegawai dan memberi rekomendasi berbentuk JSON.",
+          },
+          {
+            role: "user",
+            content: prompt,
+          },
+        ],
+      }),
+    });
+
+    const data = await response.json();
+    return res.status(200).json(data);
+  } catch (error: any) {
+    console.error("Error dari API:", error);
+    return res.status(500).json({ error: "Terjadi kesalahan internal" });
+  }
+}

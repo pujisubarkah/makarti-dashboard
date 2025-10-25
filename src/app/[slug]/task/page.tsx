@@ -240,8 +240,10 @@ export default function TaskPage() {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          id: subtaskId,
-          is_done: isDone
+          subtasks: [{
+            id: subtaskId,
+            is_done: isDone
+          }]
         })
       });
 

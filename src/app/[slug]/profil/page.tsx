@@ -1,6 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
+import { User, GraduationCap, IdCard, Award, } from "lucide-react";
 import { useParams } from "next/navigation";
 import IDPSection from "@/components/IDPsection";
 import IdentifikasiBSB from "@/components/identifikasi_bsb";
@@ -239,9 +240,9 @@ export default function ProfilPage() {
               )}
             </div>
             <h2 className="text-2xl font-bold text-blue-600 mb-6">Informasi Profil</h2>
-            <div className="flex flex-wrap gap-6 items-start">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch">
               {/* Profile Photo and Edit */}
-              <div className="w-48 h-48 bg-gradient-to-br from-blue-100 to-blue-300 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg rounded-full mb-4">
+              <div className="w-48 h-48 bg-gradient-to-br from-blue-200/80 to-blue-400/60 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg rounded-full mb-4 mx-auto row-span-2 backdrop-blur-md">
                 <div className="flex flex-col items-center w-full">
                   <div className="relative group w-full h-full flex items-center justify-center">
                     <label htmlFor="edit-photo" className="absolute inset-0 cursor-pointer z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-30 rounded-full">
@@ -281,37 +282,65 @@ export default function ProfilPage() {
                 </div>
               </div>
               {/* Card 1: Identitas Utama */}
-              <div className="flex-1 min-w-[260px] max-w-sm mb-4">
-                <div className="bg-white border border-blue-100 rounded-2xl shadow-xl p-6 mb-4 transition-transform hover:scale-[1.02] hover:shadow-2xl">
-                  <h3 className="font-bold text-blue-700 mb-4 text-lg tracking-wide border-b border-blue-100 pb-2">Identitas Utama</h3>
-                  <div className="space-y-3">
+              <div className="min-w-[220px] max-w-sm flex flex-col justify-stretch">
+                <div className="bg-gradient-to-br from-blue-50/80 to-white/60 border border-blue-200 rounded-2xl shadow-md p-6 h-full transition-all duration-200 hover:scale-[1.03] hover:shadow-xl group backdrop-blur-md">
+                  <h3 className="font-bold text-blue-700 mb-4 text-lg tracking-wide flex items-center gap-2 border-b border-blue-100 pb-2">
+                    <User className="w-5 h-5 text-blue-400" /> Identitas Utama
+                  </h3>
+                  <div className="space-y-3 divide-y divide-blue-50">
                     <div className="flex justify-between items-center text-gray-700"><span className="font-medium">NIP</span><span className="font-mono text-blue-800">{detail.nip || data.nip || "-"}</span></div>
                     <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Nama Lengkap</span><span>{data.nama || "-"}</span></div>
                     <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Jabatan</span><span>{data.jabatan || "-"}</span></div>
                     <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Unit Kerja</span><span>{data.users_pegawai_unit_kerja_idTousers?.unit_kerja || "-"}</span></div>
                     <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Email</span><span>{detail.email || "-"}</span></div>
-                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Status Kepegawaian</span><span>{detail.status_kepegawaian || "-"}</span></div>
+                    <div className="flex justify-between items-center text-gray-700">
+                      <span className="font-medium">Status Kepegawaian</span>
+                      {detail.status_kepegawaian ? (
+                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ml-2 
+                          ${detail.status_kepegawaian === 'Aktif' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-500 border border-gray-200'}`}>{detail.status_kepegawaian}
+                        </span>
+                      ) : "-"}
+                    </div>
                   </div>
                 </div>
               </div>
               {/* Card 2: Pendidikan & Pribadi */}
-              <div className="flex-1 min-w-[260px] max-w-sm mb-4">
-                <div className="bg-white border border-blue-100 rounded-2xl shadow-xl p-6 mb-4 transition-transform hover:scale-[1.02] hover:shadow-2xl">
-                  <h3 className="font-bold text-blue-700 mb-4 text-lg tracking-wide border-b border-blue-100 pb-2">Pendidikan & Pribadi</h3>
-                  <div className="space-y-3">
-                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Tingkat Pendidikan</span><span>{detail.tingkat_pendidikan || "-"}</span></div>
-                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Pendidikan</span><span>{detail.pendidikan || "-"}</span></div>
-                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Telp</span><span>{detail.telp || "-"}</span></div>
-                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Tanggal Lahir</span><span>{detail.tanggal_lahir ? new Date(detail.tanggal_lahir).toLocaleDateString('id-ID') : "-"}</span></div>
-                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Jenis Kelamin</span><span>{detail.jenis_kelamin === 'L' ? 'Laki-laki' : detail.jenis_kelamin === 'P' ? 'Perempuan' : '-'}</span></div>
+              <div className="min-w-[220px] max-w-sm flex flex-col justify-stretch">
+                <div className="bg-gradient-to-br from-orange-50/80 to-white/60 border border-orange-200 rounded-2xl shadow-md p-6 h-full transition-all duration-200 hover:scale-[1.03] hover:shadow-xl group backdrop-blur-md">
+                  <h3 className="font-bold text-orange-700 mb-4 text-lg tracking-wide flex items-center gap-2 border-b border-orange-100 pb-2">
+                    <GraduationCap className="w-5 h-5 text-orange-400" /> Pendidikan & Pribadi
+                  </h3>
+                  <div className="space-y-0">
+                    <div className="flex justify-between items-center text-gray-700 gap-2 flex-wrap border-b border-orange-100 pb-2 mb-2">
+                      <span className="font-medium break-words">Tingkat Pendidikan</span>
+                      <span className="break-all">{detail.tingkat_pendidikan || "-"}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-gray-700 gap-2 flex-wrap border-b border-orange-100 pb-2 mb-2">
+                      <span className="font-medium break-words">Pendidikan</span>
+                      <span className="break-all">{detail.pendidikan || "-"}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-gray-700 gap-2 flex-wrap border-b border-orange-100 pb-2 mb-2">
+                      <span className="font-medium break-words">Telp</span>
+                      <span className="break-all">{detail.telp || "-"}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-gray-700 gap-2 flex-wrap border-b border-orange-100 pb-2 mb-2">
+                      <span className="font-medium break-words">Tanggal Lahir</span>
+                      <span className="break-all">{detail.tanggal_lahir ? new Date(detail.tanggal_lahir).toLocaleDateString('id-ID') : "-"}</span>
+                    </div>
+                    <div className="flex justify-between items-center text-gray-700 gap-2 flex-wrap border-b border-orange-100 pb-2 mb-2">
+                      <span className="font-medium break-words">Jenis Kelamin</span>
+                      <span className="break-all">{detail.jenis_kelamin === 'L' ? 'Laki-laki' : detail.jenis_kelamin === 'P' ? 'Perempuan' : '-'}</span>
+                    </div>
                   </div>
                 </div>
               </div>
               {/* Card 3: Lainnya */}
-              <div className="flex-1 min-w-[260px] max-w-sm mb-4">
-                <div className="bg-white border border-blue-100 rounded-2xl shadow-xl p-6 mb-4 transition-transform hover:scale-[1.02] hover:shadow-2xl">
-                  <h3 className="font-bold text-blue-700 mb-4 text-lg tracking-wide border-b border-blue-100 pb-2">Lainnya</h3>
-                  <div className="space-y-3">
+              <div className="min-w-[220px] max-w-sm flex flex-col justify-stretch">
+                <div className="bg-gradient-to-br from-purple-50/80 to-white/60 border border-purple-200 rounded-2xl shadow-md p-6 h-full transition-all duration-200 hover:scale-[1.03] hover:shadow-xl group backdrop-blur-md">
+                  <h3 className="font-bold text-purple-700 mb-4 text-lg tracking-wide flex items-center gap-2 border-b border-purple-100 pb-2">
+                    <Award className="w-5 h-5 text-purple-400" /> Lainnya
+                  </h3>
+                  <div className="space-y-3 divide-y divide-purple-50">
                     <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Golongan Darah</span><span>{detail.nm_goldar || "-"}</span></div>
                     <div className="flex justify-between items-center text-gray-700"><span className="font-medium">TMT CPNS</span><span>{detail.peg_cpns_tmt ? new Date(detail.peg_cpns_tmt).toLocaleDateString('id-ID') : "-"}</span></div>
                     <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Agama</span><span>{detail.agama || "-"}</span></div>
@@ -323,10 +352,12 @@ export default function ProfilPage() {
               </div>
 
               {/* Card 4: Identitas Kependudukan */}
-              <div className="flex-1 min-w-[260px] max-w-sm mb-4">
-                <div className="bg-white border border-blue-100 rounded-2xl shadow-xl p-6 mb-4 transition-transform hover:scale-[1.02] hover:shadow-2xl">
-                  <h3 className="font-bold text-blue-700 mb-4 text-lg tracking-wide border-b border-blue-100 pb-2">Identitas Kependudukan</h3>
-                  <div className="space-y-3">
+              <div className="min-w-[220px] max-w-sm flex flex-col justify-stretch">
+                <div className="bg-gradient-to-br from-green-50/80 to-white/60 border border-green-200 rounded-2xl shadow-md p-6 h-full transition-all duration-200 hover:scale-[1.03] hover:shadow-xl group backdrop-blur-md">
+                  <h3 className="font-bold text-green-700 mb-4 text-lg tracking-wide flex items-center gap-2 border-b border-green-100 pb-2">
+                    <IdCard className="w-5 h-5 text-green-400" /> Identitas Kependudukan
+                  </h3>
+                  <div className="space-y-3 divide-y divide-green-50">
                     <div className="flex justify-between items-center text-gray-700"><span className="font-medium">NIK</span><span>{detail.nik || "-"}</span></div>
                     <div className="flex justify-between items-center text-gray-700"><span className="font-medium">NPWP</span><span>{detail.peg_npwp || "-"}</span></div>
                     <div className="flex justify-between items-start text-gray-700">
@@ -346,17 +377,17 @@ export default function ProfilPage() {
                   {/* ...existing code for edit form... */}
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     {/* ...existing code for edit fields... */}
-                    <div>
-                      <label className="block text-sm font-medium mb-1">NIP</label>
-                      <input type="text" className="w-full border rounded px-2 py-1" value={form.nip || ""} onChange={e => setForm({ ...form, nip: e.target.value })} />
+                    <div className="min-w-0">
+                      <label className="block text-sm font-medium mb-1 break-words">NIP</label>
+                      <input type="text" className="w-full border rounded px-2 py-1 min-w-0" value={form.nip || ""} onChange={e => setForm({ ...form, nip: e.target.value })} />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Email</label>
-                      <input type="email" className="w-full border rounded px-2 py-1" value={form.email || ""} onChange={e => setForm({ ...form, email: e.target.value })} />
+                    <div className="min-w-0">
+                      <label className="block text-sm font-medium mb-1 break-words">Email</label>
+                      <input type="email" className="w-full border rounded px-2 py-1 min-w-0" value={form.email || ""} onChange={e => setForm({ ...form, email: e.target.value })} />
                     </div>
-                    <div>
-                      <label className="block text-sm font-medium mb-1">Status Kepegawaian</label>
-                      <select className="w-full border rounded px-2 py-1" value={form.status_kepegawaian || ""} onChange={e => setForm({ ...form, status_kepegawaian: e.target.value })}>
+                    <div className="min-w-0">
+                      <label className="block text-sm font-medium mb-1 break-words">Status Kepegawaian</label>
+                      <select className="w-full border rounded px-2 py-1 min-w-0" value={form.status_kepegawaian || ""} onChange={e => setForm({ ...form, status_kepegawaian: e.target.value })}>
                         <option value="">Pilih Status</option>
                         <option value="Aktif">Aktif</option>
                         <option value="Tidak Aktif">Tidak Aktif</option>

@@ -6,10 +6,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     switch (req.method) {
       // 🔹 GET semua IDP
       case 'GET': {
+        const { user_id, tahun } = req.query
+        
+        const whereClause: { user_id?: number; tahun?: number } = {}
+        if (user_id) whereClause.user_id = Number(user_id)
+        if (tahun) whereClause.tahun = Number(tahun)
+
         const idpList = await prisma.idp.findMany({
+          where: Object.keys(whereClause).length > 0 ? whereClause : undefined,
           include: {
             users: {
-              select: { unit_kerja: true },
+              select: {
+                pegawai_pegawai_nipTousers: {
+                  select: {
+                    unit_kerja_id: true,
+                  }
+                }
+              }
             },
           },
           orderBy: { created_at: 'desc' },
@@ -69,10 +82,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           include: {
             users: {
               select: {
-                id: true,
-                username: true,
-                alias: true,
-              },
+                pegawai_pegawai_nipTousers: {
+                  select: {
+                    unit_kerja_id: true,
+                  }
+                }
+              }
             },
           },
         })

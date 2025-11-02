@@ -45,10 +45,21 @@ function buildUserPrompt(type: string | undefined, payload: AiPayload) {
 
     const joined = parts.join("\n\n");
 
-    return `Analisis IDP berikut dan sarankan 3 goals serta 3 activities yang relevan, ringkas, dan actionable. 
-Berikan juga alasan singkat untuk tiap saran.\n\n${joined}`;
+    return `Sebagai AI One, analisis mendalam IDP berikut dan berikan rekomendasi pengembangan SDM yang strategis:
+
+${joined}
+
+Berdasarkan analisis SWOT dan data pengembangan di atas, berikan 3-5 goals dan 3-5 activities yang:
+1. Memanfaatkan kekuatan (strengths) untuk menangkap peluang (opportunities)
+2. Mengatasi kelemahan (weaknesses) dan memitigasi ancaman (threats)  
+3. Spesifik, terukur, dan dapat dicapai dalam timeframe yang realistis
+4. Selaras dengan tren pengembangan SDM terkini
+
+Untuk setiap rekomendasi, sertakan alasan yang kuat berdasarkan analisis SWOT.`;
   } catch {
-    return `Analisis IDP berikut dan sarankan 3 goals dan 3 activities yang relevan, ringkas dan actionable. Payload: ${String(payload)}`;
+    return `AI One, berikan analisis IDP dan rekomendasi pengembangan SDM berdasarkan data berikut: ${String(payload)}. 
+    
+Sertakan goals dan activities yang strategis untuk pengembangan kompetensi dan karir.`;
   }
 }
 
@@ -61,11 +72,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     {
       role: "system",
       content:
-        'You are an HR assistant. Provide concise, actionable IDP recommendations. ' +
+        'You are AI One, an intelligent assistant specialized in Human Resource Development. Your role is to analyze Individual Development Plans (IDP) and provide strategic, actionable recommendations for professional growth. ' +
         'IMPORTANT: Reply with a single JSON object and ONLY that JSON. ' +
         'The object must have a top-level key "suggestions". Inside "suggestions", include optional keys ' +
         '"goals" (array of objects with keys: kompetensi, alasan, target, indikator) and "activities" ' +
-        '(array of objects with keys: jenis, judul, penyelenggara). Do NOT include any explanatory text outside the JSON.'
+        '(array of objects with keys: jenis, judul, penyelenggara). Provide specific, measurable, and relevant recommendations based on the SWOT analysis. Do NOT include any explanatory text outside the JSON.'
     },
     { role: "user", content: buildUserPrompt(type, payload || {}) }
   ];

@@ -1,7 +1,7 @@
 "use client";
 import React, { useEffect, useState } from "react";
 import Image from "next/image";
-import { User, GraduationCap, IdCard, Award, } from "lucide-react";
+
 import { useParams } from "next/navigation";
 import IDPSection from "@/components/IDPsection";
 import IdentifikasiBSB from "@/components/identifikasi_bsb";
@@ -66,6 +66,26 @@ export default function ProfilPage() {
     jam?: number;
     tanggal?: string;
   };
+
+  interface AiGoal {
+    kompetensi: string;
+    target: string;
+    alasan: string;
+    indikator: string;
+  }
+
+  interface AiActivity {
+    judul: string;
+    jenis: string;
+    penyelenggara: string;
+  }
+
+  interface AiSuggestions {
+    ai_suggestions: {
+      goals: AiGoal[];
+      activities: AiActivity[];
+    };
+  }
   
   const [data, setData] = useState<PegawaiDetail | null>(null);
   const [loading, setLoading] = useState(true);
@@ -74,6 +94,8 @@ export default function ProfilPage() {
   const [loadingPelatihan, setLoadingPelatihan] = useState(true);
   const [editMode, setEditMode] = useState(false);
   const [form, setForm] = useState<PegawaiDetailItem>({});
+  const [aiSuggestions, setAiSuggestions] = useState<AiSuggestions | null>(null);
+  const [loadingAI, setLoadingAI] = useState(false);
 
   useEffect(() => {
     if (!id) return;
@@ -102,6 +124,32 @@ export default function ProfilPage() {
       .catch(() => {
         setPelatihan([]);
         setLoadingPelatihan(false);
+      });
+
+    // Fetch AI suggestions from IDP data using username
+    setLoadingAI(true);
+    console.log('Fetching AI suggestions for username:', id);
+    fetch(`/api/idp/${id}`)
+      .then((res) => {
+        console.log('AI suggestions response status:', res.status);
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+        return res.json();
+      })
+      .then((res) => {
+        console.log('AI suggestions data:', res);
+        if (res && res.ai_suggestions) {
+          setAiSuggestions(res);
+          console.log('AI suggestions loaded successfully');
+        } else {
+          console.log('No AI suggestions found in response');
+        }
+        setLoadingAI(false);
+      })
+      .catch((error) => {
+        console.error('Error fetching AI suggestions:', error);
+        setLoadingAI(false);
       });
   }, [id]);
 
@@ -188,6 +236,8 @@ export default function ProfilPage() {
 
   // Tab state (pindahkan ke atas agar urutan hooks konsisten)
   const [activeTab, setActiveTab] = useState<'profil' | 'pelatihan' | 'bsb' | 'idp'>('profil');
+  const [showAiGoals, setShowAiGoals] = useState(false);
+  const [showAiActivities, setShowAiActivities] = useState(false);
 
   if (loading) return <div className="p-8 text-center">Memuat data...</div>;
   if (error || !data) return <div className="p-8 text-center text-red-500">{error || "Data tidak ditemukan"}</div>;
@@ -239,135 +289,291 @@ export default function ProfilPage() {
                 </button>
               )}
             </div>
-            <h2 className="text-2xl font-bold text-blue-600 mb-6">Informasi Profil</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 items-stretch">
-              {/* Profile Photo and Edit */}
-              <div className="w-48 h-48 bg-gradient-to-br from-blue-200/80 to-blue-400/60 flex items-center justify-center overflow-hidden border-4 border-white shadow-lg rounded-full mb-4 mx-auto row-span-2 backdrop-blur-md">
-                <div className="flex flex-col items-center w-full">
-                  <div className="relative group w-full h-full flex items-center justify-center">
-                    <label htmlFor="edit-photo" className="absolute inset-0 cursor-pointer z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-30 rounded-full">
-                      <span className="flex flex-col items-center">
-                        <svg width="32" height="32" fill="none" viewBox="0 0 24 24"><path stroke="white" strokeWidth="2" d="M4 7h2l2-3h4l2 3h2a2 2 0 012 2v9a2 2 0 01-2 2H4a2 2 0 01-2-2V9a2 2 0 012-2z"/><circle cx="12" cy="13" r="3" stroke="white" strokeWidth="2"/></svg>
-                        <span className="text-white text-xs mt-1">Edit Foto</span>
-                      </span>
-                    </label>
-                    <Image
-                      alt="Profile"
-                      src={detail.photo_url || "/avatar.png"}
-                      width={192}
-                      height={192}
-                      className="w-full h-full object-cover rounded-full"
-                    />
-                    <input id="edit-photo" type="file" accept="image/*" className="hidden" onChange={async (e) => {
-                      const file = e.target.files?.[0];
-                      if (!file || !id) return;
-                      setLoading(true);
-                      const formData = new FormData();
-                      formData.append("photo", file);
-                      formData.append("id", id);
-                      const res = await fetch("/api/upload-photo", {
-                        method: "POST",
-                        body: formData
-                      });
-                      setLoading(false);
-                      if (res.ok) {
-                        const { photo_url } = await res.json();
-                        setForm(f => ({ ...f, photo_url }));
-                        setData(d => d ? { ...d, pegawai_detail: [{ ...d.pegawai_detail[0], photo_url }] } : d);
-                      } else {
-                        alert("Gagal upload foto");
-                      }
-                    }} />
-                  </div>
+            {/* Profile Header with Photo */}
+            <div className="w-full max-w-4xl mx-auto p-4 border rounded-md bg-gray-50 mb-6">
+              <h2 className="text-2xl font-bold text-blue-600 mb-4">Informasi Profil</h2>
+              <div className="flex items-start space-x-6">
+                <div className="w-48 h-48 bg-gray-200 flex items-center justify-center overflow-hidden border border-gray-300 rounded-full relative group">
+                  <label htmlFor="edit-photo" className="absolute inset-0 cursor-pointer z-10 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity bg-black bg-opacity-30 rounded-full">
+                    <span className="flex flex-col items-center">
+                      <svg width="24" height="24" fill="none" viewBox="0 0 24 24"><path stroke="white" strokeWidth="2" d="M4 7h2l2-3h4l2 3h2a2 2 0 012 2v9a2 2 0 01-2 2H4a2 2 0 01-2-2V9a2 2 0 012-2z"/><circle cx="12" cy="13" r="3" stroke="white" strokeWidth="2"/></svg>
+                      <span className="text-white text-xs mt-1">Edit</span>
+                    </span>
+                  </label>
+                  <Image
+                    alt="Profile"
+                    src={detail.photo_url || "/avatar.png"}
+                    width={192}
+                    height={192}
+                    className="w-full h-full object-cover"
+                  />
+                  <input id="edit-photo" type="file" accept="image/*" className="hidden" onChange={async (e) => {
+                    const file = e.target.files?.[0];
+                    if (!file || !id) return;
+                    setLoading(true);
+                    const formData = new FormData();
+                    formData.append("photo", file);
+                    formData.append("id", id);
+                    const res = await fetch("/api/upload-photo", {
+                      method: "POST",
+                      body: formData
+                    });
+                    setLoading(false);
+                    if (res.ok) {
+                      const { photo_url } = await res.json();
+                      setForm(f => ({ ...f, photo_url }));
+                      setData(d => d ? { ...d, pegawai_detail: [{ ...d.pegawai_detail[0], photo_url }] } : d);
+                    } else {
+                      alert("Gagal upload foto");
+                    }
+                  }} />
                 </div>
-              </div>
-              {/* Card 1: Identitas Utama */}
-              <div className="min-w-[220px] max-w-sm flex flex-col justify-stretch">
-                <div className="bg-gradient-to-br from-blue-50/80 to-white/60 border border-blue-200 rounded-2xl shadow-md p-6 h-full transition-all duration-200 hover:scale-[1.03] hover:shadow-xl group backdrop-blur-md">
-                  <h3 className="font-bold text-blue-700 mb-4 text-lg tracking-wide flex items-center gap-2 border-b border-blue-100 pb-2">
-                    <User className="w-5 h-5 text-blue-400" /> Identitas Utama
-                  </h3>
-                  <div className="space-y-3 divide-y divide-blue-50">
-                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">NIP</span><span className="font-mono text-blue-800">{detail.nip || data.nip || "-"}</span></div>
-                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Nama Lengkap</span><span>{data.nama || "-"}</span></div>
-                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Jabatan</span><span>{data.jabatan || "-"}</span></div>
-                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Unit Kerja</span><span>{data.users_pegawai_unit_kerja_idTousers?.unit_kerja || "-"}</span></div>
-                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Email</span><span>{detail.email || "-"}</span></div>
-                    <div className="flex justify-between items-center text-gray-700">
-                      <span className="font-medium">Status Kepegawaian</span>
-                      {detail.status_kepegawaian ? (
-                        <span className={`px-2 py-1 rounded-full text-xs font-semibold ml-2 
-                          ${detail.status_kepegawaian === 'Aktif' ? 'bg-green-100 text-green-700 border border-green-200' : 'bg-gray-100 text-gray-500 border border-gray-200'}`}>{detail.status_kepegawaian}
-                        </span>
-                      ) : "-"}
+                <div className="flex-1">
+                  <div className="border border-gray-300 rounded-md divide-y divide-gray-300">
+                    <div className="flex justify-between p-3 bg-gray-100">
+                      <div className="font-semibold">NIP</div>
+                      <div className="font-mono text-sm">{detail.nip || data.nip || "-"}</div>
                     </div>
-                  </div>
-                </div>
-              </div>
-              {/* Card 2: Pendidikan & Pribadi */}
-              <div className="min-w-[220px] max-w-sm flex flex-col justify-stretch">
-                <div className="bg-gradient-to-br from-orange-50/80 to-white/60 border border-orange-200 rounded-2xl shadow-md p-6 h-full transition-all duration-200 hover:scale-[1.03] hover:shadow-xl group backdrop-blur-md">
-                  <h3 className="font-bold text-orange-700 mb-4 text-lg tracking-wide flex items-center gap-2 border-b border-orange-100 pb-2">
-                    <GraduationCap className="w-5 h-5 text-orange-400" /> Pendidikan & Pribadi
-                  </h3>
-                  <div className="space-y-0">
-                    <div className="flex justify-between items-center text-gray-700 gap-2 flex-wrap border-b border-orange-100 pb-2 mb-2">
-                      <span className="font-medium break-words">Tingkat Pendidikan</span>
-                      <span className="break-all">{detail.tingkat_pendidikan || "-"}</span>
+                    <div className="flex justify-between p-3">
+                      <div className="font-semibold">Nama Lengkap</div>
+                      <div className="text-right break-words max-w-xs">{data.nama || "-"}</div>
                     </div>
-                    <div className="flex justify-between items-center text-gray-700 gap-2 flex-wrap border-b border-orange-100 pb-2 mb-2">
-                      <span className="font-medium break-words">Pendidikan</span>
-                      <span className="break-all">{detail.pendidikan || "-"}</span>
+                    <div className="flex justify-between p-3 bg-gray-100">
+                      <div className="font-semibold">Jabatan</div>
+                      <div className="text-right break-words max-w-xs">{data.jabatan || "-"}</div>
                     </div>
-                    <div className="flex justify-between items-center text-gray-700 gap-2 flex-wrap border-b border-orange-100 pb-2 mb-2">
-                      <span className="font-medium break-words">Telp</span>
-                      <span className="break-all">{detail.telp || "-"}</span>
+                    <div className="flex justify-between p-3">
+                      <div className="font-semibold">Unit Kerja</div>
+                      <div className="text-right break-words max-w-xs">{data.users_pegawai_unit_kerja_idTousers?.unit_kerja || "-"}</div>
                     </div>
-                    <div className="flex justify-between items-center text-gray-700 gap-2 flex-wrap border-b border-orange-100 pb-2 mb-2">
-                      <span className="font-medium break-words">Tanggal Lahir</span>
-                      <span className="break-all">{detail.tanggal_lahir ? new Date(detail.tanggal_lahir).toLocaleDateString('id-ID') : "-"}</span>
-                    </div>
-                    <div className="flex justify-between items-center text-gray-700 gap-2 flex-wrap border-b border-orange-100 pb-2 mb-2">
-                      <span className="font-medium break-words">Jenis Kelamin</span>
-                      <span className="break-all">{detail.jenis_kelamin === 'L' ? 'Laki-laki' : detail.jenis_kelamin === 'P' ? 'Perempuan' : '-'}</span>
-                    </div>
-                  </div>
-                </div>
-              </div>
-              {/* Card 3: Lainnya */}
-              <div className="min-w-[220px] max-w-sm flex flex-col justify-stretch">
-                <div className="bg-gradient-to-br from-purple-50/80 to-white/60 border border-purple-200 rounded-2xl shadow-md p-6 h-full transition-all duration-200 hover:scale-[1.03] hover:shadow-xl group backdrop-blur-md">
-                  <h3 className="font-bold text-purple-700 mb-4 text-lg tracking-wide flex items-center gap-2 border-b border-purple-100 pb-2">
-                    <Award className="w-5 h-5 text-purple-400" /> Lainnya
-                  </h3>
-                  <div className="space-y-3 divide-y divide-purple-50">
-                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Golongan Darah</span><span>{detail.nm_goldar || "-"}</span></div>
-                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">TMT CPNS</span><span>{detail.peg_cpns_tmt ? new Date(detail.peg_cpns_tmt).toLocaleDateString('id-ID') : "-"}</span></div>
-                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Agama</span><span>{detail.agama || "-"}</span></div>
-                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Tempat Lahir</span><span>{detail.tempat_lahir || "-"}</span></div>
-                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Golongan</span><span>{data.golongan || "-"}</span></div>
-                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">Eselon</span><span>{data.eselon || "-"}</span></div>
-                  </div>
-                </div>
-              </div>
-
-              {/* Card 4: Identitas Kependudukan */}
-              <div className="min-w-[220px] max-w-sm flex flex-col justify-stretch">
-                <div className="bg-gradient-to-br from-green-50/80 to-white/60 border border-green-200 rounded-2xl shadow-md p-6 h-full transition-all duration-200 hover:scale-[1.03] hover:shadow-xl group backdrop-blur-md">
-                  <h3 className="font-bold text-green-700 mb-4 text-lg tracking-wide flex items-center gap-2 border-b border-green-100 pb-2">
-                    <IdCard className="w-5 h-5 text-green-400" /> Identitas Kependudukan
-                  </h3>
-                  <div className="space-y-3 divide-y divide-green-50">
-                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">NIK</span><span>{detail.nik || "-"}</span></div>
-                    <div className="flex justify-between items-center text-gray-700"><span className="font-medium">NPWP</span><span>{detail.peg_npwp || "-"}</span></div>
-                    <div className="flex justify-between items-start text-gray-700">
-                      <span className="font-medium mt-1">Alamat</span>
-                      <span className="text-right break-words max-w-[180px] whitespace-pre-line">{detail.alamat || "-"}</span>
+                    <div className="flex justify-between p-3 bg-gray-100">
+                      <div className="font-semibold">Email</div>
+                      <div className="text-right break-all text-sm max-w-xs">{detail.email || "-"}</div>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
+
+            {/* Data Pribadi Table */}
+            <div id="data-pribadi" className="w-full p-2 border rounded-md bg-gray-50 mb-6">
+              <h3 className="text-xl font-bold text-blue-600 mb-4 px-2">Data Pribadi</h3>
+              <table className="w-full border-collapse border">
+                <tbody>
+                  <tr className="bg-teal-50">
+                    <td className="px-4 py-2 font-semibold w-1/6">Tempat, Tanggal Lahir</td>
+                    <td className="px-4 py-2 w-2/6">
+                      <div>{detail.tempat_lahir || "-"}, {detail.tanggal_lahir ? new Date(detail.tanggal_lahir).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : "-"}</div>
+                    </td>
+                    <td className="px-4 py-2 font-semibold w-1/6">Jenis Kelamin</td>
+                    <td className="px-4 py-2 w-2/6">
+                      <div>{detail.jenis_kelamin === 'L' ? 'Laki-laki' : detail.jenis_kelamin === 'P' ? 'Perempuan' : '-'}</div>
+                    </td>
+                    <td className="px-4 py-2 font-semibold w-1/6">Agama</td>
+                    <td className="px-4 py-2 w-2/6">
+                      <div>{detail.agama || "-"}</div>
+                    </td>
+                  </tr>
+                  <tr className="bg-white">
+                    <td className="px-4 py-2 font-semibold w-1/6">Status Pegawai</td>
+                    <td className="px-4 py-2 w-2/6">
+                      <div>{detail.status_kepegawaian || "-"}</div>
+                    </td>
+                    <td className="px-4 py-2 font-semibold w-1/6">TMT CPNS</td>
+                    <td className="px-4 py-2 w-2/6">
+                      <div>{detail.peg_cpns_tmt ? new Date(detail.peg_cpns_tmt).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' }) : "-"}</div>
+                    </td>
+                    <td className="px-4 py-2 font-semibold w-1/6">Golongan</td>
+                    <td className="px-4 py-2 w-2/6">
+                      <div>{data.golongan || "-"}</div>
+                    </td>
+                  </tr>
+                  <tr className="bg-teal-50">
+                    <td className="px-4 py-2 font-semibold w-1/6">Tingkat Pendidikan</td>
+                    <td className="px-4 py-2 w-2/6">
+                      <div>{detail.tingkat_pendidikan || "-"}</div>
+                    </td>
+                    <td className="px-4 py-2 font-semibold w-1/6">Pendidikan</td>
+                    <td className="px-4 py-2 w-2/6">
+                      <div>{detail.pendidikan || "-"}</div>
+                    </td>
+                    <td className="px-4 py-2 font-semibold w-1/6">Eselon</td>
+                    <td className="px-4 py-2 w-2/6">
+                      <div>{data.eselon || "-"}</div>
+                    </td>
+                  </tr>
+                  <tr className="bg-white">
+                    <td className="px-4 py-2 font-semibold w-1/6">NIK</td>
+                    <td className="px-4 py-2 w-2/6">
+                      <div className="font-mono text-sm">{detail.nik || "-"}</div>
+                    </td>
+                    <td className="px-4 py-2 font-semibold w-1/6">NPWP</td>
+                    <td className="px-4 py-2 w-2/6">
+                      <div className="font-mono text-sm">{detail.peg_npwp || "-"}</div>
+                    </td>
+                    <td className="px-4 py-2 font-semibold w-1/6">Golongan Darah</td>
+                    <td className="px-4 py-2 w-2/6">
+                      <div>{detail.nm_goldar || "-"}</div>
+                    </td>
+                  </tr>
+                  <tr className="bg-teal-50">
+                    <td className="px-4 py-2 font-semibold w-1/6">Alamat Rumah</td>
+                    <td className="px-4 py-2 w-2/6" colSpan={3}>
+                      <div className="break-words">{detail.alamat || "-"}</div>
+                    </td>
+                    <td className="px-4 py-2 font-semibold w-1/6">Telp</td>
+                    <td className="px-4 py-2 w-2/6">
+                      <div>{detail.telp || "-"}</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            {/* AI Suggestions Section */}
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+              {/* AI Goals */}
+              <div className="bg-gradient-to-br from-emerald-50/90 to-white/70 border border-emerald-200 rounded-lg shadow-md p-6">
+                <h3 className="font-bold text-emerald-700 mb-4 text-lg flex items-center gap-2">
+                  <svg className="w-5 h-5 text-emerald-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  AI Goals Recommendations
+                </h3>
+                {loadingAI ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-600"></div>
+                    <span className="ml-2 text-gray-600">Memuat...</span>
+                  </div>
+                ) : !aiSuggestions?.ai_suggestions?.goals ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">Belum ada AI goals tersedia</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="bg-emerald-100 rounded-lg p-3 mb-4 text-center">
+                      <div className="text-2xl font-bold text-emerald-600">{aiSuggestions.ai_suggestions.goals.length}</div>
+                      <div className="text-sm text-emerald-700">Goals yang disarankan AI</div>
+                    </div>
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                      {aiSuggestions.ai_suggestions.goals.slice(0, 2).map((goal: AiGoal, index: number) => (
+                        <div key={index} className="bg-emerald-50 p-3 rounded border border-emerald-100">
+                          <div className="font-medium text-emerald-800 text-sm">{goal.kompetensi}</div>
+                          <div className="text-gray-600 text-xs truncate">{goal.target}</div>
+                        </div>
+                      ))}
+                    </div>
+                    <button 
+                      onClick={() => setShowAiGoals(true)}
+                      className="w-full mt-3 bg-emerald-500 text-white px-4 py-2 rounded hover:bg-emerald-600 transition-colors text-sm"
+                    >
+                      Lihat Semua Goals
+                    </button>
+                  </>
+                )}
+              </div>
+
+              {/* AI Activities */}
+              <div className="bg-gradient-to-br from-teal-50/90 to-white/70 border border-teal-200 rounded-lg shadow-md p-6">
+                <h3 className="font-bold text-teal-700 mb-4 text-lg flex items-center gap-2">
+                  <svg className="w-5 h-5 text-teal-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                  </svg>
+                  AI Activities Recommendations
+                </h3>
+                {loadingAI ? (
+                  <div className="flex items-center justify-center py-8">
+                    <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-teal-600"></div>
+                    <span className="ml-2 text-gray-600">Memuat...</span>
+                  </div>
+                ) : !aiSuggestions?.ai_suggestions?.activities ? (
+                  <div className="text-center py-8">
+                    <p className="text-gray-500">Belum ada AI activities tersedia</p>
+                  </div>
+                ) : (
+                  <>
+                    <div className="bg-teal-100 rounded-lg p-3 mb-4 text-center">
+                      <div className="text-2xl font-bold text-teal-600">{aiSuggestions.ai_suggestions.activities.length}</div>
+                      <div className="text-sm text-teal-700">Aktivitas yang disarankan AI</div>
+                    </div>
+                    <div className="space-y-2 max-h-32 overflow-y-auto">
+                      {aiSuggestions.ai_suggestions.activities.slice(0, 2).map((activity: AiActivity, index: number) => (
+                        <div key={index} className="bg-teal-50 p-3 rounded border border-teal-100">
+                          <div className="font-medium text-teal-800 text-sm">{activity.judul}</div>
+                          <div className="text-gray-600 text-xs">
+                            <span className="inline-block bg-teal-200 text-teal-800 px-1 py-0.5 rounded text-xs">
+                              {activity.jenis}
+                            </span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                    <button 
+                      onClick={() => setShowAiActivities(true)}
+                      className="w-full mt-3 bg-teal-500 text-white px-4 py-2 rounded hover:bg-teal-600 transition-colors text-sm"
+                    >
+                      Lihat Semua Activities
+                    </button>
+                  </>
+                )}
+              </div>
+            </div>
+
+            {/* AI Goals Modal */}
+            {showAiGoals && aiSuggestions?.ai_suggestions?.goals && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-4xl relative max-h-[80vh] overflow-auto">
+                  <button className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-xl" onClick={() => setShowAiGoals(false)}>&times;</button>
+                  <h3 className="text-xl font-bold mb-4 text-emerald-700 flex items-center gap-2">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                    </svg>
+                    AI Goals Suggestions
+                  </h3>
+                  <div className="grid gap-4">
+                    {aiSuggestions.ai_suggestions.goals.map((goal: AiGoal, index: number) => (
+                      <div key={index} className="bg-gradient-to-r from-emerald-50 to-green-50 p-4 rounded-lg border border-emerald-200">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="font-semibold text-emerald-800">{goal.kompetensi}</div>
+                          <span className="bg-emerald-100 text-emerald-700 px-2 py-1 rounded text-xs">AI Goal</span>
+                        </div>
+                        <p className="text-sm text-gray-700 mb-2"><strong>Target:</strong> {goal.target}</p>
+                        <p className="text-sm text-gray-700 mb-2"><strong>Indikator:</strong> {goal.indikator}</p>
+                        <p className="text-sm text-gray-600"><strong>Alasan:</strong> {goal.alasan}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* AI Activities Modal */}
+            {showAiActivities && aiSuggestions?.ai_suggestions?.activities && (
+              <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">
+                <div className="bg-white rounded-lg shadow-lg p-6 w-full max-w-4xl relative max-h-[80vh] overflow-auto">
+                  <button className="absolute top-2 right-2 text-gray-500 hover:text-gray-700 text-xl" onClick={() => setShowAiActivities(false)}>&times;</button>
+                  <h3 className="text-xl font-bold mb-4 text-teal-700 flex items-center gap-2">
+                    <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                      <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M19 11H5m14 0a2 2 0 012 2v6a2 2 0 01-2 2H5a2 2 0 01-2-2v-6a2 2 0 012-2m14 0V9a2 2 0 00-2-2M5 11V9a2 2 0 012-2m0 0V5a2 2 0 012-2h6a2 2 0 012 2v2M7 7h10" />
+                    </svg>
+                    AI Activities Suggestions
+                  </h3>
+                  <div className="grid gap-4">
+                    {aiSuggestions.ai_suggestions.activities.map((activity: AiActivity, index: number) => (
+                      <div key={index} className="bg-gradient-to-r from-teal-50 to-cyan-50 p-4 rounded-lg border border-teal-200">
+                        <div className="flex items-start justify-between mb-2">
+                          <div className="font-semibold text-teal-800">{activity.judul}</div>
+                          <span className="bg-teal-100 text-teal-700 px-2 py-1 rounded text-xs">AI Activity</span>
+                        </div>
+                        <p className="text-sm text-gray-700 mb-1"><strong>Jenis:</strong> {activity.jenis}</p>
+                        <p className="text-sm text-gray-600"><strong>Penyelenggara:</strong> {activity.penyelenggara}</p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+
             {/* Edit Modal */}
             {editMode && (
               <div className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-40">

@@ -6,16 +6,42 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   try {
     switch (req.method) {
-      // 🔹 GET detail IDP by ID
+      // 🔹 GET detail IDP by ID or username
       case 'GET': {
-        const idp = await prisma.idp.findUnique({
-          where: { id: Number(id) },
-          include: {
-            users: {
-              select: { unit_kerja: true },
+        let idp = null
+        
+        // Check if the parameter is a valid IDP ID (small integer) or username (string/large number)
+        const isValidId = !isNaN(Number(id)) && Number(id) < 2147483647 && Number(id) > 0 && Number.isInteger(Number(id))
+        
+        if (isValidId) {
+          // Search by IDP ID (small integer)
+          idp = await prisma.idp.findUnique({
+            where: { id: Number(id) },
+            include: {
+              users: {
+                select: { unit_kerja: true, username: true },
+              },
             },
-          },
-        })
+          })
+        } else {
+          // Search by username (string or large number that represents username)
+          idp = await prisma.idp.findFirst({
+            where: {
+              users: {
+                username: String(id)
+              }
+            },
+            include: {
+              users: {
+                select: { unit_kerja: true, username: true },
+              },
+            },
+            orderBy: {
+              updated_at: 'desc' // Get the latest IDP for this user
+            }
+          })
+        }
+        
         if (!idp) return res.status(404).json({ error: 'IDP tidak ditemukan' })
         return res.status(200).json(idp)
       }

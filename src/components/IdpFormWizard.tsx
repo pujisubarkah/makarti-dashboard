@@ -44,6 +44,7 @@ type ImportedActivity = {
 type AiSuggestions = {
   goals?: Goal[];
   activities?: Activity[];
+  raw_result?: string;
 };
 
 type IdpRecord = {
@@ -68,6 +69,7 @@ export default function IdpFormWizard({ onClose }: { onClose?: () => void }) {
   const [aiLoading, setAiLoading] = useState(false)
   const [aiResult, setAiResult] = useState<string | null>(null)
   const [showAiModal, setShowAiModal] = useState(false)
+  const [currentIdpId, setCurrentIdpId] = useState<number | null>(null)
   const [submitting, setSubmitting] = useState(false)
   const [tahun, setTahun] = useState<number>(new Date().getFullYear())
   const [autoLoading, setAutoLoading] = useState(false)
@@ -211,6 +213,10 @@ export default function IdpFormWizard({ onClose }: { onClose?: () => void }) {
           const idp = found.item
           console.log('Loading previous IDP data:', idp)
           
+          // Save current IDP ID for updating instead of creating new
+          setCurrentIdpId(idp.id ?? null)
+          console.log('Set currentIdpId to:', idp.id ?? null)
+          
           // Populate form fields with existing IDP data
           setTahun(found.year)
           setData({
@@ -244,7 +250,7 @@ export default function IdpFormWizard({ onClose }: { onClose?: () => void }) {
   }, [])
 
   // Submit IDP to backend
-  const submitIdp = async () => {
+  const submitIdp = async (mode?: 'create' | 'update') => {
     try {
       setSubmitting(true)
       const payload = gatherPayload()
@@ -258,7 +264,37 @@ export default function IdpFormWizard({ onClose }: { onClose?: () => void }) {
         return
       }
 
-      const body = {
+      // Parse AI suggestions jika ada
+      let parsedAiSuggestions = null;
+      if (aiResult) {
+        try {
+          const parsed = JSON.parse(aiResult);
+          // Jika ada nested suggestions property, ambil itu
+          if (parsed && typeof parsed === 'object' && parsed.suggestions) {
+            parsedAiSuggestions = parsed.suggestions;
+          } else if (parsed && typeof parsed === 'object') {
+            parsedAiSuggestions = parsed;
+          }
+        } catch (e) {
+          console.warn('Failed to parse AI result as JSON:', e);
+          // Simpan sebagai string mentah jika tidak bisa di-parse
+          parsedAiSuggestions = { raw_result: aiResult };
+        }
+      }
+
+      const body: {
+        user_id?: number;
+        tahun: number;
+        strength?: string;
+        weakness?: string;
+        opportunities?: string;
+        threats?: string;
+        goals?: Goal[] | null;
+        activities?: Activity[] | null;
+        plans?: Plan[] | null;
+        ai_result?: string | null;
+        ai_suggestions?: AiSuggestions;
+      } = {
         user_id,
         tahun,
         strength: payload.swot?.strength,
@@ -268,20 +304,59 @@ export default function IdpFormWizard({ onClose }: { onClose?: () => void }) {
         goals: payload.goals ?? null,
         activities: payload.activities ?? null,
         plans: payload.implementation ?? null,
+        ai_result: aiResult ?? null,
+        ai_suggestions: parsedAiSuggestions,
       }
 
       console.log('Submitting IDP:', body)
+      console.log('Current IDP ID:', currentIdpId)
+      console.log('Submit mode:', mode)
 
-      const res = await fetch('/api/idp', {
-        method: 'POST',
+      // Determine method based on mode parameter
+      let url: string
+      let method: string
+
+      if (mode === 'update' && currentIdpId) {
+        url = `/api/idp/${currentIdpId}`
+        method = 'PUT'
+      } else if (mode === 'create') {
+        url = '/api/idp'
+        method = 'POST'
+        // Remove user_id from body for create mode to force new record
+        delete body.user_id
+        body.user_id = user_id // Ensure fresh user_id
+      } else {
+        // Fallback to original logic if mode not specified
+        url = currentIdpId ? `/api/idp/${currentIdpId}` : '/api/idp'
+        method = currentIdpId ? 'PUT' : 'POST'
+      }
+      
+      console.log(`Using ${method} method to ${url}`)
+
+      const res = await fetch(url, {
+        method,
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(body),
       })
 
       if (res.ok) {
         const respData = await res.json()
-        console.log('IDP create response', respData)
-        alert('IDP berhasil disimpan.')
+        console.log(`IDP ${method === 'PUT' ? 'update' : 'create'} response`, respData)
+        
+        // Show appropriate success message based on mode
+        if (mode === 'create') {
+          alert('IDP baru berhasil dibuat!')
+        } else if (mode === 'update') {
+          alert('IDP berhasil diperbarui!')
+        } else {
+          alert(`IDP berhasil ${method === 'PUT' ? 'diperbarui' : 'disimpan'}.`)
+        }
+        
+        // Jika ini adalah create baru, simpan ID untuk update selanjutnya
+        if (method === 'POST' && respData.data?.id) {
+          setCurrentIdpId(respData.data.id)
+        }
+        
         // close modal via callback if provided
         if (onClose) onClose()
       } else {
@@ -343,7 +418,7 @@ export default function IdpFormWizard({ onClose }: { onClose?: () => void }) {
       setShowAiModal(true);
     } catch (err) {
       console.error('AI analysis failed', err);
-      setAiResult('Terjadi kesalahan saat meminta analisis AI.');
+      setAiResult('Terjadi kesalahan saat meminta analisis dari AI One. Silakan coba lagi atau hubungi administrator.');
       setShowAiModal(true);
     } finally {
       setAiLoading(false);
@@ -363,6 +438,9 @@ export default function IdpFormWizard({ onClose }: { onClose?: () => void }) {
       const idp: IdpRecord = await resp.json()
       
       console.log('Loading IDP into form:', idp)
+      
+      // Save current IDP ID untuk update mode
+      setCurrentIdpId(idp.id ?? null)
       
       setTahun(idp.tahun ?? tahun)
       setData({
@@ -387,6 +465,38 @@ export default function IdpFormWizard({ onClose }: { onClose?: () => void }) {
 
   return (
     <div>
+      {/* AI One Greeting Section */}
+      <div className="mb-4 bg-gradient-to-r from-indigo-50 to-purple-50 border border-indigo-200 rounded-lg p-4">
+        <div className="flex items-center space-x-3">
+          <div className="w-10 h-10 bg-indigo-600 rounded-full flex items-center justify-center">
+            <svg className="w-5 h-5 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+            </svg>
+          </div>
+          <div className="flex-1">
+            <h3 className="text-base font-semibold text-indigo-900 mb-1 flex items-center gap-2">
+              👋 AI One - Artificial Intelligence for Organizational Nurturing and Empowerment
+              {currentIdpId && (
+                <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full">
+                  Mode Update (ID: {currentIdpId})
+                </span>
+              )}
+              {!currentIdpId && (
+                <span className="text-xs bg-blue-100 text-blue-700 px-2 py-1 rounded-full">
+                  Mode Create
+                </span>
+              )}
+            </h3>
+            <p className="text-sm text-indigo-700">
+              {currentIdpId 
+                ? "Anda sedang mengedit IDP yang sudah ada. Perubahan akan memperbarui data yang ada."
+                : "Isi IDP Anda, lalu klik \"Analisis dengan AI One\" untuk mendapatkan rekomendasi pengembangan yang tepat sasaran."
+              }
+            </p>
+          </div>
+        </div>
+      </div>
+
       {autoLoading && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
           <div className="bg-white p-4 rounded-lg">
@@ -423,6 +533,7 @@ export default function IdpFormWizard({ onClose }: { onClose?: () => void }) {
           tahun={tahun}
           setTahun={setTahun}
           submitting={submitting}
+          currentIdpId={currentIdpId}
         />
       ) : null}
 
@@ -473,7 +584,7 @@ export default function IdpFormWizard({ onClose }: { onClose?: () => void }) {
           <button
             onClick={analyzeWithAi}
             disabled={aiLoading}
-            className="px-3 py-2 bg-indigo-600 text-white rounded-md text-sm disabled:opacity-50 flex items-center gap-2"
+            className="px-3 py-2 bg-indigo-600 text-white rounded-md text-sm disabled:opacity-50 flex items-center gap-2 hover:bg-indigo-700 transition-colors"
           >
             {aiLoading ? (
               <>
@@ -481,10 +592,15 @@ export default function IdpFormWizard({ onClose }: { onClose?: () => void }) {
                   <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.4)" strokeWidth="4"></circle>
                   <path d="M22 12a10 10 0 00-10-10" stroke="white" strokeWidth="4" strokeLinecap="round"></path>
                 </svg>
-                Analisis...
+                AI One menganalisis...
               </>
             ) : (
-              'Analisis dengan AI'
+              <>
+                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                </svg>
+                Analisis dengan AI One
+              </>
             )}
           </button>
 
@@ -503,11 +619,18 @@ export default function IdpFormWizard({ onClose }: { onClose?: () => void }) {
       {/* AI Result Modal (rich) */}
       {showAiModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40" onClick={() => setShowAiModal(false)}>
-          <div className="bg-white rounded-lg max-w-3xl w-full p-6 mx-4" onClick={(e) => e.stopPropagation()}>
-            <div className="flex justify-between items-start">
+          <div className="bg-white rounded-lg max-w-3xl w-full max-h-[90vh] overflow-hidden mx-4 flex flex-col" onClick={(e) => e.stopPropagation()}>
+            <div className="flex justify-between items-start p-6 border-b bg-gray-50 flex-shrink-0">
               <div>
-                <h3 className="text-lg font-semibold">Hasil Analisis AI</h3>
-                <p className="text-sm text-gray-500">Saran yang dihasilkan berdasarkan input SWOT dan rencana Anda.</p>
+                <h3 className="text-lg font-semibold flex items-center gap-2">
+                  <svg className="w-5 h-5 text-indigo-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9.663 17h4.673M12 3v1m6.364 1.636l-.707.707M21 12h-1M4 12H3m3.343-5.657l-.707-.707m2.828 9.9a5 5 0 117.072 0l-.548.547A3.374 3.374 0 0014 18.469V19a2 2 0 11-4 0v-.531c0-.895-.356-1.754-.988-2.386l-.548-.547z" />
+                  </svg>
+                  Hasil Analisis AI One
+                </h3>
+                <p className="text-sm text-gray-500">
+                  AI One telah menganalisis SWOT dan rencana Anda untuk memberikan rekomendasi pengembangan yang tepat sasaran.
+                </p>
               </div>
               <div className="flex items-center gap-2">
                 <button
@@ -516,7 +639,7 @@ export default function IdpFormWizard({ onClose }: { onClose?: () => void }) {
                     if (!aiResult) return
                     try {
                       await navigator.clipboard.writeText(aiResult)
-                      alert('AI result copied to clipboard')
+                      alert('Hasil analisis AI One berhasil disalin ke clipboard')
                     } catch (e) {
                       console.error('copy failed', e)
                     }
@@ -526,107 +649,113 @@ export default function IdpFormWizard({ onClose }: { onClose?: () => void }) {
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
-              {(() => {
-                if (!aiResult) return <div className="col-span-1 text-gray-600">Tidak ada hasil.</div>
-                try {
-                  const parsed: unknown = JSON.parse(aiResult);
-                  let suggestions: AiSuggestions | null = null;
-                  if (parsed && typeof parsed === 'object') {
-                    const obj = parsed as Record<string, unknown>;
-                    if (obj.suggestions && typeof obj.suggestions === 'object') {
-                      suggestions = obj.suggestions as AiSuggestions;
-                    } else {
-                      suggestions = obj as AiSuggestions;
+            <div className="flex-1 overflow-y-auto p-6">
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {(() => {
+                  if (!aiResult) return <div className="col-span-1 text-gray-600">Tidak ada hasil.</div>
+                  try {
+                    const parsed: unknown = JSON.parse(aiResult);
+                    let suggestions: AiSuggestions | null = null;
+                    if (parsed && typeof parsed === 'object') {
+                      const obj = parsed as Record<string, unknown>;
+                      if (obj.suggestions && typeof obj.suggestions === 'object') {
+                        suggestions = obj.suggestions as AiSuggestions;
+                      } else {
+                        suggestions = obj as AiSuggestions;
+                      }
                     }
+
+                    const goals: Goal[] = Array.isArray(suggestions?.goals) ? suggestions.goals : []
+                    const activities: Activity[] = Array.isArray(suggestions?.activities) ? suggestions.activities : []
+
+                    return (
+                      <>
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between sticky top-0 bg-white py-2 border-b">
+                            <h4 className="font-medium">Goals (Tujuan)</h4>
+                            {goals.length > 0 && (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition"
+                                  onClick={() => handleGoalsChange(goals)}
+                                >Apply All Goals</button>
+                              </div>
+                            )}
+                          </div>
+
+                          {goals.length === 0 ? (
+                            <div className="text-gray-500">Tidak ada saran goals yang terstruktur.</div>
+                          ) : (
+                            <div className="space-y-3">
+                              {goals.map((g, i) => (
+                                <div key={`goal-${i}`} className="p-3 border rounded-md shadow-sm hover:shadow-md transition">
+                                  <div className="flex items-start justify-between gap-4">
+                                    <div className="flex-1">
+                                      <div className="text-sm text-gray-700 font-semibold">{g.kompetensi || `Goal ${i+1}`}</div>
+                                      {g.alasan && <div className="text-xs text-gray-500 mt-1">Alasan: {g.alasan}</div>}
+                                      {g.target && <div className="text-xs text-gray-500 mt-1">Target: {g.target}</div>}
+                                      {g.indikator && <div className="text-xs text-gray-500 mt-1">Indikator: {g.indikator}</div>}
+                                    </div>
+                                    <button
+                                      className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition flex-shrink-0"
+                                      onClick={() => importGoal(g)}
+                                    >Import</button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+
+                        <div className="space-y-3">
+                          <div className="flex items-center justify-between sticky top-0 bg-white py-2 border-b">
+                            <h4 className="font-medium">Activities (Rencana Kegiatan)</h4>
+                            {activities.length > 0 && (
+                              <div className="flex items-center gap-2">
+                                <button
+                                  className="px-3 py-1 bg-green-600 text-white rounded text-sm hover:bg-green-700 transition"
+                                  onClick={() => handleActivitiesChange(activities)}
+                                >Apply All Activities</button>
+                              </div>
+                            )}
+                          </div>
+
+                          {activities.length === 0 ? (
+                            <div className="text-gray-500">Tidak ada saran activities yang terstruktur.</div>
+                          ) : (
+                            <div className="space-y-3">
+                              {activities.map((a, i) => (
+                                <div key={`act-${i}`} className="p-3 border rounded-md shadow-sm hover:shadow-md transition">
+                                  <div className="flex items-start justify-between gap-4">
+                                    <div className="flex-1">
+                                      <div className="text-sm text-gray-700 font-semibold">{a.judul || `Activity ${i+1}`}</div>
+                                      <div className="text-xs text-gray-500 mt-1">Jenis: {a.jenis || '-'}</div>
+                                      {a.penyelenggara && <div className="text-xs text-gray-500 mt-1">Penyelenggara: {a.penyelenggara}</div>}
+                                    </div>
+                                    <button
+                                      className="px-2 py-1 bg-blue-600 text-white rounded text-xs hover:bg-blue-700 transition flex-shrink-0"
+                                      onClick={() => importActivity(a)}
+                                    >Import</button>
+                                  </div>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </>
+                    )
+                  } catch {
+                    // fallback: show raw text
+                    return <div className="col-span-1 text-sm text-gray-700 whitespace-pre-wrap">{aiResult}</div>
                   }
+                })()}
+              </div>
 
-                  const goals: Goal[] = Array.isArray(suggestions?.goals) ? suggestions.goals : []
-                  const activities: Activity[] = Array.isArray(suggestions?.activities) ? suggestions.activities : []
-
-                  return (
-                    <>
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-medium">Goals (Tujuan)</h4>
-                          {goals.length > 0 && (
-                            <div className="flex items-center gap-2">
-                              <button
-                                className="px-3 py-1 bg-green-600 text-white rounded text-sm"
-                                onClick={() => handleGoalsChange(goals)}
-                              >Apply All Goals</button>
-                            </div>
-                          )}
-                        </div>
-
-                        {goals.length === 0 ? (
-                          <div className="text-gray-500">Tidak ada saran goals yang terstruktur.</div>
-                        ) : (
-                          goals.map((g, i) => (
-                            <div key={`goal-${i}`} className="p-3 border rounded-md shadow-sm hover:shadow-md transition">
-                              <div className="flex items-start justify-between gap-4">
-                                <div>
-                                  <div className="text-sm text-gray-700 font-semibold">{g.kompetensi || `Goal ${i+1}`}</div>
-                                  {g.alasan && <div className="text-xs text-gray-500 mt-1">Alasan: {g.alasan}</div>}
-                                  {g.target && <div className="text-xs text-gray-500 mt-1">Target: {g.target}</div>}
-                                  {g.indikator && <div className="text-xs text-gray-500 mt-1">Indikator: {g.indikator}</div>}
-                                </div>
-                                <button
-                                  className="px-2 py-1 bg-blue-600 text-white rounded text-xs"
-                                  onClick={() => importGoal(g)}
-                                >Import</button>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-
-                      <div className="space-y-3">
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-medium">Activities (Rencana Kegiatan)</h4>
-                          {activities.length > 0 && (
-                            <div className="flex items-center gap-2">
-                              <button
-                                className="px-3 py-1 bg-green-600 text-white rounded text-sm"
-                                onClick={() => handleActivitiesChange(activities)}
-                              >Apply All Activities</button>
-                            </div>
-                          )}
-                        </div>
-
-                        {activities.length === 0 ? (
-                          <div className="text-gray-500">Tidak ada saran activities yang terstruktur.</div>
-                        ) : (
-                          activities.map((a, i) => (
-                            <div key={`act-${i}`} className="p-3 border rounded-md shadow-sm hover:shadow-md transition">
-                              <div className="flex items-start justify-between gap-4">
-                                <div>
-                                  <div className="text-sm text-gray-700 font-semibold">{a.judul || `Activity ${i+1}`}</div>
-                                  <div className="text-xs text-gray-500 mt-1">Jenis: {a.jenis || '-'}</div>
-                                  {a.penyelenggara && <div className="text-xs text-gray-500 mt-1">Penyelenggara: {a.penyelenggara}</div>}
-                                </div>
-                                <button
-                                  className="px-2 py-1 bg-blue-600 text-white rounded text-xs"
-                                  onClick={() => importActivity(a)}
-                                >Import</button>
-                              </div>
-                            </div>
-                          ))
-                        )}
-                      </div>
-                    </>
-                  )
-                } catch {
-                  // fallback: show raw text
-                  return <div className="col-span-1 text-sm text-gray-700 whitespace-pre-wrap">{aiResult}</div>
-                }
-              })()}
-            </div>
-
-            {/* Raw JSON / fallback view */}
-            <div className="mt-4">
-              <h5 className="text-sm font-medium text-gray-700">Raw / JSON</h5>
-              <pre className="mt-2 p-3 bg-gray-50 rounded max-h-48 overflow-auto text-xs">{aiResult}</pre>
+              {/* Raw JSON / fallback view */}
+              <div className="mt-6 border-t pt-4">
+                <h5 className="text-sm font-medium text-gray-700 mb-2">Raw / JSON</h5>
+                <pre className="p-3 bg-gray-50 rounded max-h-48 overflow-auto text-xs">{aiResult}</pre>
+              </div>
             </div>
           </div>
         </div>

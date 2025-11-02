@@ -10,9 +10,10 @@ interface Plan {
 
 interface ImplementationPlanFormProps {
   data?: Plan[];
+  onDataChange?: (plans: Plan[]) => void;
 }
 
-export default function ImplementationPlanForm({ data }: ImplementationPlanFormProps) {
+export default function ImplementationPlanForm({ data, onDataChange }: ImplementationPlanFormProps) {
   const [plans, setPlans] = useState<Plan[]>(data || [
     { hasil: '', penerapan: '', dampak: '' }
   ])
@@ -21,6 +22,7 @@ export default function ImplementationPlanForm({ data }: ImplementationPlanFormP
     const updated = [...plans]
     updated[i][field] = value
     setPlans(updated)
+    if (onDataChange) onDataChange(updated)
   }
 
   return (

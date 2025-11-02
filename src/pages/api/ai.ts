@@ -1,4 +1,4 @@
-import type { NextApiRequest, NextApiResponse } from 'next'
+import type { NextApiRequest, NextApiResponse } from "next";
 
 type AiPayload = {
   swot?: { strength: string; weakness: string; opportunities: string; threats: string };
@@ -7,112 +7,189 @@ type AiPayload = {
   implementation?: unknown[];
 };
 
+type GeminiResponse = {
+  candidates?: {
+    content?: {
+      parts?: {
+        text?: string;
+      }[];
+    };
+  }[];
+};
+
+type OpenAiResponse = {
+  choices?: {
+    message?: {
+      content?: string;
+    };
+    text?: string;
+  }[];
+};
+
 type AiSuggestions = {
   goals?: Array<{ kompetensi: string; alasan: string; target: string; indikator: string }>;
   activities?: Array<{ jenis: string; judul: string; penyelenggara: string }>;
 };
 
-// Simple helper to build a user prompt from payload
+// 🧩 Helper: buat prompt dari payload user
 function buildUserPrompt(type: string | undefined, payload: AiPayload) {
-  if (!payload) return 'Tolong berikan saran IDP umum (goals dan activities).'
-  // Prefer a compact human-readable summary for the model
+  if (!payload) return "Tolong berikan saran IDP umum (goals dan activities).";
+
   try {
-    const parts: string[] = []
-    if (payload.swot) parts.push(`SWOT:\n${JSON.stringify(payload.swot)}`)
-    if (payload.goals) parts.push(`Current goals:\n${JSON.stringify(payload.goals)}`)
-    if (payload.activities) parts.push(`Current activities:\n${JSON.stringify(payload.activities)}`)
-    if (payload.implementation) parts.push(`Implementation notes:\n${JSON.stringify(payload.implementation)}`)
-    const joined = parts.join('\n\n')
-    return `Analisis IDP berikut dan sarankan 3 goals dan 3 activities yang relevan, ringkas dan actionable. Berikan juga alasan singkat untuk tiap saran.\n\n${joined}`
+    const parts: string[] = [];
+    if (payload.swot) parts.push(`SWOT:\n${JSON.stringify(payload.swot, null, 2)}`);
+    if (payload.goals) parts.push(`Current goals:\n${JSON.stringify(payload.goals, null, 2)}`);
+    if (payload.activities) parts.push(`Current activities:\n${JSON.stringify(payload.activities, null, 2)}`);
+    if (payload.implementation)
+      parts.push(`Implementation notes:\n${JSON.stringify(payload.implementation, null, 2)}`);
+
+    const joined = parts.join("\n\n");
+
+    return `Analisis IDP berikut dan sarankan 3 goals serta 3 activities yang relevan, ringkas, dan actionable. 
+Berikan juga alasan singkat untuk tiap saran.\n\n${joined}`;
   } catch {
-    return `Analisis IDP berikut dan sarankan 3 goals dan 3 activities yang relevan, ringkas dan actionable. Payload: ${String(payload)}`
+    return `Analisis IDP berikut dan sarankan 3 goals dan 3 activities yang relevan, ringkas dan actionable. Payload: ${String(payload)}`;
   }
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== 'POST') return res.status(405).json({ message: 'Method not allowed' })
+  if (req.method !== "POST") return res.status(405).json({ message: "Method not allowed" });
 
-  const { type, payload } = req.body as { type?: string; payload?: AiPayload } ?? {}
+  const { type, payload } = req.body as { type?: string; payload?: AiPayload } ?? {};
 
-  // Build messages ensuring messages[1].content exists
   const messages = [
     {
-      role: 'system',
+      role: "system",
       content:
-        'You are an HR assistant. Provide concise, actionable IDP recommendations. IMPORTANT: Reply with a single JSON object and ONLY that JSON. The object must have a top-level key "suggestions". Inside "suggestions", include optional keys "goals" (array of objects with keys: kompetensi, alasan, target, indikator) and "activities" (array of objects with keys: jenis, judul, penyelenggara). Do NOT include any explanatory text outside the JSON.'
+        'You are an HR assistant. Provide concise, actionable IDP recommendations. ' +
+        'IMPORTANT: Reply with a single JSON object and ONLY that JSON. ' +
+        'The object must have a top-level key "suggestions". Inside "suggestions", include optional keys ' +
+        '"goals" (array of objects with keys: kompetensi, alasan, target, indikator) and "activities" ' +
+        '(array of objects with keys: jenis, judul, penyelenggara). Do NOT include any explanatory text outside the JSON.'
     },
-    { role: 'user', content: buildUserPrompt(type, payload || {}) }
-  ]
+    { role: "user", content: buildUserPrompt(type, payload || {}) }
+  ];
 
-  // Log for debugging — remove or redact in production
-  console.log('[api/ai] outgoing messages:', messages)
+  console.log("[api/ai] outgoing messages:", messages);
 
-  // Map to provider request
-  const providerUrl = process.env.AI_PROVIDER_URL || 'https://api.openai.com/v1/chat/completions'
-  const apiKey = process.env.AI_PROVIDER_KEY || process.env.OPENAI_API_KEY
-  const model = process.env.AI_MODEL || process.env.OPENAI_MODEL || 'gpt-4o-mini'
+  // 🎯 Tentukan provider dan model
+  const providerUrl =
+    process.env.AI_PROVIDER_URL ||
+    "https://generativelanguage.googleapis.com/v1beta/models/gemini-pro:generateContent";
+
+  const apiKey =
+    process.env.AI_PROVIDER_KEY ||
+    process.env.OPENAI_API_KEY ||
+    process.env.GEMINI_API_KEY;
+
+  const model =
+    process.env.AI_MODEL ||
+    process.env.OPENAI_MODEL ||
+    process.env.GEMINI_MODEL ||
+    "gpt-4o-mini";
 
   if (!apiKey) {
-    return res.status(500).json({ message: 'AI provider API key not configured on server.' })
+    return res.status(500).json({ message: "AI provider API key not configured on server." });
   }
 
+  const isGemini = providerUrl.includes("generativelanguage.googleapis.com");
+
   try {
-    const body = {
-      model,
-      messages,
-      max_tokens: 800
+    let providerRes;
+
+    if (isGemini) {
+      // 🎯 Format khusus Gemini
+      const geminiBody = {
+        contents: messages.map(m => ({
+          role: m.role === "system" ? "user" : m.role, // Gemini tidak kenal 'system'
+          parts: [{ text: m.content }]
+        }))
+      };
+
+      const geminiUrl = `${providerUrl}?key=${apiKey}`;
+
+      providerRes = await fetch(geminiUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(geminiBody)
+      });
+    } else {
+      // 🎯 Default OpenAI/OpenRouter style
+      const openaiBody = { model, messages, max_tokens: 800 };
+
+      providerRes = await fetch(providerUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${apiKey}`
+        },
+        body: JSON.stringify(openaiBody)
+      });
     }
 
-    const providerRes = await fetch(providerUrl, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        Authorization: `Bearer ${apiKey}`
-      },
-      body: JSON.stringify(body)
-    })
-
-    const json = await providerRes.json()
-
-    // Try to extract text content from common provider response shapes
-    let textContent: string | null = null
+    const providerText = await providerRes.text();
+    let json: unknown = null;
     try {
-      if (json.choices && Array.isArray(json.choices) && json.choices[0]) {
-        const choice = json.choices[0]
-        if (choice.message && choice.message.content) textContent = String(choice.message.content)
-        else if (choice.text) textContent = String(choice.text)
+      json = JSON.parse(providerText);
+    } catch {
+      json = providerText;
+    }
+
+    if (!providerRes.ok) {
+      console.error('[api/ai] provider error', providerRes.status, providerText);
+      if (process.env.NODE_ENV === 'development') {
+        // json is unknown; return it directly without using `any`
+        return res.status(providerRes.status).json({ error: json });
       }
-    } catch {
-      // ignore
+      return res.status(providerRes.status).json({ error: 'AI provider returned an error' });
     }
 
-    // If no textContent found, fallback to stringifying entire response
-    if (!textContent) textContent = JSON.stringify(json)
+    // 🧠 Parsing text dari response
+    let textContent: string | null = null;
 
-    // Heuristic: try to parse textContent as JSON directly
-    let suggestions: AiSuggestions | null = null
+    if (isGemini) {
+      const geminiRes = json as GeminiResponse;
+      textContent = geminiRes.candidates?.[0]?.content?.parts?.[0]?.text || null;
+    } else {
+      const openaiRes = json as OpenAiResponse;
+      const choice = openaiRes.choices?.[0];
+      textContent = choice?.message?.content || choice?.text || null;
+    }
+
+    if (!textContent) textContent = JSON.stringify(json);
+
+    // 🧩 Parsing hasil JSON
+    let suggestions: AiSuggestions | null = null;
     try {
-      suggestions = JSON.parse(textContent)
+      suggestions = JSON.parse(textContent);
     } catch {
-      // If direct parse fails, try to extract JSON block between ``` or between first {..}
-      const fenceMatch = textContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/i)
-      if (fenceMatch && fenceMatch[1]) {
-        try { suggestions = JSON.parse(fenceMatch[1]) } catch {}
+      const fenceMatch = textContent.match(/```(?:json)?\s*([\s\S]*?)\s*```/i);
+      if (fenceMatch?.[1]) {
+        try {
+          suggestions = JSON.parse(fenceMatch[1]);
+        } catch {}
       }
       if (!suggestions) {
-        // find first { ... } block
-        const braceMatch = textContent.match(/\{[\s\S]*\}/)
+        const braceMatch = textContent.match(/\{[\s\S]*\}/);
         if (braceMatch) {
-          try { suggestions = JSON.parse(braceMatch[0]) } catch {}
+          try {
+            suggestions = JSON.parse(braceMatch[0]);
+          } catch {}
         }
       }
     }
 
-    // Attach suggestions if found, otherwise suggestions stays null
-    const out = { provider: json, suggestions }
-    res.status(providerRes.status).json(out)
+    const out = {
+      provider: isGemini ? "gemini" : "openai",
+      suggestions,
+      raw: json
+    };
+
+    res.status(200).json(out);
   } catch (err) {
-    console.error('AI proxy error', err)
-    res.status(500).json({ message: 'Error contacting AI provider', error: String(err) })
+    console.error("AI proxy error", err);
+    res.status(500).json({ message: "Error contacting AI provider", error: String(err) });
   }
 }

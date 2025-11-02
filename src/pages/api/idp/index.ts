@@ -1,0 +1,91 @@
+import type { NextApiRequest, NextApiResponse } from 'next'
+import { prisma } from '@/lib/prisma'
+
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  try {
+    switch (req.method) {
+      // 🔹 GET semua IDP
+      case 'GET': {
+        const idpList = await prisma.idp.findMany({
+          include: {
+            users: {
+              select: { unit_kerja: true },
+            },
+          },
+          orderBy: { created_at: 'desc' },
+        })
+        return res.status(200).json(idpList)
+      }
+
+      // 🔹 POST buat data IDP baru
+      case 'POST': {
+        const {
+          user_id,
+          tahun,
+          strength,
+          weakness,
+          opportunities,
+          threats,
+          goals,
+          activities,
+          plans,
+          ai_result,
+          ai_suggestions,
+          status,
+        } = req.body
+
+        // Basic validation
+        if (!user_id || !tahun) {
+          return res.status(400).json({ error: 'user_id and tahun are required' })
+        }
+
+        // Check user exists
+        const user = await prisma.users.findUnique({ where: { id: Number(user_id) } })
+        if (!user) return res.status(404).json({ error: 'User not found' })
+
+        // Prevent duplicate IDP for same user & year
+        const existing = await prisma.idp.findFirst({
+          where: { user_id: Number(user_id), tahun: Number(tahun) },
+        })
+        if (existing) {
+          return res.status(409).json({ error: 'IDP already exists for this user and year' })
+        }
+
+        const created = await prisma.idp.create({
+          data: {
+            user_id: Number(user_id),
+            tahun: Number(tahun),
+            strength: strength ?? null,
+            weakness: weakness ?? null,
+            opportunities: opportunities ?? null,
+            threats: threats ?? null,
+            goals: goals ?? null,
+            activities: activities ?? null,
+            plans: plans ?? null,
+            ai_result: ai_result ?? null,
+            ai_suggestions: ai_suggestions ?? null,
+            status: status ?? 'draft',
+          },
+          include: {
+            users: {
+              select: {
+                id: true,
+                username: true,
+                alias: true,
+              },
+            },
+          },
+        })
+
+        return res.status(201).json({ message: 'IDP created', data: created })
+      }
+
+      default:
+        res.setHeader('Allow', ['GET', 'POST'])
+        return res.status(405).end(`Method ${req.method} Not Allowed`)
+    }
+  } catch (error) {
+    console.error('Error in /api/idp:', error)
+    return res.status(500).json({ error: 'Terjadi kesalahan pada server.' })
+  }
+}

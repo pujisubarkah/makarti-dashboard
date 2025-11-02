@@ -555,6 +555,7 @@ model users {
   broadcastread                        broadcastread[]
   evaluasi_unit_kerja                  evaluasi_unit_kerja?
   event_schedule                       event_schedule[]
+  idp                                  idp[]
   inovasi                              inovasi[]
   kajian                               kajian[]
   koordinasi                           koordinasi[]
@@ -576,6 +577,27 @@ model users {
   sosialisasi                          sosialisasi[]
   tasks                                tasks[]
   role_user                            role_user?              @relation(fields: [role_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
+
+  @@schema("makarti")
+}
+
+model idp {
+  id             Int       @id @default(autoincrement())
+  user_id        Int
+  tahun          Int       @db.SmallInt
+  strength       String?
+  weakness       String?
+  opportunities  String?
+  threats        String?
+  goals          Json?
+  activities     Json?
+  plans          Json?
+  ai_result      String?
+  ai_suggestions Json?
+  status         String?   @default("draft") @db.VarChar(50)
+  created_at     DateTime? @default(now()) @db.Timestamp(6)
+  updated_at     DateTime? @default(now()) @db.Timestamp(6)
+  users          users     @relation(fields: [user_id], references: [id], onDelete: NoAction, onUpdate: NoAction)
 
   @@schema("makarti")
 }

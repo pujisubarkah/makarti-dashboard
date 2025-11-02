@@ -77,7 +77,7 @@ export default function IDPSection() {
             >
               &times;
             </button>
-            <IdpFormWizard />
+            <IdpFormWizard onClose={() => setShowModal(false)} />
           </div>
         </div>
       )}

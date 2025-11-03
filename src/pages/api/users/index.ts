@@ -13,9 +13,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     })
 
+    await prisma.$disconnect();
     return res.status(200).json({ users })
   } catch (error) {
     console.error('Error mengambil data users:', error)
+    await prisma.$disconnect();
     return res.status(500).json({ message: 'Internal server error' })
   }
 }

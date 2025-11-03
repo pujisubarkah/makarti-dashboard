@@ -1,7 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 interface UnitWithScores {
   id: number
@@ -206,6 +204,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(200).json(result)  } catch (error: unknown) {
     console.error('Error:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
+    await prisma.$disconnect()
     return res.status(500).json({ message: 'Internal server error', error: errorMessage })
   }
 }

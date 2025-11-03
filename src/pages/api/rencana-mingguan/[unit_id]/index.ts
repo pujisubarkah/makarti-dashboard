@@ -5,6 +5,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const { unit_id } = req.query;
 
   if (!unit_id || isNaN(parseInt(unit_id as string))) {
+    await prisma.$disconnect();
     return res.status(400).json({ error: 'Invalid unit_id' });
   }
 
@@ -20,6 +21,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     case 'DELETE':
       return handleDelete(unitId, req, res);
     default:
+      await prisma.$disconnect();
       return res.status(405).json({ error: 'Method not allowed' });
   }
 }
@@ -38,6 +40,7 @@ async function handleGet(unit_id: number, res: NextApiResponse) {
     return res.status(200).json({ data });
   } catch (error) {
     console.error('Error fetching rencana mingguan:', error);
+    await prisma.$disconnect();
     return res.status(500).json({ error: 'Failed to fetch data' });
   }
 }
@@ -49,6 +52,7 @@ async function handlePost(unit_id: number, req: NextApiRequest, res: NextApiResp
 
     // Validasi input
     if (!bulan || !minggu || !kegiatan || !jenis_belanja || !anggaran_rencana || !status) {
+      await prisma.$disconnect();
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
@@ -74,6 +78,7 @@ async function handlePost(unit_id: number, req: NextApiRequest, res: NextApiResp
     return res.status(201).json({ data: newData });
   } catch (error) {
     console.error('Error creating rencana mingguan:', error);
+    await prisma.$disconnect();
     return res.status(500).json({ error: 'Failed to create data' });
   }
 }
@@ -84,6 +89,7 @@ async function handlePut(unit_id: number, req: NextApiRequest, res: NextApiRespo
     const { id, bulan, minggu, kegiatan, jenis_belanja, anggaran_rencana, anggaran_cair, status } = req.body;
 
     if (!id) {
+      await prisma.$disconnect();
       return res.status(400).json({ error: 'Missing id for update' });
     }
 
@@ -97,6 +103,7 @@ async function handlePut(unit_id: number, req: NextApiRequest, res: NextApiRespo
       });
 
       if (!existingData) {
+        await prisma.$disconnect();
         return res.status(404).json({ error: 'Data not found' });
       }
 
@@ -140,6 +147,7 @@ async function handlePut(unit_id: number, req: NextApiRequest, res: NextApiRespo
     }
   } catch (error) {
     console.error('Error updating rencana mingguan:', error);
+    await prisma.$disconnect();
     return res.status(500).json({ error: 'Failed to update data' });
   }
 }
@@ -150,6 +158,7 @@ async function handleDelete(unit_id: number, req: NextApiRequest, res: NextApiRe
     const { id } = req.query;
 
     if (!id) {
+      await prisma.$disconnect();
       return res.status(400).json({ error: 'Missing id parameter' });
     }
 
@@ -160,6 +169,7 @@ async function handleDelete(unit_id: number, req: NextApiRequest, res: NextApiRe
     return res.status(200).json({ message: 'Data deleted successfully' });
   } catch (error) {
     console.error('Error deleting rencana mingguan:', error);
+    await prisma.$disconnect();
     return res.status(500).json({ error: 'Failed to delete data' });
   }
 }

@@ -1,10 +1,9 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
+    await prisma.$disconnect();
     return res.status(405).json({ success: false, message: 'Method not allowed' })
   }
 
@@ -12,6 +11,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { userId } = req.query
 
     if (!userId) {
+      await prisma.$disconnect();
       return res.status(400).json({ 
         success: false, 
         message: 'User ID is required' 
@@ -24,6 +24,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
 
     if (!user) {
+      await prisma.$disconnect();
       return res.status(404).json({ 
         success: false, 
         message: 'User not found' 

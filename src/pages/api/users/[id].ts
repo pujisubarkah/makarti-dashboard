@@ -23,12 +23,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
 
     if (!user) {
+      await prisma.$disconnect();
       return res.status(404).json({ message: 'User tidak ditemukan' })
     }
 
+    await prisma.$disconnect();
     return res.status(200).json({ user })
   } catch (error) {
     console.error('Error mengambil user:', error)
+    await prisma.$disconnect();
     return res.status(500).json({ message: 'Internal server error' })
   }
 }

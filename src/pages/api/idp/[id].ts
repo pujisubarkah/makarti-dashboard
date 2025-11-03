@@ -42,7 +42,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           })
         }
         
-        if (!idp) return res.status(404).json({ error: 'IDP tidak ditemukan' })
+        if (!idp) {
+          await prisma.$disconnect()
+          return res.status(404).json({ error: 'IDP tidak ditemukan' })
+        }
+        await prisma.$disconnect()
         return res.status(200).json(idp)
       }
 
@@ -56,6 +60,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             updated_at: new Date(),
           },
         })
+        await prisma.$disconnect()
         return res.status(200).json(updated)
       }
 
@@ -64,6 +69,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         await prisma.idp.delete({
           where: { id: Number(id) },
         })
+        await prisma.$disconnect()
         return res.status(204).end()
       }
 
@@ -73,6 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } catch (error) {
     console.error('Error in /api/idp/[id]:', error)
+    await prisma.$disconnect()
     return res.status(500).json({ error: 'Gagal memproses data IDP.' })
   }
 }

@@ -8,11 +8,13 @@ export default async function handler(
   const { subtasks_id } = req.query;
 
   if (!subtasks_id || Array.isArray(subtasks_id)) {
+    await prisma.$disconnect();
     return res.status(400).json({ error: 'Invalid subtasks_id parameter' });
   }
 
   const subtaskId = parseInt(subtasks_id, 10);
   if (isNaN(subtaskId)) {
+    await prisma.$disconnect();
     return res.status(400).json({ error: 'subtasks_id must be a valid number' });
   }
 
@@ -45,9 +47,11 @@ export default async function handler(
       });
 
       if (!submission) {
+        await prisma.$disconnect();
         return res.status(404).json({ error: 'Subtask submission not found' });
       }
 
+      await prisma.$disconnect();
       return res.status(200).json(submission);
 
     } else if (req.method === 'POST') {
@@ -55,6 +59,7 @@ export default async function handler(
       const { file_upload, komentar } = req.body;
 
       if (!file_upload) {
+        await prisma.$disconnect();
         return res.status(400).json({ error: 'file_upload is required' });
       }
 
@@ -73,6 +78,7 @@ export default async function handler(
       });
 
       if (!subtask) {
+        await prisma.$disconnect();
         return res.status(404).json({ error: 'Subtask not found' });
       }
 
@@ -82,6 +88,7 @@ export default async function handler(
       });
 
       if (existingSubmission) {
+        await prisma.$disconnect();
         return res.status(409).json({ error: 'Submission already exists for this subtask' });
       }
 
@@ -110,6 +117,7 @@ export default async function handler(
         }
       });
 
+      await prisma.$disconnect();
       return res.status(201).json(newSubmission);
 
     } else if (req.method === 'PUT') {
@@ -122,6 +130,7 @@ export default async function handler(
       });
 
       if (!existingSubmission) {
+        await prisma.$disconnect();
         return res.status(404).json({ error: 'Subtask submission not found' });
       }
 
@@ -150,6 +159,7 @@ export default async function handler(
         }
       });
 
+      await prisma.$disconnect();
       return res.status(200).json(updatedSubmission);
 
     } else if (req.method === 'DELETE') {
@@ -159,6 +169,7 @@ export default async function handler(
       });
 
       if (!existingSubmission) {
+        await prisma.$disconnect();
         return res.status(404).json({ error: 'Subtask submission not found' });
       }
 
@@ -166,15 +177,18 @@ export default async function handler(
         where: { subtask_id: subtaskId }
       });
 
+      await prisma.$disconnect();
       return res.status(204).end();
 
     } else {
       res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
+      await prisma.$disconnect();
       return res.status(405).json({ error: `Method ${req.method} not allowed` });
     }
 
   } catch (error) {
     console.error('Error in subtasks_submission API:', error);
+    await prisma.$disconnect();
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

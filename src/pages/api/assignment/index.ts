@@ -14,6 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
       return res.status(200).json(assignments);
     } catch {
+      await prisma.$disconnect();
       return res.status(500).json({ error: 'Gagal mengambil data penugasan' });
     }
   }
@@ -43,6 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       return res.status(201).json(newAssignment);
     } catch {
+      await prisma.$disconnect();
       return res.status(500).json({ error: 'Gagal menambahkan penugasan' });
     }
   }

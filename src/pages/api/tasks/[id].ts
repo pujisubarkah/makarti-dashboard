@@ -22,8 +22,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
       if (!task) return res.status(404).json({ error: 'Task not found' });
+      await prisma.$disconnect();
       res.status(200).json(task);
     } catch (error) {
+      await prisma.$disconnect();
       res.status(500).json({ error: 'Internal server error', details: error });
     }
   } else if (req.method === 'PUT') {
@@ -51,6 +53,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
       res.status(200).json(updatedTask);
     } catch (error) {
+      await prisma.$disconnect();
       res.status(500).json({ error: 'Failed to update task', details: error });
     }
   } else if (req.method === 'DELETE') {
@@ -59,6 +62,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       await prisma.tasks.delete({
         where: { id: taskId },
       });
+      await prisma.$disconnect();
       res.status(204).end();
     } catch (error) {
       res.status(500).json({ error: 'Failed to delete task', details: error });

@@ -262,6 +262,8 @@ export default async function handler(
         }
       });
 
+      await prisma.$disconnect();
+
     } else if (req.method === 'POST') {
       // Create new subtask assigned to employee by NIP
       const { task_id, title, is_done = false } = req.body;
@@ -290,6 +292,7 @@ export default async function handler(
       });
 
       if (!task) {
+        await prisma.$disconnect();
         return res.status(404).json({ error: 'Task not found' });
       }
 
@@ -327,6 +330,8 @@ export default async function handler(
 
       return res.status(201).json(newSubtask);
 
+      await prisma.$disconnect();
+
     } else if (req.method === 'DELETE') {
       // Delete a subtask by id (from query param)
       const { id } = req.query;
@@ -341,12 +346,15 @@ export default async function handler(
       }
       const subtask = await prisma.subtasks.findUnique({ where: { id: subtaskId } });
       if (!subtask) {
+        await prisma.$disconnect();
         return res.status(404).json({ error: 'Subtask not found' });
       }
       if (subtask.assigned_to !== employee.id) {
+        await prisma.$disconnect();
         return res.status(403).json({ error: 'Subtask does not belong to this employee' });
       }
       await prisma.subtasks.delete({ where: { id: subtaskId } });
+      await prisma.$disconnect();
       return res.status(200).json({ success: true, message: 'Subtask deleted' });
     } else {
       res.setHeader('Allow', ['GET', 'POST', 'DELETE']);
@@ -355,6 +363,7 @@ export default async function handler(
 
   } catch (error) {
     console.error('Error in NIP subtasks API:', error);
+    await prisma.$disconnect();
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

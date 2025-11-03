@@ -45,9 +45,11 @@ export default async function handler(
       });
 
       if (!review) {
+        await prisma.$disconnect();
         return res.status(404).json({ error: 'Review not found' });
       }
 
+      await prisma.$disconnect();
       return res.status(200).json(review);
 
     } else if (req.method === 'POST') {
@@ -55,14 +57,17 @@ export default async function handler(
       const { rating, reviewed_by } = req.body;
 
       if (!rating || !reviewed_by) {
+        await prisma.$disconnect();
         return res.status(400).json({ error: 'rating and reviewed_by are required' });
       }
 
       if (typeof rating !== 'number' || rating < 1 || rating > 5) {
+        await prisma.$disconnect();
         return res.status(400).json({ error: 'rating must be a number between 1 and 5' });
       }
 
       if (typeof reviewed_by !== 'string' || reviewed_by.length > 18) {
+        await prisma.$disconnect();
         return res.status(400).json({ error: 'reviewed_by must be a string with max 18 characters' });
       }
 
@@ -72,6 +77,7 @@ export default async function handler(
       });
 
       if (!subtask) {
+        await prisma.$disconnect();
         return res.status(404).json({ error: 'Subtask not found' });
       }
 
@@ -81,6 +87,7 @@ export default async function handler(
       });
 
       if (existingReview) {
+        await prisma.$disconnect();
         return res.status(409).json({ error: 'Review already exists for this subtask' });
       }
 
@@ -115,6 +122,7 @@ export default async function handler(
         }
       });
 
+      await prisma.$disconnect();
       return res.status(201).json(newReview);
 
     } else if (req.method === 'PUT') {
@@ -122,10 +130,12 @@ export default async function handler(
       const { rating, reviewed_by } = req.body;
 
       if (rating && (typeof rating !== 'number' || rating < 1 || rating > 5)) {
+        await prisma.$disconnect();
         return res.status(400).json({ error: 'rating must be a number between 1 and 5' });
       }
 
       if (reviewed_by && (typeof reviewed_by !== 'string' || reviewed_by.length > 18)) {
+        await prisma.$disconnect();
         return res.status(400).json({ error: 'reviewed_by must be a string with max 18 characters' });
       }
 
@@ -135,6 +145,7 @@ export default async function handler(
       });
 
       if (!existingReview) {
+        await prisma.$disconnect();
         return res.status(404).json({ error: 'Review not found' });
       }
 
@@ -169,6 +180,7 @@ export default async function handler(
         }
       });
 
+      await prisma.$disconnect();
       return res.status(200).json(updatedReview);
 
     } else if (req.method === 'DELETE') {
@@ -178,6 +190,7 @@ export default async function handler(
       });
 
       if (!existingReview) {
+        await prisma.$disconnect();
         return res.status(404).json({ error: 'Review not found' });
       }
 
@@ -185,15 +198,18 @@ export default async function handler(
         where: { subtask_id: subtaskId }
       });
 
+      await prisma.$disconnect();
       return res.status(204).end();
 
     } else {
       res.setHeader('Allow', ['GET', 'POST', 'PUT', 'DELETE']);
+      await prisma.$disconnect();
       return res.status(405).json({ error: `Method ${req.method} not allowed` });
     }
 
   } catch (error) {
     console.error('Error in subtask_reviews API:', error);
+    await prisma.$disconnect();
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

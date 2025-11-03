@@ -25,9 +25,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     // Bersihkan alias null dan duplikat
     const aliasList = Array.from(new Set(data.map((item) => item.alias).filter(Boolean)))
 
+    await prisma.$disconnect();
     res.status(200).json(aliasList)
   } catch (error) {
     console.error('Error fetching alias:', error)
+    await prisma.$disconnect();
     res.status(500).json({ message: 'Internal server error' })
   }
 }

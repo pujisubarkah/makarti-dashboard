@@ -1,12 +1,11 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient()
+import { prisma } from '@/lib/prisma'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { unit_kerja_id } = req.query
 
   if (!unit_kerja_id || Array.isArray(unit_kerja_id)) {
+    await prisma.$disconnect()
     return res.status(400).json({ message: 'unit_kerja_id tidak valid' })
   }
 
@@ -18,6 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
 
     if (!data) {
+      await prisma.$disconnect()
       return res.status(404).json({ message: 'Data tidak ditemukan' })
     }
 
@@ -63,6 +63,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
   } catch (error) {
     console.error('Error:', error)
+    await prisma.$disconnect()
     return res.status(500).json({ message: 'Internal server error' })
   }
 }

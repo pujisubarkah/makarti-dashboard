@@ -46,6 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           orderBy: { created_at: 'desc' },
         })
 
+        await prisma.$disconnect()
         return res.status(200).json({
           unit_kerja_id: Number(unit_kerja_id),
           tahun: tahun ? Number(tahun) : null,
@@ -60,6 +61,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } catch (error) {
     console.error('Error in /api/idp/unit/[unit_kerja_id]:', error)
+    await prisma.$disconnect()
     return res.status(500).json({ error: 'Gagal memproses data IDP berdasarkan unit kerja.' })
   }
 }

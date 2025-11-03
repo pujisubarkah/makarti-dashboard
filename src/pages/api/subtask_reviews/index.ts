@@ -112,6 +112,8 @@ export default async function handler(
         }
       });
 
+      await prisma.$disconnect();
+
     } else if (req.method === 'POST') {
       // Bulk create reviews (if needed)
       const { reviews } = req.body;
@@ -153,6 +155,8 @@ export default async function handler(
         reviews: createdReviews
       });
 
+      await prisma.$disconnect();
+
     } else {
       res.setHeader('Allow', ['GET', 'POST']);
       return res.status(405).json({ error: `Method ${req.method} not allowed` });
@@ -160,6 +164,7 @@ export default async function handler(
 
   } catch (error) {
     console.error('Error in subtask_reviews index API:', error);
+    await prisma.$disconnect();
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

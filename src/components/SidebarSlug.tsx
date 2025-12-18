@@ -3,15 +3,20 @@
 
 import Link from 'next/link'
 import { usePathname, useParams } from 'next/navigation'
+import { cn } from '@/lib/utils'
 import {
   User,
   CheckSquare,
   GraduationCap,
   Home,
+  ChevronLeft,
+  ChevronRight,
 } from 'lucide-react'
 
 type SidebarSlugProps = {
   className?: string
+  isCollapsed?: boolean
+  onToggle?: () => void
 }
 
 type MenuItem = {
@@ -22,7 +27,7 @@ type MenuItem = {
   type?: 'group' | 'item'
 }
 
-export function SidebarSlug({ className }: SidebarSlugProps) {
+export function SidebarSlug({ className, isCollapsed, onToggle }: SidebarSlugProps) {
   const pathname = usePathname()
   const params = useParams()
   const slug = params?.slug as string
@@ -61,21 +66,33 @@ export function SidebarSlug({ className }: SidebarSlugProps) {
   ]
 
   return (
-    <aside className={`w-64 min-w-64 max-w-64 bg-white border-r h-screen p-4 sticky top-0 overflow-y-auto shadow-xl flex-shrink-0 ${className || ''}`}>
-      <h1 className="text-2xl font-extrabold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-500 to-pink-500 flex items-center gap-2 truncate">
-        <span className="text-3xl flex-shrink-0">🌟</span> 
-        <span className="truncate">MAKARTI 5.0</span>
-      </h1>
-      
-      {/* Display current slug */}
-      {slug && (
-        <div className="mb-6 p-3 bg-blue-50 rounded-lg border border-blue-200">
-          <p className="text-sm text-blue-600 font-medium">PEGAWAI LAN:</p>
-          <p className="text-lg font-bold text-blue-800 truncate">{slug.replace(/-/g, ' ')}</p>
-        </div>
+    <aside 
+      className={cn(
+        "bg-white border-r h-screen sticky top-0 overflow-y-auto shadow-xl flex-shrink-0 transition-all duration-300",
+        isCollapsed ? "w-16 min-w-16 max-w-16" : "w-64 min-w-64 max-w-64",
+        className
       )}
+    >
+      <div className="p-4">
+        <h1 
+          className={cn(
+            "font-extrabold mb-8 text-transparent bg-clip-text bg-gradient-to-r from-blue-600 via-purple-500 to-pink-500 flex items-center gap-2 transition-all duration-300",
+            isCollapsed ? "text-center justify-center text-xl" : "text-2xl truncate"
+          )}
+        >
+          <span className={cn("flex-shrink-0", isCollapsed ? "text-2xl" : "text-3xl")}>🌟</span> 
+          {!isCollapsed && <span className="truncate">MAKARTI 5.0</span>}
+        </h1>
+        
+        {/* Display current slug */}
+        {slug && !isCollapsed && (
+          <div className="mb-6 p-3 bg-blue-50 rounded-lg border border-blue-200">
+            <p className="text-sm text-blue-600 font-medium">PEGAWAI LAN:</p>
+            <p className="text-lg font-bold text-blue-800 truncate">{slug.replace(/-/g, ' ')}</p>
+          </div>
+        )}
 
-      <nav className="space-y-2">
+        <nav className="space-y-2">
         {menuItems.map((item, index) => {
           // Render group label
           if (item.type === 'group') {
@@ -99,22 +116,24 @@ export function SidebarSlug({ className }: SidebarSlugProps) {
           return (
             <Link key={item.href} href={item.href} className="block">
               <div
-                className={`flex items-center justify-between text-base font-semibold p-2 rounded-xl transition-all duration-200 group shadow-sm
-                  ${
-                    isActive
-                      ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-r-4 border-blue-600 shadow-lg scale-[1.03]'
-                      : 'text-gray-600 hover:bg-blue-50 hover:text-blue-700 hover:scale-[1.01]'
-                  }`}
+                className={cn(
+                  "flex items-center text-base font-semibold p-2 rounded-xl transition-all duration-200 group shadow-sm",
+                  isActive
+                    ? 'bg-gradient-to-r from-blue-100 to-blue-200 text-blue-800 border-r-4 border-blue-600 shadow-lg scale-[1.03]'
+                    : 'text-gray-600 hover:bg-blue-50 hover:text-blue-700 hover:scale-[1.01]',
+                  isCollapsed ? "justify-center" : "justify-between"
+                )}
+                title={isCollapsed ? item.label : undefined}
               >
-                <div className="flex items-center gap-3 min-w-0">
+                <div className={cn("flex items-center gap-3 min-w-0", isCollapsed && "justify-center")}>
                   <span
                     className={`w-8 h-8 flex items-center justify-center rounded-lg transition-colors flex-shrink-0 ${iconBg} group-hover:scale-110`}
                   >
                     <Icon className="w-5 h-5" />
                   </span>
-                  <span className="truncate text-sm leading-tight">{item.label}</span>
+                  {!isCollapsed && <span className="truncate text-sm leading-tight">{item.label}</span>}
                 </div>
-                {item.status === 'maintenance' && (
+                {!isCollapsed && item.status === 'maintenance' && (
                   <span className="ml-2 text-xs font-bold text-orange-600 bg-orange-100 px-2 py-0.5 rounded-full border border-orange-300 shadow-sm animate-pulse">
                     🚧
                   </span>
@@ -123,7 +142,23 @@ export function SidebarSlug({ className }: SidebarSlugProps) {
             </Link>
           )
         })}
-      </nav>
+        </nav>
+      </div>
+      
+      {/* Toggle Button */}
+      {onToggle && (
+        <button
+          onClick={onToggle}
+          className="absolute -right-3 top-8 bg-blue-600 hover:bg-blue-700 text-white rounded-full p-1 shadow-lg transition-all duration-300 z-50"
+          aria-label={isCollapsed ? "Expand sidebar" : "Collapse sidebar"}
+        >
+          {isCollapsed ? (
+            <ChevronRight className="w-4 h-4" />
+          ) : (
+            <ChevronLeft className="w-4 h-4" />
+          )}
+        </button>
+      )}
     </aside>
   )
 }

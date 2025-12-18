@@ -8,22 +8,10 @@ const globalForPrisma = globalThis as unknown as {
 export const prisma =
   globalForPrisma.prisma ??
   new PrismaClient({
-    log: process.env.NODE_ENV === 'development' ? ['query', 'error', 'warn'] : ['error'],
-    datasources: {
-      db: {
-        url: process.env.DATABASE_URL
-      }
-    }
+    log: process.env.NODE_ENV === 'development' ? ['error', 'warn'] : ['error'],
   })
 
 if (process.env.NODE_ENV !== 'production') globalForPrisma.prisma = prisma
 
-// Helper function to ensure connection
-export async function ensureConnection() {
-  try {
-    await prisma.$connect()
-  } catch (error) {
-    console.error('Failed to connect to database:', error)
-    throw error
-  }
-}
+// NO NEED for ensureConnection with singleton pattern
+// Prisma automatically manages connections

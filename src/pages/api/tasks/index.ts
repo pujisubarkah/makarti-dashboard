@@ -24,10 +24,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
       
-      await prisma.$disconnect();
+      
       res.status(200).json(tasks);
     } catch {
-      await prisma.$disconnect();
+      
       res.status(500).json({ error: 'Internal server error' });
     }
   } else if (req.method === 'POST') {
@@ -62,10 +62,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
       
-      await prisma.$disconnect();
+      
       res.status(201).json(task);
     } catch {
-      await prisma.$disconnect();
+      
       res.status(500).json({ error: 'Internal server error' });
     }
   } else if (req.method === 'PUT') {
@@ -112,10 +112,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
 
-      await prisma.$disconnect();
+      
       res.status(200).json(updatedTask);
     } catch {
-      await prisma.$disconnect();
+      
       res.status(500).json({ error: 'Internal server error' });
     }
   } else if (req.method === 'DELETE') {
@@ -141,13 +141,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
     try {
       const deleted = await prisma.tasks.deleteMany({ where: { id: { in: ids } } });
-      await prisma.$disconnect();
+      
       return res.status(200).json({ deleted_count: deleted.count, ids });
     } catch (error) {
-      await prisma.$disconnect();
+      
       return res.status(500).json({ error: 'Failed to delete task(s)', details: error });
     }
   } else {
     res.status(405).json({ error: 'Method not allowed' });
   }
 }
+

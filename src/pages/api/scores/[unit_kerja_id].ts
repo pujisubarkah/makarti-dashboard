@@ -1,14 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { prisma, ensureConnection } from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const { unit_kerja_id } = req.query
 
-  // Ensure database connection
-  await ensureConnection()
-
   if (!unit_kerja_id || Array.isArray(unit_kerja_id)) {
-    await prisma.$disconnect()
     return res.status(400).json({ message: 'unit_kerja_id tidak valid' })
   }
 
@@ -20,7 +16,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     })
 
     if (!data) {
-      await prisma.$disconnect()
       return res.status(404).json({ message: 'Data tidak ditemukan' })
     }
 
@@ -65,8 +60,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       better,
     })
   } catch (error) {
-    console.error('Error:', error)
-    await prisma.$disconnect()
+    console.error('Error in /api/scores/[unit_kerja_id]:', error)
     return res.status(500).json({ message: 'Internal server error' })
   }
 }

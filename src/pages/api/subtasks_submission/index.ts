@@ -103,7 +103,7 @@ export default async function handler(
         where: whereClause
       });
 
-      await prisma.$disconnect();
+      
       return res.status(200).json({
         submissions,
         pagination: {
@@ -119,14 +119,14 @@ export default async function handler(
       const { submissions } = req.body;
 
       if (!Array.isArray(submissions) || submissions.length === 0) {
-        await prisma.$disconnect();
+        
         return res.status(400).json({ error: 'submissions array is required' });
       }
 
       // Validate each submission
       for (const submission of submissions) {
         if (!submission.subtask_id || !submission.file_upload) {
-          await prisma.$disconnect();
+          
           return res.status(400).json({ 
             error: 'Each submission must have subtask_id and file_upload' 
           });
@@ -148,7 +148,7 @@ export default async function handler(
         )
       );
 
-      await prisma.$disconnect();
+      
       return res.status(201).json({
         created_count: createdSubmissions.length,
         submissions: createdSubmissions
@@ -156,13 +156,14 @@ export default async function handler(
 
     } else {
       res.setHeader('Allow', ['GET', 'POST']);
-      await prisma.$disconnect();
+      
       return res.status(405).json({ error: `Method ${req.method} not allowed` });
     }
 
   } catch (error) {
     console.error('Error in subtasks_submission index API:', error);
-    await prisma.$disconnect();
+    
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
+

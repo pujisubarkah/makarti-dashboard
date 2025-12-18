@@ -7,12 +7,16 @@ import { Toaster } from 'sonner'
 
 export default function AdminLayout({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
+  const [sidebarCollapsed, setSidebarCollapsed] = useState(false)
 
   return (
     <div className="flex min-h-screen bg-gray-50 text-gray-900">
       {/* Sidebar for desktop */}
       <div className="hidden md:block">
-        <Sidebar />
+        <Sidebar 
+          isCollapsed={sidebarCollapsed} 
+          onToggle={() => setSidebarCollapsed(!sidebarCollapsed)} 
+        />
       </div>
       {/* Sidebar overlay for mobile */}
       {sidebarOpen && (

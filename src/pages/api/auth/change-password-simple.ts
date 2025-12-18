@@ -141,6 +141,7 @@ export default async function handler(
       message: 'Terjadi kesalahan internal server' 
     })
   } finally {
-    await prisma.$disconnect()
+    
   }
 }
+

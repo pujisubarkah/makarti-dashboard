@@ -4,7 +4,7 @@
 import { useEffect, useState } from 'react'
 import { SidebarUser } from './SidebarUser'
 
-export default function SidebarUserWrapper() {
+export default function SidebarUserWrapper({ isCollapsed, onToggle }: { isCollapsed?: boolean; onToggle?: () => void }) {
   const [roleId, setRoleId] = useState<number | null>(null)
 
   useEffect(() => {
@@ -18,5 +18,5 @@ export default function SidebarUserWrapper() {
     return <div>Loading sidebar...</div>
   }
 
-  return <SidebarUser roleId={roleId} />
+  return <SidebarUser roleId={roleId} isCollapsed={isCollapsed} onToggle={onToggle} />
 }

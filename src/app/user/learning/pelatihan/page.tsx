@@ -26,6 +26,14 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table"
+import {
+  Pagination,
+  PaginationContent,
+  PaginationItem,
+  PaginationLink,
+  PaginationNext,
+  PaginationPrevious,
+} from "@/components/ui/pagination"
 import { 
   GraduationCap, 
   Clock, 
@@ -110,7 +118,14 @@ interface WordCloudOptions {
 
 function TrainingWordCloud({ data }: { data: ProcessedData[] }) {
   const canvasRef = useRef<HTMLCanvasElement>(null)
+  const [mounted, setMounted] = useState(false)
+
   useEffect(() => {
+    setMounted(true)
+  }, [])
+
+  useEffect(() => {
+    if (!mounted) return;
     let WordCloud: ((canvas: HTMLCanvasElement, options: WordCloudOptions) => void) | undefined;
     let isMounted = true;
     if (!canvasRef.current || data.length === 0) return;
@@ -141,13 +156,16 @@ function TrainingWordCloud({ data }: { data: ProcessedData[] }) {
     import('wordcloud').then((mod) => {
       if (!isMounted) return;
       WordCloud = mod.default || mod;
-      if (WordCloud) {
+      if (WordCloud && canvas) {
         try {
+          // Limit canvas dimensions to prevent memory issues
+          const maxWidth = Math.min(canvas.width, 800);
+          
           WordCloud(canvas, {
             list: wordList,
-            gridSize: Math.round(16 * canvas.width / 1024),
+            gridSize: Math.round(12 * maxWidth / 800),
             weightFactor: function (size: number) {
-              return Math.pow(size, 2.3) * canvas.width / 1024;
+              return Math.pow(size, 1.8) * maxWidth / 800;
             },
             fontFamily: 'Inter, sans-serif',
             color: function () {
@@ -155,7 +173,7 @@ function TrainingWordCloud({ data }: { data: ProcessedData[] }) {
             },
             rotateRatio: 0.3,
             backgroundColor: 'transparent',
-            minSize: 12,
+            minSize: 10,
             drawOutOfBound: false,
             shrinkToFit: true
           });
@@ -163,9 +181,19 @@ function TrainingWordCloud({ data }: { data: ProcessedData[] }) {
           console.error('WordCloud error:', error);
         }
       }
+    }).catch((err) => {
+      console.error('Failed to load wordcloud library:', err);
     });
     return () => { isMounted = false; };
-  }, [data])
+  }, [data, mounted])
+
+  if (!mounted) {
+    return (
+      <div className="flex items-center justify-center h-full">
+        <p className="text-gray-500">Memuat word cloud...</p>
+      </div>
+    )
+  }
 
   return (
     <canvas
@@ -173,7 +201,7 @@ function TrainingWordCloud({ data }: { data: ProcessedData[] }) {
       width={400}
       height={300}
       className="w-full h-full"
-      style={{ maxWidth: '100%', maxHeight: '100%' }}
+      style={{ maxWidth: '400px', maxHeight: '300px' }}
     />
   )
 }
@@ -208,6 +236,10 @@ export default function PelatihanPage() {
     key: 'tanggal',
     direction: 'desc'
   })
+
+  // State untuk pagination
+  const [currentPage, setCurrentPage] = useState(1)
+  const [itemsPerPage, setItemsPerPage] = useState(10)
 
   // State for rekapUnit summary
   const [rekapUnit, setRekapUnit] = useState<{
@@ -418,6 +450,21 @@ export default function PelatihanPage() {
 
     return filteredData
   }, [data, searchTerm, sortConfig])
+
+  // Paginate data
+  const paginatedData = React.useMemo(() => {
+    const startIndex = (currentPage - 1) * itemsPerPage
+    const endIndex = startIndex + itemsPerPage
+    return filteredAndSortedData.slice(startIndex, endIndex)
+  }, [filteredAndSortedData, currentPage, itemsPerPage])
+
+  // Calculate total pages
+  const totalPages = Math.ceil(filteredAndSortedData.length / itemsPerPage)
+
+  // Reset to page 1 when filters change
+  React.useEffect(() => {
+    setCurrentPage(1)
+  }, [searchTerm, sortConfig, itemsPerPage])
 
   // Update statistics to use filtered data
   //const filteredTotalPelatihan = filteredAndSortedData.length
@@ -875,16 +922,39 @@ export default function PelatihanPage() {
             
             {/* Search Input */}
             <div className="px-6 py-4 border-b border-gray-200 bg-gray-50">
-              <div className="relative max-w-md">
-                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
-                <Input
-                  type="text"
-                  placeholder="Cari nama pegawai atau judul pelatihan..."
-                  value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
-                  className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                />
+              <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+                <div className="relative flex-1 max-w-md">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 w-4 h-4" />
+                  <Input
+                    type="text"
+                    placeholder="Cari nama pegawai atau judul pelatihan..."
+                    value={searchTerm}
+                    onChange={(e) => setSearchTerm(e.target.value)}
+                    className="pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                  />
+                </div>
+                
+                {/* Items per page selector */}
+                <div className="flex items-center gap-2">
+                  <Label htmlFor="itemsPerPage" className="text-sm text-gray-600 whitespace-nowrap">
+                    Tampilkan:
+                  </Label>
+                  <Select
+                    value={itemsPerPage.toString()}
+                    onValueChange={(value) => setItemsPerPage(Number(value))}
+                  >
+                    <SelectTrigger id="itemsPerPage" className="w-[100px]">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="10">10 baris</SelectItem>
+                      <SelectItem value="20">20 baris</SelectItem>
+                      <SelectItem value="50">50 baris</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
               </div>
+              
               {searchTerm && (
                 <div className="mt-2 text-sm text-gray-600">
                   Menampilkan {filteredAndSortedData.length} dari {data.length} data
@@ -893,8 +963,65 @@ export default function PelatihanPage() {
             </div>
 
             <div className="overflow-x-auto">
-              <Table><TableHeader><TableRow><TableHead>No</TableHead><TableHead className="cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('nama')}><div className="flex items-center">Nama Pegawai{getSortIcon('nama')}</div></TableHead><TableHead className="cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('judul')}><div className="flex items-center">Judul Pelatihan{getSortIcon('judul')}</div></TableHead><TableHead className="text-center cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('jam')}><div className="flex items-center justify-center">Jam{getSortIcon('jam')}</div></TableHead><TableHead className="cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('tanggal')}><div className="flex items-center">Tanggal{getSortIcon('tanggal')}</div></TableHead><TableHead className="text-center">Status</TableHead><TableHead>Sertifikat</TableHead><TableHead className="text-center">Aksi</TableHead></TableRow></TableHeader><TableBody>{filteredAndSortedData.length > 0 ? (filteredAndSortedData.map((item, index) => (<TableRow key={item.id}><TableCell>{index + 1}</TableCell><TableCell className="font-medium">{item.nama}</TableCell><TableCell className="max-w-xs break-words whitespace-normal">{item.judul}</TableCell><TableCell className="text-center"><span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"><Clock className="w-3 h-3 mr-1" /> {item.jam} jam</span></TableCell><TableCell>{new Date(item.tanggal).toLocaleDateString('id-ID')}</TableCell><TableCell className="text-center"><span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"><Award className="w-3 h-3 mr-1" /> Selesai</span></TableCell><TableCell>{item.sertifikat ? (<a href={item.sertifikat} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-blue-600 hover:text-blue-800 hover:underline"><GraduationCap className="w-3 h-3 mr-1" />Lihat</a>) : (<span className="text-gray-400 text-sm">Tidak tersedia</span>)}</TableCell><TableCell className="text-center"><div className="flex justify-center gap-2"><Button size="sm" variant="outline" onClick={() => handleEdit(item)}><Edit className="w-4 h-4" /></Button><Button size="sm" variant="outline" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4" /></Button></div></TableCell></TableRow>))) : (<TableRow><TableCell colSpan={8}>Tidak ada data</TableCell></TableRow>)}</TableBody></Table>
+              <Table><TableHeader><TableRow><TableHead>No</TableHead><TableHead className="cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('nama')}><div className="flex items-center">Nama Pegawai{getSortIcon('nama')}</div></TableHead><TableHead className="cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('judul')}><div className="flex items-center">Judul Pelatihan{getSortIcon('judul')}</div></TableHead><TableHead className="text-center cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('jam')}><div className="flex items-center justify-center">Jam{getSortIcon('jam')}</div></TableHead><TableHead className="cursor-pointer hover:bg-gray-100 transition-colors" onClick={() => handleSort('tanggal')}><div className="flex items-center">Tanggal{getSortIcon('tanggal')}</div></TableHead><TableHead className="text-center">Status</TableHead><TableHead>Sertifikat</TableHead><TableHead className="text-center">Aksi</TableHead></TableRow></TableHeader><TableBody>{paginatedData.length > 0 ? (paginatedData.map((item, index) => (<TableRow key={item.id}><TableCell>{(currentPage - 1) * itemsPerPage + index + 1}</TableCell><TableCell className="font-medium">{item.nama}</TableCell><TableCell className="max-w-xs break-words whitespace-normal">{item.judul}</TableCell><TableCell className="text-center"><span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800"><Clock className="w-3 h-3 mr-1" /> {item.jam} jam</span></TableCell><TableCell>{new Date(item.tanggal).toLocaleDateString('id-ID')}</TableCell><TableCell className="text-center"><span className="inline-flex items-center px-2 py-1 rounded-full text-xs font-medium bg-green-100 text-green-800"><Award className="w-3 h-3 mr-1" /> Selesai</span></TableCell><TableCell>{item.sertifikat ? (<a href={item.sertifikat} target="_blank" rel="noopener noreferrer" className="inline-flex items-center text-blue-600 hover:text-blue-800 hover:underline"><GraduationCap className="w-3 h-3 mr-1" />Lihat</a>) : (<span className="text-gray-400 text-sm">Tidak tersedia</span>)}</TableCell><TableCell className="text-center"><div className="flex justify-center gap-2"><Button size="sm" variant="outline" onClick={() => handleEdit(item)}><Edit className="w-4 h-4" /></Button><Button size="sm" variant="outline" onClick={() => handleDelete(item.id)}><Trash2 className="w-4 h-4" /></Button></div></TableCell></TableRow>))) : (<TableRow><TableCell colSpan={8} className="text-center py-8 text-gray-500">Tidak ada data yang ditemukan</TableCell></TableRow>)}</TableBody></Table>
             </div>
+
+            {/* Pagination Controls */}
+            {filteredAndSortedData.length > 0 && (
+              <div className="px-6 py-4 border-t border-gray-200 bg-gray-50">
+                <div className="flex flex-col sm:flex-row items-center justify-between gap-4">
+                  <div className="text-sm text-gray-600">
+                    Menampilkan {(currentPage - 1) * itemsPerPage + 1} - {Math.min(currentPage * itemsPerPage, filteredAndSortedData.length)} dari {filteredAndSortedData.length} data
+                  </div>
+                  
+                  <Pagination>
+                    <PaginationContent>
+                      <PaginationItem>
+                        <PaginationPrevious 
+                          onClick={() => setCurrentPage(prev => Math.max(1, prev - 1))}
+                          className={currentPage === 1 ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
+                      
+                      {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => {
+                        // Show first page, last page, current page, and pages around current
+                        if (
+                          page === 1 ||
+                          page === totalPages ||
+                          (page >= currentPage - 1 && page <= currentPage + 1)
+                        ) {
+                          return (
+                            <PaginationItem key={page}>
+                              <PaginationLink
+                                onClick={() => setCurrentPage(page)}
+                                isActive={currentPage === page}
+                                className="cursor-pointer"
+                              >
+                                {page}
+                              </PaginationLink>
+                            </PaginationItem>
+                          )
+                        } else if (page === currentPage - 2 || page === currentPage + 2) {
+                          return (
+                            <PaginationItem key={page}>
+                              <span className="px-2">...</span>
+                            </PaginationItem>
+                          )
+                        }
+                        return null
+                      })}
+                      
+                      <PaginationItem>
+                        <PaginationNext 
+                          onClick={() => setCurrentPage(prev => Math.min(totalPages, prev + 1))}
+                          className={currentPage === totalPages ? 'pointer-events-none opacity-50' : 'cursor-pointer'}
+                        />
+                      </PaginationItem>
+                    </PaginationContent>
+                  </Pagination>
+                </div>
+              </div>
+            )}
           </div>
             </>
           )}

@@ -14,26 +14,29 @@ export default async function handler(
   req: NextApiRequest,
   res: NextApiResponse
 ) {
-  if (req.method !== 'GET') {
-    return res.status(405).json({ error: `Metode ${req.method} tidak diizinkan` });
-  }
-
-  const idParam = req.query.id;
-  const idAsNumber = parseInt(Array.isArray(idParam) ? idParam[0] : idParam || '', 10);
-
-  if (isNaN(idAsNumber)) {
-    return res.status(400).json({ error: 'ID unit tidak valid' });
-  }
-
-  // Mapping unit gabungan ➜ ke unit utama
-  const unitMergeMap: Record<number, number> = {
-    30: 22,
-    31: 20,
-  };
-
-  const targetUnitId = unitMergeMap[idAsNumber] || idAsNumber;
-
   try {
+
+    if (req.method !== 'GET') {
+      await prisma.$disconnect();
+      return res.status(405).json({ error: `Metode ${req.method} tidak diizinkan` });
+    }
+
+    const idParam = req.query.id;
+    const idAsNumber = parseInt(Array.isArray(idParam) ? idParam[0] : idParam || '', 10);
+
+    if (isNaN(idAsNumber)) {
+      await prisma.$disconnect();
+      return res.status(400).json({ error: 'ID unit tidak valid' });
+    }
+
+    // Mapping unit gabungan ➜ ke unit utama
+    const unitMergeMap: Record<number, number> = {
+      30: 22,
+      31: 20,
+    };
+
+    const targetUnitId = unitMergeMap[idAsNumber] || idAsNumber;
+
     const allPegawai = await prisma.pegawai.findMany({
       // Adjust the include clause to match your schema, e.g., include related user if relation is 'user'
       // include: { user: true },
@@ -45,6 +48,7 @@ export default async function handler(
     );
 
     if (filteredPegawai.length === 0) {
+      await prisma.$disconnect();
       return res.status(404).json({ error: 'Unit kerja tidak ditemukan atau tidak punya cukup pegawai' });
     }
 
@@ -73,6 +77,7 @@ export default async function handler(
     });
 
     if (totalPegawai <= 1) {
+      await prisma.$disconnect();
       return res.status(204).json({ message: 'Unit kerja tidak memenuhi syarat (total pegawai <= 1)' });
     }
 
@@ -83,9 +88,11 @@ export default async function handler(
       kepala_unit: kepalaUnit,
     };
 
+    await prisma.$disconnect();
     res.status(200).json(result);
   } catch (error) {
-    console.error(error);
+    console.error('Error in /api/pegawai/[id]:', error);
+    await prisma.$disconnect();
     res.status(500).json({ error: 'Terjadi kesalahan saat mengambil data unit kerja' });
   }
 }

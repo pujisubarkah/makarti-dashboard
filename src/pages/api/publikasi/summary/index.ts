@@ -74,3 +74,4 @@ export default async function handler(
     return res.status(500).json({ error: 'Gagal mengambil data alias unit kerja' })
   }
 }
+

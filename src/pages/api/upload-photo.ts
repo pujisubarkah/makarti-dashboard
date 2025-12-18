@@ -73,3 +73,4 @@ export default async function handler(req: NextRequest) {
     return NextResponse.json({ error: 'Terjadi kesalahan internal', detail: errorMessage }, { status: 500 });
   }
 }
+

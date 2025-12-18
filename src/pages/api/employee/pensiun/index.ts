@@ -76,3 +76,4 @@ export default async function handler(
         res.status(405).end(`Metode ${req.method} tidak diizinkan`);
     }
 }
+

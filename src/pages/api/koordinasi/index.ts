@@ -31,6 +31,7 @@ export default async function handler(
       error: process.env.NODE_ENV === 'development' ? error : undefined,
     })
   } finally {
-    await prisma.$disconnect()
+    
   }
 }
+

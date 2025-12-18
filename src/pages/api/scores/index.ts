@@ -1,10 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { prisma, ensureConnection } from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Ensure database connection
-  await ensureConnection()
-
   try {
     const result = await prisma.rekap_skor_unit_kerja.aggregate({
       _avg: {
@@ -48,6 +46,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const better_generik = Number(result._avg.better_generik_score?.toFixed(2) ?? 0)
     const better_transform = Number(result._avg.better_score?.toFixed(2) ?? 0)
 
+    
     return res.status(200).json({
       average_components: {
         branding_score: branding,
@@ -69,8 +68,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       },
     })
   } catch (error) {
-    console.error('Error:', error)
-    await prisma.$disconnect()
+    console.error('Error in /api/scores/index:', error)
+    
     return res.status(500).json({ message: 'Internal server error' })
   }
 }
+

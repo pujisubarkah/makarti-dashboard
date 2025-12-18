@@ -77,8 +77,23 @@ export default function LoginPage() {
   
   return (
     <div className="flex h-screen m-0 p-0 bg-gradient-to-br from-blue-100 via-blue-50 to-white">
+      {/* Running text info */}
+      <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 py-2.5 shadow-md overflow-hidden">
+        <div className="animate-marquee whitespace-nowrap">
+          <span className="text-white font-medium text-sm md:text-base mx-4 inline-block">
+            🎉 Masa hiatus sistemnya sudah selesai, silakan login kalau belum bisa mungkin sedang banyak yang akses
+          </span>
+          <span className="text-white font-medium text-sm md:text-base mx-4 inline-block">
+            🎉 Masa hiatus sistemnya sudah selesai, silakan login kalau belum bisa mungkin sedang banyak yang akses
+          </span>
+          <span className="text-white font-medium text-sm md:text-base mx-4 inline-block">
+            🎉 Masa hiatus sistemnya sudah selesai, silakan login kalau belum bisa mungkin sedang banyak yang akses
+          </span>
+        </div>
+      </div>
+      
       {/* Kiri: Form Login */}
-      <div className="w-full md:w-1/3 flex flex-col justify-center items-center p-8 min-h-screen relative overflow-hidden">
+      <div className="w-full md:w-1/3 flex flex-col justify-center items-center p-8 min-h-screen relative overflow-hidden pt-20">
         {/* Decorative shapes */}
         <div className="absolute top-0 left-0 w-64 h-64 bg-blue-200/30 rounded-full filter blur-3xl -translate-x-1/2 -translate-y-1/2"></div>
         <div className="absolute bottom-0 right-0 w-80 h-80 bg-blue-300/20 rounded-full filter blur-3xl translate-x-1/4 translate-y-1/4"></div>
@@ -216,14 +231,19 @@ export default function LoginPage() {
         
         <div className="absolute inset-0 bg-gradient-to-tr from-blue-900/5 to-transparent z-10"></div>
         
-        <Image
-          src="/smarter.png"
-          alt="Background MAKARTI"
-          fill
-          className="object-cover z-0 transition-transform duration-700 ease-in-out hover:scale-105"
-          priority
-          quality={100}
-        />
+        <div className="absolute inset-0 w-full h-full z-0">
+          <Image
+            src="/smarter.png"
+            alt="Background MAKARTI"
+            fill
+            className="object-cover transition-transform duration-700 ease-in-out hover:scale-105"
+            priority
+            quality={75}
+            sizes="(max-width: 768px) 0vw, 66vw"
+            placeholder="blur"
+            blurDataURL="data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mN8/5+hHgAHggJ/PchI7wAAAABJRU5ErkJggg=="
+          />
+        </div>
         
         {/* Overlay text */}
         <div className="absolute bottom-10 left-10 z-20">

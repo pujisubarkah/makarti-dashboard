@@ -1,10 +1,8 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { prisma, ensureConnection } from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Ensure database connection
-  await ensureConnection()
-
   try {
     switch (req.method) {
       // 🔹 GET semua IDP
@@ -30,7 +28,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           },
           orderBy: { created_at: 'desc' },
         })
-        await prisma.$disconnect()
+        
         return res.status(200).json(idpList)
       }
 
@@ -59,7 +57,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         // Check user exists
         const user = await prisma.users.findUnique({ where: { id: Number(user_id) } })
         if (!user) {
-          await prisma.$disconnect()
+          
           return res.status(404).json({ error: 'User not found' })
         }
 
@@ -68,7 +66,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           where: { user_id: Number(user_id), tahun: Number(tahun) },
         })
         if (existing) {
-          await prisma.$disconnect()
+          
           return res.status(409).json({ error: 'IDP already exists for this user and year' })
         }
 
@@ -100,7 +98,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           },
         })
 
-        await prisma.$disconnect()
+        
         return res.status(201).json({ message: 'IDP created', data: created })
       }
 
@@ -110,7 +108,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
   } catch (error) {
     console.error('Error in /api/idp:', error)
-    await prisma.$disconnect()
+    
     return res.status(500).json({ error: 'Terjadi kesalahan pada server.' })
   }
 }
+

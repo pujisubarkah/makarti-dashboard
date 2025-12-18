@@ -1,10 +1,8 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma, ensureConnection } from '@/lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Ensure database connection
-  await ensureConnection();
-
   // GET /api/assignment (semua penugasan)
   if (req.method === 'GET') {
     try {
@@ -15,11 +13,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           event_roles: true,
         },
       });
-      await prisma.$disconnect();
+      
       return res.status(200).json(assignments);
     } catch (error) {
       console.error(error);
-      await prisma.$disconnect();
+      
       return res.status(500).json({ error: 'Gagal mengambil data penugasan' });
     }
   }
@@ -29,7 +27,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const { event_id, employee_id, role_id, confirmed } = req.body;
 
     if (!event_id || !employee_id || !role_id) {
-      await prisma.$disconnect();
+      
       return res.status(400).json({ error: 'Semua field wajib diisi' });
     }
 
@@ -48,22 +46,23 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         },
       });
 
-      await prisma.$disconnect();
+      
       return res.status(201).json(newAssignment);
     } catch (error) {
       console.error(error);
-      await prisma.$disconnect();
+      
       return res.status(500).json({ error: 'Gagal menambahkan penugasan' });
     }
   }
 
   // PUT /api/assignment (update banyak penugasan atau custom logic)
   if (req.method === 'PUT') {
-    await prisma.$disconnect();
+    
     return res.status(405).json({ error: 'Method tidak diizinkan' });
   }
 
   // Jika method tidak didukung
-  await prisma.$disconnect();
+  
   return res.status(405).json({ error: 'Method tidak diizinkan' });
 }
+

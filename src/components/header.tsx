@@ -3,6 +3,7 @@ import { useEffect, useState, useRef } from 'react'
 import { ChevronDown, MessageCircle, Send, X, User, Shield, Clock, CheckCheck, Mail } from 'lucide-react'
 import Image from 'next/image'
 import { useRouter } from 'next/navigation'
+import { ThemeToggle } from './theme-toggle'
 
 interface Message {
   id: number
@@ -229,9 +230,12 @@ export default function Header() {
   }
 
   return (
-    <header className="h-16 bg-white border-b shadow-sm px-6 flex items-center justify-between sticky top-0 z-20">
-      <h1 className="text-lg font-semibold text-blue-700">📊 {unitKerja}</h1>
+    <header className="h-16 bg-white dark:bg-gray-900 border-b dark:border-gray-800 shadow-sm px-6 flex items-center justify-between sticky top-0 z-20">
+      <h1 className="text-lg font-semibold text-blue-700 dark:text-blue-400">📊 {unitKerja}</h1>
       <div className="flex items-center gap-4">
+        {/* Theme Toggle */}
+        <ThemeToggle />
+        
         {/* Chat & Broadcast Button */}
         {/* Admin: Broadcast Button */}
         {userRole !== null && userRole.trim() === '1' && (
@@ -262,7 +266,7 @@ export default function Header() {
 
           {/* Chat Panel */}
           {chatOpen && (
-            <div className="absolute right-0 mt-2 w-96 bg-white border rounded-xl shadow-2xl z-50 overflow-hidden">
+            <div className="absolute right-0 mt-2 w-96 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-xl shadow-2xl z-50 overflow-hidden">
               {/* Header */}
               <div className="bg-gradient-to-r from-blue-600 to-indigo-600 text-white p-4">
                 <div className="flex items-center justify-between">
@@ -283,12 +287,12 @@ export default function Header() {
               </div>
 
               {/* Messages Area */}
-              <div className="h-80 overflow-y-auto p-4 bg-gray-50 space-y-3">
+              <div className="h-80 overflow-y-auto p-4 bg-gray-50 dark:bg-gray-900 space-y-3">
                 {messages.length === 0 && broadcasts.length === 0 ? (
                   <div className="text-center py-8">
-                    <MessageCircle className="w-12 h-12 mx-auto mb-3 text-gray-300" />
-                    <p className="text-gray-600 font-medium">Belum ada pesan</p>
-                    <p className="text-sm text-gray-500">Mulai percakapan atau cek pengumuman</p>
+                    <MessageCircle className="w-12 h-12 mx-auto mb-3 text-gray-300 dark:text-gray-600" />
+                    <p className="text-gray-600 dark:text-gray-300 font-medium">Belum ada pesan</p>
+                    <p className="text-sm text-gray-500 dark:text-gray-400">Mulai percakapan atau cek pengumuman</p>
                   </div>
                 ) : (
                   <>
@@ -572,23 +576,23 @@ export default function Header() {
         <div className="relative" ref={dropdownRef}>
           <button
             onClick={() => setMenuOpen(!menuOpen)}
-            className="flex items-center gap-2 hover:bg-gray-100 px-2 py-1 rounded-lg"
+            className="flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-800 px-2 py-1 rounded-lg"
           >
             <Image src="/avatar.png" alt="User Avatar" width={32} height={32} className="rounded-full" />
-            <span className="text-sm font-medium text-gray-800">{username || 'Pengguna'}</span>
-            <ChevronDown className="w-4 h-4 text-gray-500" />
+            <span className="text-sm font-medium text-gray-800 dark:text-gray-200">{username || 'Pengguna'}</span>
+            <ChevronDown className="w-4 h-4 text-gray-500 dark:text-gray-400" />
           </button>
           {menuOpen && (
-            <div className="absolute right-0 mt-2 w-48 bg-white border rounded-lg shadow-lg z-30">
+            <div className="absolute right-0 mt-2 w-48 bg-white dark:bg-gray-800 border dark:border-gray-700 rounded-lg shadow-lg z-30">
               <button
                 onClick={handleChangePassword}
-                className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100"
+                className="block w-full text-left px-4 py-2 text-sm hover:bg-gray-100 dark:hover:bg-gray-700 dark:text-gray-200"
               >
                 🔒 Ubah Password
               </button>
               <button
                 onClick={handleLogout}
-                className="block w-full text-left px-4 py-2 text-sm text-red-600 hover:bg-gray-100"
+                className="block w-full text-left px-4 py-2 text-sm text-red-600 dark:text-red-400 hover:bg-gray-100 dark:hover:bg-gray-700"
               >
                 🚪 Keluar
               </button>

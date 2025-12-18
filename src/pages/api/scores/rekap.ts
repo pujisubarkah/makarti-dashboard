@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { prisma, ensureConnection } from '@/lib/prisma'
+import { prisma } from '@/lib/prisma'
 
 interface UnitWithScores {
   id: number
@@ -89,8 +89,6 @@ function calculateAverageScores(children: UnitWithScores[]) {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   // Ensure database connection
-  await ensureConnection()
-
   try {
     // Get all org_units with their relationships and scores
     const orgUnits = await prisma.org_units.findMany({
@@ -204,10 +202,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       hierarchy: cleanUnits.filter(unit => unit.parent_id === null) // Root units
     }
 
-    return res.status(200).json(result)  } catch (error: unknown) {
-    console.error('Error:', error)
+    
+    return res.status(200).json(result)
+  } catch (error: unknown) {
+    console.error('Error in /api/scores/rekap:', error)
     const errorMessage = error instanceof Error ? error.message : 'Unknown error occurred'
-    await prisma.$disconnect()
+    
     return res.status(500).json({ message: 'Internal server error', error: errorMessage })
   }
 }
+

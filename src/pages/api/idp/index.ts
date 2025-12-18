@@ -1,7 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from 'next'
-import { prisma } from '@/lib/prisma'
+import { prisma, ensureConnection } from '@/lib/prisma'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Ensure database connection
+  await ensureConnection()
+
   try {
     switch (req.method) {
       // 🔹 GET semua IDP

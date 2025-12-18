@@ -1,13 +1,12 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma'
 
 // Handler untuk GET /api/kajian/[unit_kerja_id]
 async function getKajianByUnitKerja(req: NextApiRequest, res: NextApiResponse) {
   const { unit_kerja_id } = req.query;
 
   if (!unit_kerja_id || isNaN(Number(unit_kerja_id))) {
+    await prisma.$disconnect();
     return res.status(400).json({ error: 'Invalid or missing unit_kerja_id' });
   }
 
@@ -18,9 +17,11 @@ async function getKajianByUnitKerja(req: NextApiRequest, res: NextApiResponse) {
       },
     });
 
+    await prisma.$disconnect();
     return res.status(200).json({ data: kajians });
   } catch (error) {
     console.error(error);
+    await prisma.$disconnect();
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
@@ -31,9 +32,11 @@ async function createKajianForUnitKerja(req: NextApiRequest, res: NextApiRespons
   const { judul, jenis, status } = req.body;
 
   if (!unit_kerja_id || isNaN(Number(unit_kerja_id))) {
+    await prisma.$disconnect();
     return res.status(400).json({ error: 'Invalid or missing unit_kerja_id' });
   }
   if (!judul || !jenis) {
+    await prisma.$disconnect();
     return res.status(400).json({ error: 'Missing required fields: judul, jenis' });
   }
   try {
@@ -46,9 +49,11 @@ async function createKajianForUnitKerja(req: NextApiRequest, res: NextApiRespons
       },
     });
 
+    await prisma.$disconnect();
     return res.status(201).json({ data: newKajian });
   } catch (error) {
     console.error(error);
+    await prisma.$disconnect();
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
@@ -60,6 +65,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   } else if (req.method === 'POST') {
     return createKajianForUnitKerja(req, res);
   } else {
+    await prisma.$disconnect();
     return res.status(405).json({ error: 'Method not allowed' });
   }
 }

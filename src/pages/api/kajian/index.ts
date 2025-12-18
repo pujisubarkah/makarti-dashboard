@@ -1,7 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma'
 
 // Main handler - hanya GET
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -12,12 +10,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           users: true,
         },
       });
+      await prisma.$disconnect();
       return res.status(200).json({ data: kajians });
     } catch (error) {
       console.error(error);
+      await prisma.$disconnect();
       return res.status(500).json({ error: 'Internal server error' });
     }
   } else {
+    await prisma.$disconnect();
     return res.status(405).json({ error: 'Method not allowed' });
   }
 }

@@ -1,7 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next';
-import { PrismaClient } from '@prisma/client'
-
-const prisma = new PrismaClient();
+import { prisma } from '@/lib/prisma'
 
 // Handler untuk PUT /api/kajian/[unit_kerja_id]/[id]
 async function updateKajian(req: NextApiRequest, res: NextApiResponse) {
@@ -9,9 +7,11 @@ async function updateKajian(req: NextApiRequest, res: NextApiResponse) {
   const { judul, jenis, status } = req.body;
 
   if (!unit_kerja_id || isNaN(Number(unit_kerja_id)) || !id || isNaN(Number(id))) {
+    await prisma.$disconnect();
     return res.status(400).json({ error: 'Invalid or missing parameters' });
   }
   if (!judul || !jenis) {
+    await prisma.$disconnect();
     return res.status(400).json({ error: 'Missing required fields: judul, jenis' });
   }
 
@@ -27,9 +27,11 @@ async function updateKajian(req: NextApiRequest, res: NextApiResponse) {
       },
     });
 
+    await prisma.$disconnect();
     return res.status(200).json({ data: updatedKajian });
   } catch (error) {
     console.error(error);
+    await prisma.$disconnect();
     return res.status(500).json({ error: 'Internal server error' });
   }
 }
@@ -39,6 +41,7 @@ async function deleteKajian(req: NextApiRequest, res: NextApiResponse) {
   const { id } = req.query;
 
   if (!id || isNaN(Number(id))) {
+    await prisma.$disconnect();
     return res.status(400).json({ error: 'Invalid or missing kajian ID' });
   }
 
@@ -49,9 +52,11 @@ async function deleteKajian(req: NextApiRequest, res: NextApiResponse) {
       },
     });
 
+    await prisma.$disconnect();
     return res.status(200).json({ message: 'Kajian deleted successfully' });
   } catch (error) {
     console.error(error);
+    await prisma.$disconnect();
     return res.status(500).json({ error: 'Internal server error' });
   }
 }

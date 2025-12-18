@@ -1,7 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { prisma } from '@/lib/prisma'
+import { prisma, ensureConnection } from '@/lib/prisma'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Ensure database connection
+  await ensureConnection()
+
   if (req.method !== 'GET') {
     await prisma.$disconnect();
     return res.status(405).json({ success: false, message: 'Method not allowed' })
@@ -74,6 +77,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   } catch (error) {
     console.error('Error fetching notifications:', error)
+    await prisma.$disconnect();
     res.status(500).json({ 
       success: false, 
       message: 'Failed to fetch notifications' 

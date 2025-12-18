@@ -1,7 +1,10 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { prisma } from '@/lib/prisma'
+import { prisma, ensureConnection } from '@/lib/prisma'
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Ensure database connection
+  await ensureConnection()
+
   try {
     const result = await prisma.rekap_skor_unit_kerja.aggregate({
       _avg: {

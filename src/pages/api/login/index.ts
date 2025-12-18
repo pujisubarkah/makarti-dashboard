@@ -1,10 +1,13 @@
 // pages/api/login/index.ts
 
 import { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '@/lib/prisma';
+import { prisma, ensureConnection } from '@/lib/prisma';
 import bcrypt from 'bcrypt';
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Ensure database connection
+  await ensureConnection()
+
   try {
     if (req.method !== 'POST') {
       await prisma.$disconnect();

@@ -1,5 +1,5 @@
 import { NextApiRequest, NextApiResponse } from 'next'
-import { prisma } from '@/lib/prisma'
+import { prisma, ensureConnection } from '@/lib/prisma'
 
 interface UnitWithScores {
   id: number
@@ -88,6 +88,9 @@ function calculateAverageScores(children: UnitWithScores[]) {
 }
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  // Ensure database connection
+  await ensureConnection()
+
   try {
     // Get all org_units with their relationships and scores
     const orgUnits = await prisma.org_units.findMany({

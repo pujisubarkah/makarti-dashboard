@@ -44,8 +44,8 @@ export default async function handler(
             nama: 'asc'
           }
         });
-        // Cari kepala unit dengan eselon JPTP
-        const kepalaUnit = pegawaiList.find((p) => p.eselon === 'JPTP');
+        // Cari kepala unit dengan eselon JPTP atau JF/D
+        const kepalaUnit = pegawaiList.find((p) => p.eselon === 'JPTP' || p.eselon === 'JF/D');
         res.status(200).json({
           total_pegawai: pegawaiList.length,
           kepala_unit: kepalaUnit ? kepalaUnit.nama : null,
@@ -63,6 +63,9 @@ export default async function handler(
             users_pegawai_unit_kerja_idTousers: {
               select: { unit_kerja: true }
             }
+          },
+          orderBy: {
+            nama: 'asc'
           }
         });
         res.status(200).json(pegawai);

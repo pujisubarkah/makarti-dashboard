@@ -30,7 +30,7 @@ export default async function handler(
         res.status(500).json({ error: 'Gagal mengambil data pegawai' });
       }
     } else if (req.query.unit_kerja_id) {
-      // Ambil data pegawai berdasarkan unit_kerja_id
+      // Ambil data pegawai berdasarkan unit_kerja_id, sertakan total_pegawai dan kepala_unit (eselon JPTP)
       try {
         const unitKerjaId = Number(req.query.unit_kerja_id);
         const pegawaiList = await prisma.pegawai.findMany({
@@ -44,7 +44,13 @@ export default async function handler(
             nama: 'asc'
           }
         });
-        res.status(200).json(pegawaiList);
+        // Cari kepala unit dengan eselon JPTP
+        const kepalaUnit = pegawaiList.find((p) => p.eselon === 'JPTP');
+        res.status(200).json({
+          total_pegawai: pegawaiList.length,
+          kepala_unit: kepalaUnit ? kepalaUnit.nama : null,
+          pegawai: pegawaiList
+        });
       } catch (error) {
         console.error('Error fetching pegawai by unit_kerja_id:', error);
         res.status(500).json({ error: 'Gagal mengambil data pegawai' });

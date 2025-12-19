@@ -56,7 +56,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Fetch notifications for this user
-    let notificationsRaw = [];
+    let notificationsRaw: (Omit<NotificationWithUser, 'is_read'> & { is_read: boolean | null })[] = [];
     try {
       notificationsRaw = await prisma.notification.findMany({
         where: {
@@ -87,7 +87,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
     // Map to NotificationWithUser, ensuring is_read is boolean
-    const notifications: NotificationWithUser[] = notificationsRaw.map((notif: any) => ({
+    const notifications: NotificationWithUser[] = notificationsRaw.map((notif) => ({
       ...notif,
       is_read: notif.is_read === null ? false : notif.is_read
     }));

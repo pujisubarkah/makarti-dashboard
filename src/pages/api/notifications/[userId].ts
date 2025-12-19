@@ -8,7 +8,7 @@ interface NotificationWithUser {
   receiver_role: string | null;
   message: string;
   type: string | null;
-  created_at: Date;
+  created_at: Date | null;
   is_read: boolean;
   users: {
     id: number;
@@ -56,9 +56,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Fetch notifications for this user
-    let notifications: NotificationWithUser[] = [];
+    let notificationsRaw = [];
     try {
-      notifications = await prisma.notification.findMany({
+      notificationsRaw = await prisma.notification.findMany({
         where: {
           OR: [
             { receiver_id: parseInt(userId as string) },
@@ -86,6 +86,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         unreadCount: 0
       });
     }
+    // Map to NotificationWithUser, ensuring is_read is boolean
+    const notifications: NotificationWithUser[] = notificationsRaw.map((notif: any) => ({
+      ...notif,
+      is_read: notif.is_read === null ? false : notif.is_read
+    }));
 
     // Format notifications for frontend
     const formattedNotifications = notifications.map(notif => ({

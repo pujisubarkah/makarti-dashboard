@@ -276,7 +276,9 @@ export default function UnitKerjaDashboard() {
                     nama_unit_kerja: unitKerjaName || 'Unit Kerja',
                     total_pegawai: Array.isArray(pegawaiList) ? pegawaiList.length : 0,
                     kepala_unit: Array.isArray(pegawaiList) 
-                        ? pegawaiList.find((p: Pegawai) => p.jabatan?.toLowerCase().includes('kepala'))?.nama || null
+                        ? (pegawaiList.find((p: Pegawai) => p.jabatan?.toLowerCase().includes('direktur'))?.nama || 
+                           pegawaiList.find((p: Pegawai) => p.jabatan?.toLowerCase().includes('kepala'))?.nama || 
+                           null)
                         : null
                 };
                 

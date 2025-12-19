@@ -4,6 +4,37 @@ import { useParams, useRouter } from "next/navigation";
 import { ArrowLeft, Save, X, User, Mail, Briefcase  } from "lucide-react";
 import Image from "next/image";
 
+interface PegawaiDetail {
+  id: number;
+  nip: string;
+  nama: string;
+  unit_kerja_id: string;
+  jabatan: string;
+  golongan: string;
+  eselon: string;
+  email?: string;
+  telp?: string;
+  alamat?: string;
+  pendidikan?: string;
+  tanggal_lahir?: string;
+  jenis_kelamin?: string;
+  nm_goldar?: string;
+  status_kepegawaian?: string;
+  peg_cpns_tmt?: string;
+  photo_url?: string;
+}
+
+interface EmployeeData {
+  nip: string;
+  nama: string;
+  unit_kerja_id: string;
+  foto?: string;
+  users: {
+    unit_kerja: string;
+  };
+  pegawai_detail: PegawaiDetail[];
+}
+
 export default function EditPegawaiPage() {
   const params = useParams() as Record<string, string | undefined>;
   const router = useRouter();
@@ -15,7 +46,7 @@ export default function EditPegawaiPage() {
   const [success, setSuccess] = useState("");
 
   // Employee data
-  const [employeeData, setEmployeeData] = useState<any>(null);
+  const [employeeData, setEmployeeData] = useState<EmployeeData | null>(null);
 
   // Form data
   const [formData, setFormData] = useState({

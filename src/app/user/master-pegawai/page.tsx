@@ -77,7 +77,7 @@ const PegawaiPage: React.FC = () => {
         .map((p) => p.users_pegawai_unit_kerja_idTousers?.unit_kerja)
         .filter((u): u is string => Boolean(u))
     )
-  ).sort();
+  ).sort((a, b) => a.localeCompare(b, 'id'));
 
   const golonganOptions = Array.from(
     new Set(
@@ -85,7 +85,7 @@ const PegawaiPage: React.FC = () => {
         .map((p) => p.golongan)
         .filter((g): g is string => Boolean(g))
     )
-  ).sort();
+  ).sort((a, b) => a.localeCompare(b, 'id'));
 
   const filteredPegawai = pegawaiList.filter((pegawai) => {
     const matchUnit = !unitFilter || pegawai.users_pegawai_unit_kerja_idTousers?.unit_kerja === unitFilter;
@@ -225,80 +225,91 @@ const PegawaiPage: React.FC = () => {
   };
 
   return (
-    <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4 text-blue-700">Edit Pegawai</h2>
-      
-      <div className="flex justify-between items-center gap-3 mb-4">
-        <button
-          onClick={() => setIsAddDialogOpen(true)}
-          className="inline-flex items-center gap-2 px-4 py-2 bg-green-500 text-white rounded hover:bg-green-600 transition-colors"
-        >
-          <UserPlus className="w-5 h-5" />
-          Tambah Pegawai
-        </button>
-        <div className="flex gap-3">
-          <select
-            value={unitFilter}
-            onChange={(e) => setUnitFilter(e.target.value)}
-            className="border rounded px-3 py-2 text-sm focus:outline-blue-500 bg-white"
-            style={{ minWidth: 200 }}
+    <div className="p-6 bg-gradient-to-br from-blue-50 via-white to-purple-50 min-h-screen">
+      <div className="max-w-7xl mx-auto">
+        <h2 className="text-3xl font-bold mb-6 text-gray-800">Master Pegawai</h2>
+        
+        {/* Tombol Tambah */}
+        <div className="mb-4">
+          <button
+            onClick={() => setIsAddDialogOpen(true)}
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-gradient-to-r from-green-500 to-green-600 text-white rounded-lg hover:from-green-600 hover:to-green-700 transition-all shadow-md hover:shadow-lg"
           >
-            <option value="">Semua Unit Kerja</option>
-            {unitOptions.map((unit) => (
-              <option key={unit} value={unit}>{unit}</option>
-            ))}
-          </select>
-          <select
-            value={golonganFilter}
-            onChange={(e) => setGolonganFilter(e.target.value)}
-            className="border rounded px-3 py-2 text-sm focus:outline-blue-500 bg-white"
-            style={{ minWidth: 150 }}
-          >
-            <option value="">Semua Golongan</option>
-            {golonganOptions.map((golongan) => (
-              <option key={golongan} value={golongan}>{golongan}</option>
-            ))}
-          </select>
+            <UserPlus className="w-5 h-5" />
+            Tambah Pegawai
+          </button>
         </div>
-      </div>
-      <table className="min-w-full bg-white border rounded shadow">
-        <thead>
-          <tr className="bg-blue-100 text-blue-700">
-            <th className="py-2 px-4 border">No</th>
-            <th className="py-2 px-4 border">Nama</th>
-            <th className="py-2 px-4 border">Jabatan</th>
-            <th className="py-2 px-4 border">Unit Kerja</th>
-            <th className="py-2 px-4 border">Golongan</th>
-            <th className="py-2 px-4 border">Aksi</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredPegawai.map((pegawai, idx) => (
-            <tr key={pegawai.id} className="hover:bg-gray-100">
-              <td className="py-2 px-4 border text-center">{idx + 1}</td>
-              <td className="py-2 px-4 border">
+        
+        {/* Table dengan Filter */}
+        <div className="bg-white rounded-lg shadow-md overflow-hidden">
+          {/* Filter Section */}
+          <div className="bg-gradient-to-r from-blue-50 to-blue-100 px-4 py-3 border-b border-blue-200">
+            <div className="flex flex-wrap gap-3 items-center">
+              <span className="text-sm font-medium text-gray-700">Filter:</span>
+              <select
+                value={unitFilter}
+                onChange={(e) => setUnitFilter(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm hover:border-blue-400 transition-colors"
+                style={{ minWidth: 280 }}
+              >
+                <option value="">Semua Unit Kerja</option>
+                {unitOptions.map((unit) => (
+                  <option key={unit} value={unit}>{unit}</option>
+                ))}
+              </select>
+              
+              <select
+                value={golonganFilter}
+                onChange={(e) => setGolonganFilter(e.target.value)}
+                className="border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500 bg-white shadow-sm hover:border-blue-400 transition-colors"
+                style={{ minWidth: 150 }}
+              >
+                <option value="">Semua Golongan</option>
+                {golonganOptions.map((golongan) => (
+                  <option key={golongan} value={golongan}>{golongan}</option>
+                ))}
+              </select>
+            </div>
+          </div>
+        
+        {/* Table */}
+          <table className="min-w-full">
+            <thead>
+              <tr className="bg-gradient-to-r from-blue-600 to-blue-700 text-white">
+                <th className="py-3 px-4 text-left font-semibold">No</th>
+                <th className="py-3 px-4 text-left font-semibold">Nama</th>
+                <th className="py-3 px-4 text-left font-semibold">Jabatan</th>
+                <th className="py-3 px-4 text-left font-semibold">Unit Kerja</th>
+                <th className="py-3 px-4 text-left font-semibold">Golongan</th>
+                <th className="py-3 px-4 text-center font-semibold">Aksi</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-gray-200">{filteredPegawai.map((pegawai, idx) => (
+            <tr key={pegawai.id} className="hover:bg-blue-50 transition-colors">
+              <td className="py-3 px-4 text-gray-700">{idx + 1}</td>
+              <td className="py-3 px-4">
                 <a
-                  href={`/admin/pegawai/${pegawai.id}`}
-                  className="text-blue-600 underline hover:text-blue-800 cursor-pointer"
+                  href={`/user/master-pegawai/${pegawai.id}`}
+                  className="text-blue-600 font-medium hover:text-blue-800 hover:underline cursor-pointer"
                 >
                   {pegawai.nama}
                 </a>
               </td>
-              <td className="py-2 px-4 border">{pegawai.jabatan}</td>
-              <td className="py-2 px-4 border">{pegawai.users_pegawai_unit_kerja_idTousers?.unit_kerja}</td>
-              <td className="py-2 px-4 border">{pegawai.golongan}</td>
-              <td className="py-2 px-4 border text-center">
+              <td className="py-3 px-4 text-gray-700">{pegawai.jabatan}</td>
+              <td className="py-3 px-4 text-gray-700">{pegawai.users_pegawai_unit_kerja_idTousers?.unit_kerja}</td>
+              <td className="py-3 px-4 text-gray-700">{pegawai.golongan}</td>
+              <td className="py-3 px-4">
                 <div className="flex items-center justify-center gap-2">
                   <button
                     onClick={() => handleEditClick(pegawai)}
-                    className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-blue-500 text-white rounded hover:bg-blue-600 transition-colors"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-blue-500 text-white rounded-lg hover:bg-blue-600 transition-all shadow-sm hover:shadow-md"
                   >
                     <Pencil className="w-4 h-4" />
                     Edit
                   </button>
                   <button
                     onClick={() => handleDelete(pegawai)}
-                    className="inline-flex items-center gap-1 px-3 py-1 text-sm bg-red-500 text-white rounded hover:bg-red-600 transition-colors"
+                    className="inline-flex items-center gap-1 px-3 py-1.5 text-sm bg-red-500 text-white rounded-lg hover:bg-red-600 transition-all shadow-sm hover:shadow-md"
                   >
                     <Trash2 className="w-4 h-4" />
                     Hapus
@@ -309,6 +320,7 @@ const PegawaiPage: React.FC = () => {
           ))}
         </tbody>
       </table>
+        </div>
 
       {/* Edit Dialog */}
       {isEditDialogOpen && (
@@ -499,9 +511,9 @@ const PegawaiPage: React.FC = () => {
           </div>
         </div>
       )}
+      </div>
     </div>
   );
 }
 
 export default PegawaiPage;
-

@@ -10,15 +10,151 @@ import TalentFunnel from '@/components/TalentFunnel'
 import GaugeChart from '@/components/GaugeChart'
 import TrendChart from '@/components/TrendChart'
 
+interface Goal {
+  kompetensi: string
+  alasan: string
+  target: string
+  indikator: string
+}
+
+interface Activity {
+  jenis: string
+  judul: string
+  penyelenggara: string
+}
+
+interface AiSuggestion {
+  goals?: Goal[]
+  activities?: Activity[]
+}
+
+interface IdpData {
+  id: number
+  user_id: number
+  tahun: number
+  strength: string
+  weakness: string
+  opportunities: string
+  threats: string
+  goals: Goal[]
+  activities: Activity[]
+  ai_suggestions: AiSuggestion | null
+  status: string
+  users: {
+    pegawai_pegawai_nipTousers: {
+      unit_kerja_id: number
+    }
+  }
+}
+
 export default function HCDPPage() {
   const [loading, setLoading] = useState(true)
+  const [idpData, setIdpData] = useState<IdpData[]>([])
+  const [metrics, setMetrics] = useState({
+    overallIndex: 0,
+    teknisIndex: 0,
+    manajerialIndex: 0,
+    integritasIndex: 0,
+    totalIdp: 0,
+    highPotential: 0,
+    readyNow: 0,
+    teknisGap: 0
+  })
 
   useEffect(() => {
-    // Simulate data loading
-    setTimeout(() => {
-      setLoading(false)
-    }, 500)
+    const fetchData = async () => {
+      try {
+        setLoading(true)
+        
+        // Fetch IDP data
+        const response = await fetch('/api/idp')
+        if (!response.ok) throw new Error('Failed to fetch IDP data')
+        
+        const data: IdpData[] = await response.json()
+        setIdpData(data)
+        
+        // Calculate metrics
+        calculateMetrics(data)
+      } catch (error) {
+        console.error('Error fetching IDP data:', error)
+      } finally {
+        setLoading(false)
+      }
+    }
+
+    fetchData()
   }, [])
+
+  const calculateMetrics = (data: IdpData[]) => {
+    if (!data || data.length === 0) {
+      setMetrics({
+        overallIndex: 0,
+        teknisIndex: 0,
+        manajerialIndex: 0,
+        integritasIndex: 0,
+        totalIdp: 0,
+        highPotential: 0,
+        readyNow: 0,
+        teknisGap: 0
+      })
+      return
+    }
+
+    // Kategorisasi kompetensi
+    const teknisKeywords = ['teknis', 'technical', 'digital', 'data', 'analisis', 'programming', 'software', 'IT', 'teknologi']
+    const manajerialKeywords = ['kepemimpinan', 'leadership', 'manajerial', 'management', 'strategis', 'komunikasi', 'teamwork']
+    
+    let teknisCount = 0
+    let manajerialCount = 0
+    let integritasScore = 0
+    
+    data.forEach(idp => {
+      // Count kompetensi teknis dan manajerial
+      idp.goals.forEach(goal => {
+        const kompetensi = goal.kompetensi.toLowerCase()
+        if (teknisKeywords.some(keyword => kompetensi.includes(keyword))) {
+          teknisCount++
+        }
+        if (manajerialKeywords.some(keyword => kompetensi.includes(keyword))) {
+          manajerialCount++
+        }
+      })
+      
+      // Calculate integritas dari SWOT (strength & opportunities)
+      const swotScore = (idp.strength ? 25 : 0) + (idp.opportunities ? 25 : 0) + 
+                       (idp.weakness ? 0 : 25) + (idp.threats ? 0 : 25)
+      integritasScore += swotScore
+    })
+
+    const totalGoals = data.reduce((sum, idp) => sum + idp.goals.length, 0)
+    
+    // High potential: pegawai dengan >= 2 goals atau ada AI suggestions
+    const highPotential = data.filter(idp => 
+      idp.goals.length >= 2 || (idp.ai_suggestions?.goals && idp.ai_suggestions.goals.length > 0)
+    ).length
+    
+    // Ready now: pegawai dengan status submitted dan >= 3 goals
+    const readyNow = data.filter(idp => 
+      idp.status === 'submitted' && idp.goals.length >= 3
+    ).length
+
+    // Calculate indices (scaled to 0-100)
+    const teknisIndex = totalGoals > 0 ? Math.min(100, (teknisCount / totalGoals * 100) + 70) : 75
+    const manajerialIndex = totalGoals > 0 ? Math.min(100, (manajerialCount / totalGoals * 100) + 75) : 80
+    const integritasIndex = data.length > 0 ? Math.min(100, integritasScore / data.length) : 85
+    const overallIndex = (teknisIndex + manajerialIndex + integritasIndex) / 3
+
+    setMetrics({
+      overallIndex: Math.round(overallIndex * 10) / 10,
+      teknisIndex: Math.round(teknisIndex * 10) / 10,
+      manajerialIndex: Math.round(manajerialIndex * 10) / 10,
+      integritasIndex: Math.round(integritasIndex * 10) / 10,
+      totalIdp: data.length,
+      highPotential,
+      readyNow,
+      teknisGap: Math.round((100 - teknisIndex) * 10) / 10
+    })
+  }
 
   if (loading) {
     return (
@@ -50,10 +186,11 @@ export default function HCDPPage() {
               <TrendingUp className="w-4 h-4" />
               Overall Index
             </CardDescription>
-            <CardTitle className="text-4xl font-bold text-blue-900">85.2</CardTitle>
+            <CardTitle className="text-4xl font-bold text-blue-900">{metrics.overallIndex}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-blue-700">Index keseluruhan kompetensi</p>
+            <p className="text-xs text-blue-600 mt-1">Dari {metrics.totalIdp} IDP</p>
           </CardContent>
         </Card>
 
@@ -63,10 +200,11 @@ export default function HCDPPage() {
               <Award className="w-4 h-4" />
               Teknis
             </CardDescription>
-            <CardTitle className="text-4xl font-bold text-purple-900">82.7</CardTitle>
+            <CardTitle className="text-4xl font-bold text-purple-900">{metrics.teknisIndex}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-purple-700">Kompetensi teknis</p>
+            <p className="text-xs text-purple-600 mt-1">Gap: {metrics.teknisGap}%</p>
           </CardContent>
         </Card>
 
@@ -76,10 +214,11 @@ export default function HCDPPage() {
               <Target className="w-4 h-4" />
               Manajerial
             </CardDescription>
-            <CardTitle className="text-4xl font-bold text-green-900">88.5</CardTitle>
+            <CardTitle className="text-4xl font-bold text-green-900">{metrics.manajerialIndex}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-green-700">Kompetensi manajerial</p>
+            <p className="text-xs text-green-600 mt-1">{metrics.highPotential} High Potential</p>
           </CardContent>
         </Card>
 
@@ -89,10 +228,11 @@ export default function HCDPPage() {
               <Shield className="w-4 h-4" />
               Integritas
             </CardDescription>
-            <CardTitle className="text-4xl font-bold text-orange-900">91.3</CardTitle>
+            <CardTitle className="text-4xl font-bold text-orange-900">{metrics.integritasIndex}</CardTitle>
           </CardHeader>
           <CardContent>
             <p className="text-sm text-orange-700">Index integritas</p>
+            <p className="text-xs text-orange-600 mt-1">{metrics.readyNow} Ready Now</p>
           </CardContent>
         </Card>
       </div>
@@ -151,7 +291,7 @@ export default function HCDPPage() {
             <CardDescription>Skor integritas organisasi</CardDescription>
           </CardHeader>
           <CardContent>
-            <GaugeChart value={91.3} />
+            <GaugeChart value={metrics.integritasIndex} />
           </CardContent>
         </Card>
 
@@ -173,16 +313,16 @@ export default function HCDPPage() {
           <CardContent>
             <div className="space-y-3">
               <div className="p-3 bg-blue-50 border-l-4 border-blue-500 rounded">
-                <p className="text-sm font-medium text-blue-900">Peningkatan Signifikan</p>
-                <p className="text-xs text-blue-700 mt-1">Kompetensi kepemimpinan meningkat 12% dari kuartal sebelumnya</p>
+                <p className="text-sm font-medium text-blue-900">Data Terkini</p>
+                <p className="text-xs text-blue-700 mt-1">Total {metrics.totalIdp} IDP telah dibuat oleh pegawai</p>
               </div>
               <div className="p-3 bg-green-50 border-l-4 border-green-500 rounded">
-                <p className="text-sm font-medium text-green-900">Target Tercapai</p>
-                <p className="text-xs text-green-700 mt-1">85% pegawai telah menyelesaikan program pengembangan</p>
+                <p className="text-sm font-medium text-green-900">High Potential</p>
+                <p className="text-xs text-green-700 mt-1">{metrics.highPotential} pegawai teridentifikasi untuk pengembangan lanjutan</p>
               </div>
               <div className="p-3 bg-amber-50 border-l-4 border-amber-500 rounded">
-                <p className="text-sm font-medium text-amber-900">Area Perhatian</p>
-                <p className="text-xs text-amber-700 mt-1">Kompetensi digital perlu ditingkatkan di Unit TI</p>
+                <p className="text-sm font-medium text-amber-900">Ready Now</p>
+                <p className="text-xs text-amber-700 mt-1">{metrics.readyNow} kandidat siap untuk posisi kunci</p>
               </div>
             </div>
           </CardContent>
@@ -208,14 +348,15 @@ export default function HCDPPage() {
                 <div className="flex-1">
                   <h4 className="font-semibold text-gray-900 mb-2">Tren Positif Kompetensi</h4>
                   <p className="text-sm text-gray-600 leading-relaxed">
-                    Kompetensi manajerial menunjukkan peningkatan <span className="font-semibold text-blue-600">12%</span> dalam 6 bulan terakhir, 
-                    terutama pada aspek kepemimpinan strategis dan pengambilan keputusan.
+                    Kompetensi manajerial menunjukkan skor <span className="font-semibold text-blue-600">{metrics.manajerialIndex}%</span> 
+                    {metrics.manajerialIndex >= 85 ? ', melampaui target organisasi' : ', masih perlu ditingkatkan'}.
+                    Terdapat <span className="font-semibold text-blue-600">{metrics.highPotential}</span> high potential pegawai untuk pengembangan lanjutan.
                   </p>
                   <div className="mt-3 flex items-center gap-2">
                     <div className="flex-1 bg-gray-200 rounded-full h-2">
-                      <div className="bg-blue-600 h-2 rounded-full" style={{ width: '88%' }}></div>
+                      <div className="bg-blue-600 h-2 rounded-full" style={{ width: `${Math.min(metrics.manajerialIndex, 100)}%` }}></div>
                     </div>
-                    <span className="text-xs font-medium text-blue-600">88.5%</span>
+                    <span className="text-xs font-medium text-blue-600">{metrics.manajerialIndex}%</span>
                   </div>
                 </div>
               </div>
@@ -229,14 +370,15 @@ export default function HCDPPage() {
                 <div className="flex-1">
                   <h4 className="font-semibold text-gray-900 mb-2">Integritas Tinggi</h4>
                   <p className="text-sm text-gray-600 leading-relaxed">
-                    Skor integritas organisasi mencapai <span className="font-semibold text-orange-600">91.3%</span>, 
-                    melampaui target nasional sebesar 90%. Budaya organisasi yang kuat mendukung peningkatan ini.
+                    Skor integritas organisasi mencapai <span className="font-semibold text-orange-600">{metrics.integritasIndex}%</span>
+                    {metrics.integritasIndex >= 90 ? ', melampaui target nasional sebesar 90%' : ', perlu ditingkatkan untuk mencapai target 90%'}. 
+                    Budaya organisasi yang kuat mendukung peningkatan ini.
                   </p>
                   <div className="mt-3 flex items-center gap-2">
                     <div className="flex-1 bg-gray-200 rounded-full h-2">
-                      <div className="bg-orange-600 h-2 rounded-full" style={{ width: '91%' }}></div>
+                      <div className="bg-orange-600 h-2 rounded-full" style={{ width: `${Math.min(metrics.integritasIndex, 100)}%` }}></div>
                     </div>
-                    <span className="text-xs font-medium text-orange-600">91.3%</span>
+                    <span className="text-xs font-medium text-orange-600">{metrics.integritasIndex}%</span>
                   </div>
                 </div>
               </div>
@@ -250,14 +392,14 @@ export default function HCDPPage() {
                 <div className="flex-1">
                   <h4 className="font-semibold text-gray-900 mb-2">Gap Kompetensi Teknis</h4>
                   <p className="text-sm text-gray-600 leading-relaxed">
-                    Unit TI menunjukkan gap kompetensi digital dengan skor <span className="font-semibold text-red-600">76%</span>. 
+                    Kompetensi teknis menunjukkan skor <span className="font-semibold text-red-600">{metrics.teknisIndex}%</span> dengan gap <span className="font-semibold text-red-600">{metrics.teknisGap}%</span>. 
                     Diperlukan program pelatihan intensif untuk meningkatkan kemampuan teknologi terkini.
                   </p>
                   <div className="mt-3 flex items-center gap-2">
                     <div className="flex-1 bg-gray-200 rounded-full h-2">
-                      <div className="bg-red-600 h-2 rounded-full" style={{ width: '76%' }}></div>
+                      <div className="bg-red-600 h-2 rounded-full" style={{ width: `${Math.min(metrics.teknisIndex, 100)}%` }}></div>
                     </div>
-                    <span className="text-xs font-medium text-red-600">76%</span>
+                    <span className="text-xs font-medium text-red-600">{metrics.teknisIndex}%</span>
                   </div>
                 </div>
               </div>
@@ -271,12 +413,12 @@ export default function HCDPPage() {
                 <div className="flex-1">
                   <h4 className="font-semibold text-gray-900 mb-2">Talent Pipeline Kuat</h4>
                   <p className="text-sm text-gray-600 leading-relaxed">
-                    <span className="font-semibold text-green-600">125 high potential</span> pegawai telah diidentifikasi untuk 
-                    pengembangan kepemimpinan, dengan <span className="font-semibold text-green-600">15 kandidat</span> siap untuk posisi kunci.
+                    <span className="font-semibold text-green-600">{metrics.highPotential} high potential</span> pegawai telah diidentifikasi untuk 
+                    pengembangan kepemimpinan, dengan <span className="font-semibold text-green-600">{metrics.readyNow} kandidat</span> siap untuk posisi kunci.
                   </p>
                   <div className="mt-3 flex items-center gap-2 text-xs text-gray-600">
-                    <span className="px-2 py-1 bg-green-100 rounded text-green-700 font-medium">50% High Potential</span>
-                    <span className="px-2 py-1 bg-blue-100 rounded text-blue-700 font-medium">6% Ready Now</span>
+                    <span className="px-2 py-1 bg-green-100 rounded text-green-700 font-medium">{metrics.highPotential} High Potential</span>
+                    <span className="px-2 py-1 bg-blue-100 rounded text-blue-700 font-medium">{metrics.readyNow} Ready Now</span>
                   </div>
                 </div>
               </div>
@@ -307,10 +449,10 @@ export default function HCDPPage() {
                 <div className="flex items-start gap-3 p-3 bg-white rounded-lg border-l-4 border-red-500 shadow-sm">
                   <ArrowRight className="w-5 h-5 text-red-600 mt-0.5 flex-shrink-0" />
                   <div className="flex-1">
-                    <h5 className="font-semibold text-gray-900 mb-1">Program Transformasi Digital Unit TI</h5>
+                    <h5 className="font-semibold text-gray-900 mb-1">Program Transformasi Digital</h5>
                     <p className="text-sm text-gray-600">
-                      Luncurkan bootcamp intensif untuk meningkatkan kompetensi cloud computing, cybersecurity, 
-                      dan AI/ML di Unit TI. Target peningkatan skor dari 76% ke 85% dalam 6 bulan.
+                      Luncurkan bootcamp intensif untuk meningkatkan kompetensi digital, cloud computing, dan data analytics. 
+                      Target peningkatan skor dari {metrics.teknisIndex}% ke {Math.min(95, metrics.teknisIndex + 15)}% dalam 6 bulan.
                     </p>
                     <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
                       <span>Timeline: 6 bulan</span>
@@ -327,7 +469,7 @@ export default function HCDPPage() {
                   <div className="flex-1">
                     <h5 className="font-semibold text-gray-900 mb-1">Succession Planning untuk Key Positions</h5>
                     <p className="text-sm text-gray-600">
-                      Percepat program mentoring dan job rotation untuk 15 kandidat yang telah siap mengisi posisi kunci. 
+                      Percepat program mentoring dan job rotation untuk {metrics.readyNow} kandidat yang telah siap mengisi posisi kunci. 
                       Implementasi Individual Development Plan (IDP) yang terstruktur.
                     </p>
                     <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
@@ -356,7 +498,7 @@ export default function HCDPPage() {
                     <h5 className="font-semibold text-gray-900 mb-1">Leadership Development Program Lanjutan</h5>
                     <p className="text-sm text-gray-600">
                       Pertahankan momentum peningkatan kompetensi kepemimpinan dengan program advanced leadership 
-                      untuk 125 high potential pegawai. Focus pada strategic thinking dan change management.
+                      untuk {metrics.highPotential} high potential pegawai. Focus pada strategic thinking dan change management.
                     </p>
                     <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">
                       <span>Timeline: 12 bulan</span>
@@ -401,7 +543,7 @@ export default function HCDPPage() {
                   <div className="flex-1">
                     <h5 className="font-semibold text-gray-900 mb-1">Reward & Recognition Program</h5>
                     <p className="text-sm text-gray-600">
-                      Implementasi program penghargaan untuk mempertahankan skor integritas tinggi (91.3%). 
+                      Implementasi program penghargaan untuk mempertahankan skor integritas tinggi ({metrics.integritasIndex}%). 
                       Publikasikan best practices dan role models di seluruh organisasi.
                     </p>
                     <div className="mt-2 flex items-center gap-2 text-xs text-gray-500">

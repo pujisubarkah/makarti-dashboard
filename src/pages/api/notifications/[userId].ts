@@ -7,7 +7,7 @@ interface NotificationWithUser {
   receiver_id: number | null;
   receiver_role: string | null;
   message: string;
-  type: string;
+  type: string | null;
   created_at: Date;
   is_read: boolean;
   users: {

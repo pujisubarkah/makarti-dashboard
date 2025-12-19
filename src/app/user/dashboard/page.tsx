@@ -268,18 +268,14 @@ export default function UnitKerjaDashboard() {
                     throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
                 }
                 
-                const pegawaiList = await response.json();
+                const pegawaiResponse = await response.json();
                 
-                // Construct unit kerja data dari pegawai list
+                // Construct unit kerja data dari response API
                 const unitKerjaData: UnitKerjaData = {
                     unit_kerja_id: unitId,
                     nama_unit_kerja: unitKerjaName || 'Unit Kerja',
-                    total_pegawai: Array.isArray(pegawaiList) ? pegawaiList.length : 0,
-                    kepala_unit: Array.isArray(pegawaiList) 
-                        ? (pegawaiList.find((p: Pegawai) => p.jabatan?.toLowerCase().includes('direktur'))?.nama || 
-                           pegawaiList.find((p: Pegawai) => p.jabatan?.toLowerCase().includes('kepala'))?.nama || 
-                           null)
-                        : null
+                    total_pegawai: pegawaiResponse.total_pegawai || 0,
+                    kepala_unit: pegawaiResponse.kepala_unit || null
                 };
                 
                 console.log('Unit kerja data constructed:', unitKerjaData);
@@ -378,36 +374,15 @@ export default function UnitKerjaDashboard() {
         return (
             <main className="p-8 max-w-7xl mx-auto space-y-8 bg-gray-50 min-h-screen">
                 <div className="flex items-center justify-center h-64">
-                    <div className="text-center">
-                        <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600 mx-auto mb-4"></div>
-                        <p className="text-gray-600">Memuat data unit kerja...</p>
-                        <p className="text-sm text-gray-500 mt-2">Mengambil informasi dari database...</p>
-                    </div>
+                    <span className="text-lg text-gray-500">Memuat data unit kerja...</span>
                 </div>
-            </main>
-        );
-    }
-
-    // Error state
-    if (error) {
-        return (
-            <main className="p-8 max-w-7xl mx-auto space-y-8 bg-gray-50 min-h-screen">
-                <div className="bg-red-50 border border-red-200 rounded-lg p-6 max-w-2xl mx-auto">
-                    <div className="flex items-center mb-4">
-                        <div className="text-red-600 mr-3 text-2xl">⚠️</div>
-                        <div>
-                            <h3 className="text-red-800 font-medium text-lg">Gagal Memuat Data</h3>
-                            <p className="text-red-600 text-sm mt-1">{error}</p>
-                        </div>
-                    </div>
-                    <div className="mt-4">
-                        <button 
-                            onClick={() => window.location.reload()} 
-                            className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
-                        >
-                            Coba Lagi
-                        </button>
-                    </div>
+                <div className="mt-4 flex justify-center">
+                    <button 
+                        onClick={() => window.location.reload()} 
+                        className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded-lg text-sm transition-colors"
+                    >
+                        Coba Lagi
+                    </button>
                 </div>
             </main>
         );

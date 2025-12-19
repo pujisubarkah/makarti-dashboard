@@ -52,7 +52,7 @@ const menuItems: MenuItem[] = [
     type: 'item',
   },
   {
-    label: 'HCDP',
+    label: 'HCDP Unit Kerja',
     href: '/user/HCDP',
     icon: PieChart,
     status: 'ready',

@@ -42,6 +42,13 @@ interface UnitKerjaData {
   kepala_unit: string | null;
 }
 
+// Interface untuk data pegawai
+interface Pegawai {
+  nama?: string;
+  jabatan?: string;
+  [key: string]: unknown;
+}
+
 // Interface untuk data BIGGER dari API
 
 export interface ScoreData {
@@ -269,7 +276,7 @@ export default function UnitKerjaDashboard() {
                     nama_unit_kerja: unitKerjaName || 'Unit Kerja',
                     total_pegawai: Array.isArray(pegawaiList) ? pegawaiList.length : 0,
                     kepala_unit: Array.isArray(pegawaiList) 
-                        ? pegawaiList.find((p: any) => p.jabatan?.toLowerCase().includes('kepala'))?.nama || null
+                        ? pegawaiList.find((p: Pegawai) => p.jabatan?.toLowerCase().includes('kepala'))?.nama || null
                         : null
                 };
                 

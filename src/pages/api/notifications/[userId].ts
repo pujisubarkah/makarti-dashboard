@@ -1,6 +1,21 @@
 import { NextApiRequest, NextApiResponse } from 'next'
 import { prisma } from '@/lib/prisma'
 
+interface NotificationWithUser {
+  id: number;
+  sender_id: number | null;
+  receiver_id: number | null;
+  receiver_role: string | null;
+  message: string;
+  type: string;
+  created_at: Date;
+  is_read: boolean;
+  users: {
+    id: number;
+    role: string | null;
+  } | null;
+}
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method !== 'GET') {
     return res.status(405).json({ success: false, message: 'Method not allowed' })
@@ -41,7 +56,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     // Fetch notifications for this user
-    let notifications: Array<Awaited<ReturnType<typeof prisma.notification.findMany>>[number]> = [];
+    let notifications: NotificationWithUser[] = [];
     try {
       notifications = await prisma.notification.findMany({
         where: {
@@ -76,7 +91,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const formattedNotifications = notifications.map(notif => ({
       id: notif.id,
       sender_id: notif.sender_id,
-      sender_role: (notif as any).users?.role === '1' ? 'admin' : 'user',
+      sender_role: notif.users?.role === '1' ? 'admin' : 'user',
       message: notif.message,
       type: notif.type,
       created_at: notif.created_at,

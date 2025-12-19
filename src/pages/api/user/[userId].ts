@@ -66,7 +66,5 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       error: 'Terjadi kesalahan internal server',
       details: process.env.NODE_ENV === 'development' ? error : undefined
     });
-  } finally {
-    await prisma.$disconnect();
   }
 }

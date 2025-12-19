@@ -9,13 +9,61 @@ export default async function handler(
   res: NextApiResponse
 ) {
   if (req.method === 'GET') {
-    // Ambil semua data pegawai
-    try {
-      const pegawai = await prisma.pegawai.findMany();
-      res.status(200).json(pegawai);
-    } catch (error) {
-      console.error('Error fetching pegawai data:', error);
-      res.status(500).json({ error: 'Gagal mengambil data pegawai' });
+    if (req.query.id) {
+      // Ambil data pegawai berdasarkan id
+      try {
+        const pegawai = await prisma.pegawai.findUnique({
+          where: { id: Number(req.query.id) },
+          include: {
+            users_pegawai_unit_kerja_idTousers: {
+              select: { unit_kerja: true }
+            }
+          }
+        });
+        if (!pegawai) {
+          res.status(404).json({ error: 'Pegawai tidak ditemukan' });
+        } else {
+          res.status(200).json(pegawai);
+        }
+      } catch (error) {
+        console.error('Error fetching pegawai by id:', error);
+        res.status(500).json({ error: 'Gagal mengambil data pegawai' });
+      }
+    } else if (req.query.unit_kerja_id) {
+      // Ambil data pegawai berdasarkan unit_kerja_id
+      try {
+        const unitKerjaId = Number(req.query.unit_kerja_id);
+        const pegawaiList = await prisma.pegawai.findMany({
+          where: { unit_kerja_id: unitKerjaId },
+          include: {
+            users_pegawai_unit_kerja_idTousers: {
+              select: { unit_kerja: true }
+            }
+          },
+          orderBy: {
+            nama: 'asc'
+          }
+        });
+        res.status(200).json(pegawaiList);
+      } catch (error) {
+        console.error('Error fetching pegawai by unit_kerja_id:', error);
+        res.status(500).json({ error: 'Gagal mengambil data pegawai' });
+      }
+    } else {
+      // Ambil semua data pegawai
+      try {
+        const pegawai = await prisma.pegawai.findMany({
+          include: {
+            users_pegawai_unit_kerja_idTousers: {
+              select: { unit_kerja: true }
+            }
+          }
+        });
+        res.status(200).json(pegawai);
+      } catch (error) {
+        console.error('Error fetching pegawai data:', error);
+        res.status(500).json({ error: 'Gagal mengambil data pegawai' });
+      }
     }
   } else if (req.method === 'POST') {
     // Tambah data pegawai

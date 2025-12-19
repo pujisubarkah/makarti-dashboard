@@ -234,9 +234,10 @@ export default function UnitKerjaDashboard() {
             try {
                 setLoading(true);
                 
-                // Ambil unit_kerja_id dari localStorage
+                // Ambil unit_kerja_id dan unit_kerja dari localStorage
                 const userUnitId = localStorage.getItem("id");
-                console.log(`Retrieved unit ID from localStorage: ${userUnitId}`);
+                const unitKerjaName = localStorage.getItem("unit_kerja");
+                console.log(`Retrieved unit_kerja_id: ${userUnitId}, unit_kerja: ${unitKerjaName}`);
                 
                 if (!userUnitId) {
                     throw new Error("Unit kerja ID tidak ditemukan di localStorage. Silakan login ulang.");
@@ -248,26 +249,31 @@ export default function UnitKerjaDashboard() {
                     throw new Error(`Unit kerja ID tidak valid: "${userUnitId}". Silakan login ulang.`);
                 }
 
-                // Fetch data dari API dengan ID spesifik
-                console.log(`Fetching data for unit ID: ${unitId}`);
-                const response = await fetch(`/api/pegawai/${unitId}`);
+                // Fetch data pegawai dari unit kerja untuk mendapatkan statistik
+                console.log(`Fetching data for unit_kerja_id: ${unitId}`);
+                const response = await fetch(`/api/pegawai?unit_kerja_id=${unitId}`);
                 
                 console.log(`API Response status: ${response.status}`);
                 
                 if (!response.ok) {
                     const errorText = await response.text();
                     console.error(`API Error Response: ${errorText}`);
-                    
-                    if (response.status === 404) {
-                        throw new Error("Unit kerja tidak ditemukan atau tidak memenuhi syarat.");
-                    } else if (response.status === 204) {
-                        throw new Error("Unit kerja tidak memenuhi syarat (jumlah pegawai terlalu sedikit).");
-                    } else {
-                        throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
-                    }
+                    throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
                 }
                 
-                const unitKerjaData: UnitKerjaData = await response.json();
+                const pegawaiList = await response.json();
+                
+                // Construct unit kerja data dari pegawai list
+                const unitKerjaData: UnitKerjaData = {
+                    unit_kerja_id: unitId,
+                    nama_unit_kerja: unitKerjaName || 'Unit Kerja',
+                    total_pegawai: Array.isArray(pegawaiList) ? pegawaiList.length : 0,
+                    kepala_unit: Array.isArray(pegawaiList) 
+                        ? pegawaiList.find((p: any) => p.jabatan?.toLowerCase().includes('kepala'))?.nama || null
+                        : null
+                };
+                
+                console.log('Unit kerja data constructed:', unitKerjaData);
                 
                 // Validasi data yang diterima
                 if (!unitKerjaData || !unitKerjaData.nama_unit_kerja) {
@@ -291,10 +297,13 @@ export default function UnitKerjaDashboard() {
                 
                 setError(errorMessage);
                 
-                // Fallback data jika gagal fetch
+                // Fallback data jika gagal fetch - ambil dari localStorage jika ada
+                const fallbackName = localStorage.getItem("unit_kerja") || "Unit Kerja Tidak Tersedia";
+                const fallbackId = parseInt(localStorage.getItem("unit_kerja_id") || "0");
+                
                 setUnitData({
-                    unit_kerja_id: 0,
-                    nama_unit_kerja: "Unit Kerja Tidak Tersedia",
+                    unit_kerja_id: fallbackId,
+                    nama_unit_kerja: fallbackName,
                     total_pegawai: 0,
                     kepala_unit: "Tidak tersedia"
                 });
@@ -323,13 +332,16 @@ export default function UnitKerjaDashboard() {
                 if (isNaN(unitId)) {
                     throw new Error("Unit kerja ID tidak valid.");
                 }
+                console.log(`Fetching scores for unit_kerja_id: ${unitId}`);
                 const response = await fetch(`/api/scores/${unitId}`);
                 if (!response.ok) {
                     throw new Error(`HTTP error! status: ${response.status}`);
                 }
                 const scoreResponse = await response.json();
+                console.log('Score data received:', scoreResponse);
                 setScoreData(scoreResponse);
             } catch (err) {
+                console.error('Error fetching scores:', err);
                 setScoreError(err instanceof Error ? err.message : 'Terjadi kesalahan saat memuat data skor');
                 setScoreData(null);
             } finally {

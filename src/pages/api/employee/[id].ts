@@ -70,7 +70,7 @@ export default async function handler(
 	} else if (req.method === 'PUT') {
 		// Update data pegawai berdasarkan id atau nip
 		try {
-			const { nip, nama, unit_kerja_id, jabatan, golongan } = req.body;
+			const { nip, nama, unit_kerja_id, jabatan, golongan, eselon } = req.body;
 			let updatedPegawai;
 			
 			const numericId = Number(id);
@@ -84,6 +84,7 @@ export default async function handler(
 						unit_kerja_id,
 						jabatan,
 						golongan,
+						eselon,
 					},
 				});
 			} else {
@@ -104,6 +105,7 @@ export default async function handler(
 						unit_kerja_id,
 						jabatan,
 						golongan,
+						eselon,
 					},
 				});
 			}

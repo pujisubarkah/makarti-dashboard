@@ -72,12 +72,8 @@ interface IdpData {
   users: User;
 }
 
-interface ApiResponse {
-  unit_kerja_id: number;
-  tahun: number | null;
-  total: number;
-  data: IdpData[];
-}
+// ApiResponse is now just an array of IdpData
+type ApiResponse = IdpData[];
 
 
 export default function HCDPDashboard() {
@@ -92,22 +88,23 @@ export default function HCDPDashboard() {
       try {
         setLoading(true);
         
-        // Ambil unit_kerja_id dari localStorage
-        const unitKerjaId = localStorage.getItem('id');
+        // Ambil user_id dari localStorage
+        const userId = localStorage.getItem('id');
         
-        if (!unitKerjaId) {
-          throw new Error('Unit kerja ID tidak ditemukan di localStorage');
+        if (!userId) {
+          throw new Error('User ID tidak ditemukan di localStorage. Silakan login ulang.');
         }
 
-        console.log('Fetching IDP data for unit_kerja_id:', unitKerjaId);
+        console.log('Fetching IDP data for user_id:', userId);
 
-        // Fetch data IDP berdasarkan unit_kerja_id dari localStorage
-        const response = await fetch(`/api/idp/unit/${unitKerjaId}`);
+        // Fetch data IDP berdasarkan user_id dari localStorage menggunakan query parameter
+        const response = await fetch(`/api/idp?user_id=${userId}`);
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }
 
         const data: ApiResponse = await response.json();
+        console.log('IDP data received:', data);
         setIdpData(data);
       } catch (err) {
         console.error('Error fetching IDP data:', err);
@@ -121,13 +118,13 @@ export default function HCDPDashboard() {
   }, []);
 
   // Process data untuk charts
-  const processedData = idpData ? {
+  const processedData = idpData && idpData.length > 0 ? {
     // Goals vs AI Suggestions comparison
     goalsVsAiData: (() => {
       const currentGoals: Record<string, number> = {};
       const aiSuggestions: Record<string, number> = {};
       
-      idpData.data.forEach(idp => {
+      idpData.forEach(idp => {
         // Current goals
         idp.goals?.forEach(goal => {
           const kompetesi = goal.kompetensi || 'Unknown';
@@ -159,7 +156,7 @@ export default function HCDPDashboard() {
         category: category === 'strength' ? 'Kekuatan' : 
                  category === 'weakness' ? 'Kelemahan' :
                  category === 'opportunities' ? 'Peluang' : 'Ancaman',
-        count: idpData.data.filter(idp => idp[category as keyof IdpData] && 
+        count: idpData.filter(idp => idp[category as keyof IdpData] && 
                (idp[category as keyof IdpData] as string).length > 0).length
       }));
     })(),
@@ -169,7 +166,7 @@ export default function HCDPDashboard() {
       const currentActivities: Record<string, number> = {};
       const aiActivities: Record<string, number> = {};
       
-      idpData.data.forEach(idp => {
+      idpData.forEach(idp => {
         // Current activities
         idp.activities?.forEach(activity => {
           const jenis = activity.jenis || 'Unknown';
@@ -197,7 +194,7 @@ export default function HCDPDashboard() {
     kompetensiTrendsData: (() => {
       const trends: Record<string, Record<number, number>> = {};
       
-      idpData.data.forEach(idp => {
+      idpData.forEach(idp => {
         idp.goals?.forEach(goal => {
           const kompetesi = goal.kompetensi || 'Unknown';
           const tahun = idp.tahun || new Date().getFullYear();
@@ -208,7 +205,7 @@ export default function HCDPDashboard() {
       });
       
       // Get all years
-      const allYears = [...new Set(idpData.data.map(idp => idp.tahun))].sort();
+      const allYears = [...new Set(idpData.map(idp => idp.tahun))].sort();
       
       return Object.entries(trends).map(([kompetensi, yearData]) => ({
         kompetensi: kompetensi.length > 15 ? kompetensi.substring(0, 15) + '...' : kompetensi,
@@ -221,7 +218,7 @@ export default function HCDPDashboard() {
       const statusCount: Record<string, number> = {};
       const yearCount: Record<number, number> = {};
       
-      idpData.data.forEach(idp => {
+      idpData.forEach(idp => {
         const status = idp.status || 'Unknown';
         statusCount[status] = (statusCount[status] || 0) + 1;
         
@@ -286,6 +283,25 @@ export default function HCDPDashboard() {
     );
   }
 
+  // Jika tidak ada data IDP
+  if (!idpData || idpData.length === 0) {
+    return (
+      <Card className="w-full shadow-lg rounded-2xl">
+        <CardContent className="flex items-center justify-center h-96">
+          <div className="text-center">
+            <div className="text-gray-400 mb-4">
+              <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+              </svg>
+            </div>
+            <p className="text-gray-600 font-semibold text-lg">Belum Ada Data IDP Pegawai</p>
+            <p className="text-gray-500 mt-2">Silakan Pegawai buat IDP dihalamannya  terlebih dahulu untuk melihat dashboard</p>
+          </div>
+        </CardContent>
+      </Card>
+    );
+  }
+
   return (
     <Card className="w-full shadow-lg rounded-2xl">
       <CardHeader>
@@ -293,7 +309,7 @@ export default function HCDPDashboard() {
           Dashboard HCDP
         </CardTitle>
         <div className="text-sm text-gray-600">
-          Total IDP: {idpData?.total || 0} | Data terakhir diperbarui: {new Date().toLocaleDateString('id-ID')}
+          Total IDP: {idpData?.length || 0} | Data terakhir diperbarui: {new Date().toLocaleDateString('id-ID')}
         </div>
       </CardHeader>
 
@@ -301,18 +317,18 @@ export default function HCDPDashboard() {
         {/* Summary Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-6 gap-4 mb-8">
           <div className="bg-gradient-to-r from-blue-500 to-blue-600 text-white p-4 rounded-lg">
-            <div className="text-2xl font-bold">{idpData?.data.length || 0}</div>
+            <div className="text-2xl font-bold">{idpData?.length || 0}</div>
             <div className="text-sm opacity-90">Total IDP</div>
           </div>
           <div className="bg-gradient-to-r from-green-500 to-green-600 text-white p-4 rounded-lg">
             <div className="text-2xl font-bold">
-              {idpData?.data.filter(idp => idp.status === 'submitted').length || 0}
+              {idpData?.filter(idp => idp.status === 'submitted').length || 0}
             </div>
             <div className="text-sm opacity-90">Aktif</div>
           </div>
           <div className="bg-gradient-to-r from-yellow-500 to-yellow-600 text-white p-4 rounded-lg">
             <div className="text-2xl font-bold">
-              {idpData?.data.filter(idp => idp.status === 'draft').length || 0}
+              {idpData?.filter(idp => idp.status === 'draft').length || 0}
             </div>
             <div className="text-sm opacity-90">Draft</div>
           </div>
@@ -330,7 +346,7 @@ export default function HCDPDashboard() {
           </div>
           <div className="bg-gradient-to-r from-emerald-500 to-teal-600 text-white p-4 rounded-lg">
             <div className="text-2xl font-bold">
-              {idpData?.data.reduce((sum, idp) => sum + (idp.ai_suggestions?.activities?.length || 0), 0)}
+              {idpData?.reduce((sum, idp) => sum + (idp.ai_suggestions?.activities?.length || 0), 0)}
             </div>
             <div className="text-sm opacity-90">AI Activity Suggestions</div>
           </div>
@@ -722,7 +738,7 @@ export default function HCDPDashboard() {
                           <PolarGrid />
                           <PolarAngleAxis dataKey="kompetensi" />
                           <PolarRadiusAxis angle={90} domain={[0, 'dataMax']} />
-                          {idpData && [...new Set(idpData.data.map(idp => idp.tahun))].sort().map((year, index) => (
+                          {idpData && [...new Set(idpData.map(idp => idp.tahun))].sort().map((year, index) => (
                             <Radar 
                               key={year}
                               name={`Tahun ${year}`}
@@ -830,7 +846,7 @@ export default function HCDPDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-blue-600">
-                      {idpData?.data.length || 0}
+                      {idpData?.length || 0}
                     </div>
                   </CardContent>
                 </Card>
@@ -840,7 +856,7 @@ export default function HCDPDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-green-600">
-                      {idpData?.data.filter(idp => idp.status === 'submitted').length || 0}
+                      {idpData?.filter(idp => idp.status === 'submitted').length || 0}
                     </div>
                   </CardContent>
                 </Card>
@@ -850,7 +866,7 @@ export default function HCDPDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-yellow-600">
-                      {idpData?.data.filter(idp => idp.status === 'draft').length || 0}
+                      {idpData?.filter(idp => idp.status === 'draft').length || 0}
                     </div>
                   </CardContent>
                 </Card>
@@ -860,7 +876,7 @@ export default function HCDPDashboard() {
                   </CardHeader>
                   <CardContent>
                     <div className="text-2xl font-bold text-purple-600">
-                      {idpData?.data.filter(idp => idp.status === 'completed').length || 0}
+                      {idpData?.filter(idp => idp.status === 'completed').length || 0}
                     </div>
                   </CardContent>
                 </Card>
@@ -872,9 +888,9 @@ export default function HCDPDashboard() {
         {/* Detail IDP Section */}
         <div className="mt-8 pt-6 border-t">
           <h3 className="text-lg font-semibold mb-4">Detail IDP Pegawai</h3>
-          {idpData && idpData.data.length > 0 ? (
+          {idpData && idpData.length > 0 ? (
             <div className="space-y-6 max-h-96 overflow-y-auto">
-              {idpData.data.map((idp) => (
+              {idpData.map((idp) => (
                 <div key={idp.id} className="border rounded-lg p-4 bg-white shadow-sm">
                   <div className="flex justify-between items-start mb-4">
                     <div>

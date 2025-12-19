@@ -42,7 +42,21 @@ export default function LoginPage() {
       // ✅ Simpan ke localStorage
       localStorage.setItem('username', data.user.username);
       localStorage.setItem('role_id', data.user.role_id.toString());
-      localStorage.setItem('id', data.user.id || '');
+      localStorage.setItem('id', data.user.id.toString() || '');
+      localStorage.setItem('unit_kerja', data.user.unit_kerja || '');
+      
+      // Simpan unit_kerja_id jika ada (dari pegawai)
+      if (data.user.unit_kerja_id) {
+        localStorage.setItem('unit_kerja_id', data.user.unit_kerja_id.toString());
+      }
+      
+      // Simpan nama dan jabatan jika ada
+      if (data.user.nama) {
+        localStorage.setItem('nama', data.user.nama);
+      }
+      if (data.user.jabatan) {
+        localStorage.setItem('jabatan', data.user.jabatan);
+      }
 
       // Add login timestamp
       localStorage.setItem('loginTime', new Date().toISOString());

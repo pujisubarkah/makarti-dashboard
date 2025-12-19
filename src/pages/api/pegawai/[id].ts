@@ -1,98 +1,148 @@
-// pages/api/pegawai/groupByUnit/[id].ts
-
+import { PrismaClient } from '@prisma/client';
 import type { NextApiRequest, NextApiResponse } from 'next';
-import { prisma } from '@/lib/prisma';
 
-type UnitGroup = {
-  unit_kerja_id: number;
-  nama_unit_kerja: string;
-  total_pegawai: number;
-  kepala_unit: string | null;
-};
+const prisma = new PrismaClient();
 
 export default async function handler(
-  req: NextApiRequest,
-  res: NextApiResponse
+	req: NextApiRequest,
+	res: NextApiResponse
 ) {
-  try {
+	const { id } = req.query;
+	if (!id) {
+		return res.status(400).json({ error: 'ID pegawai diperlukan' });
+	}
 
-    if (req.method !== 'GET') {
-      await prisma.$disconnect();
-      return res.status(405).json({ error: `Metode ${req.method} tidak diizinkan` });
-    }
-
-    const idParam = req.query.id;
-    const idAsNumber = parseInt(Array.isArray(idParam) ? idParam[0] : idParam || '', 10);
-
-    if (isNaN(idAsNumber)) {
-      await prisma.$disconnect();
-      return res.status(400).json({ error: 'ID unit tidak valid' });
-    }
-
-    // Mapping unit gabungan ➜ ke unit utama
-    const unitMergeMap: Record<number, number> = {
-      30: 22,
-      31: 20,
-    };
-
-    const targetUnitId = unitMergeMap[idAsNumber] || idAsNumber;
-
-    const allPegawai = await prisma.pegawai.findMany({
-      // Adjust the include clause to match your schema, e.g., include related user if relation is 'user'
-      // include: { user: true },
-    });
-
-    const filteredPegawai = allPegawai.filter(p =>
-      (p.unit_kerja_id === targetUnitId) ||
-      (unitMergeMap[p.unit_kerja_id || 0] === targetUnitId)
-    );
-
-    if (filteredPegawai.length === 0) {
-      await prisma.$disconnect();
-      return res.status(404).json({ error: 'Unit kerja tidak ditemukan atau tidak punya cukup pegawai' });
-    }
-
-    const sampleUnit = filteredPegawai.find(p => p.unit_kerja_id === targetUnitId);
-
-    // Fetch unit name from the users table
-    let namaUnitKerja = 'Unit Tidak Diketahui';
-    if (sampleUnit?.unit_kerja_id) {
-      const unit = await prisma.users.findUnique({
-        where: { id: sampleUnit.unit_kerja_id },
-        select: { unit_kerja: true },
-      });
-      if (unit?.unit_kerja) {
-        namaUnitKerja = unit.unit_kerja;
-      }
-    }
-
-    let totalPegawai = 0;
-    let kepalaUnit: string | null = null;
-
-    filteredPegawai.forEach((pegawai) => {
-      totalPegawai++;
-      if ((pegawai.eselon === 'JPTP' || pegawai.eselon === 'JF/D') && !kepalaUnit) {
-        kepalaUnit = pegawai.nama || null;
-      }
-    });
-
-    if (totalPegawai <= 1) {
-      await prisma.$disconnect();
-      return res.status(204).json({ message: 'Unit kerja tidak memenuhi syarat (total pegawai <= 1)' });
-    }
-
-    const result: UnitGroup = {
-      unit_kerja_id: targetUnitId,
-      nama_unit_kerja: namaUnitKerja,
-      total_pegawai: totalPegawai,
-      kepala_unit: kepalaUnit,
-    };
-
-    await prisma.$disconnect();
-    res.status(200).json(result);
-  } catch (error) {
-    console.error('Error in /api/pegawai/[id]:', error);
-    await prisma.$disconnect();
-    res.status(500).json({ error: 'Terjadi kesalahan saat mengambil data unit kerja' });
-  }
+	if (req.method === 'GET') {
+		// Ambil data pegawai berdasarkan id atau nip
+		try {
+			let pegawai;
+			
+			// Check if id is a valid integer ID (small number) or NIP (long string)
+			const numericId = Number(id);
+			if (!isNaN(numericId) && numericId > 0 && numericId < 1000000 && Number.isInteger(numericId)) {
+				// Search by ID (small integer)
+				pegawai = await prisma.pegawai.findUnique({
+					where: { id: numericId },
+					include: {
+						users_pegawai_unit_kerja_idTousers: {
+							select: { unit_kerja: true }
+						},
+						pegawai_detail: true
+					}
+				});
+			} else {
+				// Search by NIP (string, including long numbers)
+				pegawai = await prisma.pegawai.findFirst({
+					where: { nip: String(id) },
+					include: {
+						users_pegawai_unit_kerja_idTousers: {
+							select: { unit_kerja: true }
+						},
+						pegawai_detail: true
+					}
+				});
+			}
+			
+			if (!pegawai) {
+				return res.status(404).json({ error: 'Pegawai tidak ditemukan' });
+			}
+			
+			// Tambahkan foto_url
+			const foto_url = pegawai.nip
+				? `https://dtjrketxxozstcwvotzh.supabase.co/storage/v1/object/public/foto_pegawai/${pegawai.nip}.jpg`
+				: null;
+				
+			const result = { 
+				...pegawai, 
+				foto_url,
+				users: pegawai.users_pegawai_unit_kerja_idTousers || { 
+					unit_kerja: pegawai.unit_kerja_id?.toString() 
+				}
+			};
+			
+			return res.status(200).json(result);
+		} catch (error) {
+			console.error('Error fetching pegawai by id:', error);
+			return res.status(500).json({ error: 'Gagal mengambil data pegawai' });
+		}
+	} else if (req.method === 'PUT') {
+		// Update data pegawai berdasarkan id atau nip
+		try {
+			const { nip, nama, unit_kerja_id, jabatan, golongan, eselon } = req.body;
+			let updatedPegawai;
+			
+			const numericId = Number(id);
+			if (!isNaN(numericId) && numericId > 0 && numericId < 1000000 && Number.isInteger(numericId)) {
+				// Update by ID
+				updatedPegawai = await prisma.pegawai.update({
+					where: { id: numericId },
+					data: {
+						nip,
+						nama,
+						unit_kerja_id,
+						jabatan,
+						golongan,
+						eselon,
+					},
+				});
+			} else {
+				// Update by NIP - find first then update by ID
+				const existingPegawai = await prisma.pegawai.findFirst({
+					where: { nip: String(id) }
+				});
+				
+				if (!existingPegawai) {
+					return res.status(404).json({ error: 'Pegawai tidak ditemukan' });
+				}
+				
+				updatedPegawai = await prisma.pegawai.update({
+					where: { id: existingPegawai.id },
+					data: {
+						nip,
+						nama,
+						unit_kerja_id,
+						jabatan,
+						golongan,
+						eselon,
+					},
+				});
+			}
+			
+			return res.status(200).json(updatedPegawai);
+		} catch (error) {
+			console.error('Error updating pegawai:', error);
+			return res.status(500).json({ error: 'Gagal mengupdate pegawai' });
+		}
+	} else if (req.method === 'DELETE') {
+		// Hapus data pegawai berdasarkan id atau nip
+		try {
+			const numericId = Number(id);
+			if (!isNaN(numericId) && numericId > 0 && numericId < 1000000 && Number.isInteger(numericId)) {
+				// Delete by ID
+				await prisma.pegawai.delete({
+					where: { id: numericId },
+				});
+			} else {
+				// Delete by NIP - find first then delete by ID
+				const existingPegawai = await prisma.pegawai.findFirst({
+					where: { nip: String(id) }
+				});
+				
+				if (!existingPegawai) {
+					return res.status(404).json({ error: 'Pegawai tidak ditemukan' });
+				}
+				
+				await prisma.pegawai.delete({
+					where: { id: existingPegawai.id },
+				});
+			}
+			return res.status(204).end();
+		} catch (error) {
+			console.error('Error deleting pegawai:', error);
+			return res.status(500).json({ error: 'Gagal menghapus pegawai' });
+		}
+	} else {
+		res.setHeader('Allow', ['GET', 'PUT', 'DELETE']);
+		res.status(405).end(`Metode ${req.method} tidak diizinkan`);
+	}
 }

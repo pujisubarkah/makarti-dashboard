@@ -21,6 +21,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const user = await prisma.users.findFirst({
       where: { username },
+      include: {
+        pegawai_pegawai_nipTousers: {
+          select: {
+            unit_kerja_id: true,
+            nama: true,
+            jabatan: true,
+          }
+        }
+      }
     });
 
     if (!user || !user.password) {
@@ -44,6 +53,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         id: user.id,
         username: user.username,
         unit_kerja: user.unit_kerja,
+        unit_kerja_id: user.pegawai_pegawai_nipTousers?.unit_kerja_id || null,
+        nama: user.pegawai_pegawai_nipTousers?.nama || user.username,
+        jabatan: user.pegawai_pegawai_nipTousers?.jabatan || null,
         role_id: user.role_id,
       },
     });

@@ -24,15 +24,23 @@ type Pegawai = {
   users_pegawai_unit_kerja_idTousers?: { unit_kerja?: string };
 };
 
-const PegawaiPage: React.FC = () => {
+const DashboardPegawaiPage: React.FC = () => {
   const [pegawaiList, setPegawaiList] = useState<Pegawai[]>([]);
   const [unitFilter, setUnitFilter] = useState("");
   const [golonganFilter, setGolonganFilter] = useState("");
 
   useEffect(() => {
-    fetch("/api/employee")
+    fetch("/api/pegawai")
       .then((res) => res.json())
-      .then((data: Pegawai[]) => setPegawaiList(data));
+      .then((data) => {
+        if (Array.isArray(data)) {
+          setPegawaiList(data);
+        } else if (Array.isArray(data.data)) {
+          setPegawaiList(data.data);
+        } else {
+          setPegawaiList([]);
+        }
+      });
   }, []);
 
   const unitOptions = Array.from(new Set(pegawaiList.map((p) => p.users_pegawai_unit_kerja_idTousers?.unit_kerja).filter(Boolean)));
@@ -57,16 +65,16 @@ const PegawaiPage: React.FC = () => {
     ([golongan, jumlah]) => ({ golongan, jumlah })
   );
 
-        // Grafik batang generasi (selalu tampilkan semua generasi)
-        const generasiList = ["Baby Boomer", "X", "Y", "Z", "Alpha"];
-        const generasiMap = new Map<string, number>();
-        filteredPegawai.forEach((pegawai: Pegawai) => {
-          // Asumsi nip format: tahun lahir 8 digit pertama, misal: 19680705...
-          const tglLahir = pegawai.nip ? pegawai.nip.slice(0, 4) + "-01-01" : "";
-          const generasi = getGenerasi(tglLahir);
-          generasiMap.set(generasi, (generasiMap.get(generasi) || 0) + 1);
-        });
-        const generasiData = generasiList.map((generasi) => ({ generasi, jumlah: generasiMap.get(generasi) || 0 }));
+  // Grafik batang generasi (selalu tampilkan semua generasi)
+  const generasiList = ["Baby Boomer", "X", "Y", "Z", "Alpha"];
+  const generasiMap = new Map<string, number>();
+  filteredPegawai.forEach((pegawai: Pegawai) => {
+    // Asumsi nip format: tahun lahir 8 digit pertama, misal: 19680705...
+    const tglLahir = pegawai.nip ? pegawai.nip.slice(0, 4) + "-01-01" : "";
+    const generasi = getGenerasi(tglLahir);
+    generasiMap.set(generasi, (generasiMap.get(generasi) || 0) + 1);
+  });
+  const generasiData = generasiList.map((generasi) => ({ generasi, jumlah: generasiMap.get(generasi) || 0 }));
 
   // Statistik berdasarkan eselon
   const totalPegawai = filteredPegawai.length;
@@ -76,12 +84,36 @@ const PegawaiPage: React.FC = () => {
   const jumlahJF = filteredPegawai.filter(p => p.eselon === 'JF').length;
   const jumlahJPEL = filteredPegawai.filter(p => p.eselon === 'JPEL').length;
 
-  // Modal logic removed (not used)
-
   return (
     <div className="p-6">
-      <h2 className="text-2xl font-bold mb-4 text-blue-700">Daftar Pegawai</h2>
+      <h2 className="text-2xl font-bold mb-4 text-blue-700">Dashboard Pegawai</h2>
       
+      {/* Filter */}
+      <div className="flex justify-end gap-3 mb-4">
+        <select
+          value={unitFilter}
+          onChange={(e) => setUnitFilter(e.target.value)}
+          className="border rounded px-3 py-2 text-sm focus:outline-blue-500 bg-white"
+          style={{ minWidth: 200 }}
+        >
+          <option value="">Semua Unit Kerja</option>
+          {unitOptions.map((unit) => (
+            <option key={unit} value={unit}>{unit}</option>
+          ))}
+        </select>
+        <select
+          value={golonganFilter}
+          onChange={(e) => setGolonganFilter(e.target.value)}
+          className="border rounded px-3 py-2 text-sm focus:outline-blue-500 bg-white"
+          style={{ minWidth: 150 }}
+        >
+          <option value="">Semua Golongan</option>
+          {golonganOptions.map((golongan) => (
+            <option key={golongan} value={golongan}>{golongan}</option>
+          ))}
+        </select>
+      </div>
+
       {/* Statistik Cards */}
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6 gap-6 mb-8">
         <div className="bg-gradient-to-r from-blue-500 to-blue-600 rounded-lg shadow-lg p-6 text-white">
@@ -169,6 +201,7 @@ const PegawaiPage: React.FC = () => {
         </div>
       </div>
 
+      {/* Charts */}
       <div className="mb-8 flex flex-wrap gap-8 items-start">
         <div className="flex-1 min-w-[300px]">
           <h3 className="text-lg font-semibold mb-2 text-gray-700">Grafik Pegawai Berdasarkan Golongan</h3>
@@ -209,61 +242,8 @@ const PegawaiPage: React.FC = () => {
           </div>
         </div>
       </div>
-      <div className="flex justify-end gap-3 mb-4">
-        <select
-          value={unitFilter}
-          onChange={(e) => setUnitFilter(e.target.value)}
-          className="border rounded px-3 py-2 text-sm focus:outline-blue-500 bg-white"
-          style={{ minWidth: 200 }}
-        >
-          <option value="">Semua Unit Kerja</option>
-          {unitOptions.map((unit) => (
-            <option key={unit} value={unit}>{unit}</option>
-          ))}
-        </select>
-        <select
-          value={golonganFilter}
-          onChange={(e) => setGolonganFilter(e.target.value)}
-          className="border rounded px-3 py-2 text-sm focus:outline-blue-500 bg-white"
-          style={{ minWidth: 150 }}
-        >
-          <option value="">Semua Golongan</option>
-          {golonganOptions.map((golongan) => (
-            <option key={golongan} value={golongan}>{golongan}</option>
-          ))}
-        </select>
-      </div>
-      <table className="min-w-full bg-white border rounded shadow">
-        <thead>
-          <tr className="bg-blue-100 text-blue-700">
-            <th className="py-2 px-4 border">No</th>
-            <th className="py-2 px-4 border">Nama</th>
-            <th className="py-2 px-4 border">Jabatan</th>
-            <th className="py-2 px-4 border">Unit Kerja</th>
-            <th className="py-2 px-4 border">Golongan</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filteredPegawai.map((pegawai, idx) => (
-            <tr key={pegawai.id} className="hover:bg-gray-100">
-              <td className="py-2 px-4 border text-center">{idx + 1}</td>
-              <td className="py-2 px-4 border">
-                <a
-                  href={`/admin/pegawai/${pegawai.id}`}
-                  className="text-blue-600 underline hover:text-blue-800 cursor-pointer"
-                >
-                  {pegawai.nama}
-                </a>
-              </td>
-              <td className="py-2 px-4 border">{pegawai.jabatan}</td>
-              <td className="py-2 px-4 border">{pegawai.users_pegawai_unit_kerja_idTousers?.unit_kerja}</td>
-              <td className="py-2 px-4 border">{pegawai.golongan}</td>
-            </tr>
-          ))}
-        </tbody>
-      </table>
     </div>
   );
 }
 
-export default PegawaiPage;
+export default DashboardPegawaiPage;

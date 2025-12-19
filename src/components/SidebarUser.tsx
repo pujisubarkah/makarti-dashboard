@@ -18,6 +18,7 @@ import {
   Coins,
   ChevronLeft,
   ChevronRight,
+  UserCog,
 } from 'lucide-react'
 
 type SidebarUserProps = {
@@ -152,6 +153,34 @@ const menuItems: MenuItem[] = [
     href: '/user/inovasi/kajian',
     icon: FileSearch,
     status: 'ready',
+    type: 'item',
+  },
+  {
+    type: 'group',
+    label: 'MASTER PEGAWAI',
+  },
+  {
+    label: 'Dashboard Pegawai',
+    href: '/user/dashboard-pegawai',
+    icon: PieChart,
+    status: 'ready',
+    allowedRoles: [5], // hanya untuk role_id 5
+    type: 'item',
+  },
+  {
+    label: 'Edit Pegawai',
+    href: '/user/master-pegawai',
+    icon: UserCog,
+    status: 'ready',
+    allowedRoles: [5], // hanya untuk role_id 5
+    type: 'item',
+  },
+  {
+    label: 'HCDP',
+    href: '/user/SDM/HCDP',
+    icon: Users,
+    status: 'ready',
+    allowedRoles: [5], // hanya untuk role_id 5
     type: 'item',
   },
   {

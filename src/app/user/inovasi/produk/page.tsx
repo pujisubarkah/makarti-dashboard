@@ -9,6 +9,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { FileSpreadsheet } from "lucide-react"
+import { exportProdukInovasiToExcel } from "./exportExcel"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -80,8 +82,12 @@ interface ApiProdukInovasiResponse {
 const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6']
 
 export default function ProdukInovasiPage() {
-  const [showModal, setShowModal] = useState(false)
   const [data, setData] = useState<ProdukInovasiItem[]>([])
+  // Filter tahun
+  const [filterTahun, setFilterTahun] = useState<string>('all');
+  // Ambil daftar tahun unik dari data
+  const tahunOptions = ['all', ...Array.from(new Set(data.map(item => item.tanggalRilis?.slice(0,4))).values()).filter(Boolean).sort()];
+  const [showModal, setShowModal] = useState(false)
   const [statusOptions, setStatusOptions] = useState<StatusInovasi[]>([])
   const [editingId, setEditingId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
@@ -192,8 +198,13 @@ export default function ProdukInovasiPage() {
   const ujiCoba = data.filter(item => item.status === 'Uji Coba').length
   const arsip = data.filter(item => item.status === 'Arsip').length
 
+  // Filter data berdasarkan tahun
+  const filteredData = filterTahun === 'all'
+    ? data
+    : data.filter(item => item.tanggalRilis?.startsWith(filterTahun));
+
   // Data for charts
-  const statusCount = data.reduce((acc, item) => {
+  const statusCount = filteredData.reduce((acc, item) => {
     acc[item.status] = (acc[item.status] || 0) + 1
     return acc
   }, {} as Record<string, number>)
@@ -203,7 +214,7 @@ export default function ProdukInovasiPage() {
     value,
   }))
 
-  const jenisCount = data.reduce((acc, item) => {
+  const jenisCount = filteredData.reduce((acc, item) => {
     acc[item.jenis] = (acc[item.jenis] || 0) + 1
     return acc
   }, {} as Record<string, number>)
@@ -653,6 +664,39 @@ export default function ProdukInovasiPage() {
         </div>
         
         <div className="overflow-x-auto">
+          {/* Filter Tahun & Ekspor */}
+          <div className="flex flex-col sm:flex-row justify-between items-center mb-2 gap-2">
+            <div className="flex items-center gap-2 w-full sm:w-auto">
+              <Label htmlFor="filter-tahun" className="text-sm text-gray-700">Tahun:</Label>
+              <Select value={filterTahun} onValueChange={setFilterTahun}>
+                <SelectTrigger id="filter-tahun" className="w-[120px]">
+                  <SelectValue>{filterTahun === 'all' ? 'Semua Tahun' : filterTahun}</SelectValue>
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">Semua Tahun</SelectItem>
+                  {tahunOptions.filter(t => t !== 'all').map(tahun => (
+                    <SelectItem key={tahun} value={tahun}>{tahun}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <Button
+              variant="outline"
+              className="bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded shadow flex items-center gap-2"
+              onClick={() => exportProdukInovasiToExcel(filteredData.map(item => ({
+                nama: item.nama,
+                jenis: item.jenis,
+                status: item.status,
+                tanggalRilis: item.tanggalRilis,
+                keterangan: item.keterangan,
+              })))}
+              disabled={filteredData.length === 0}
+              title={filteredData.length === 0 ? 'Tidak ada data untuk diekspor' : 'Ekspor ke Excel'}
+            >
+              <FileSpreadsheet className="w-5 h-5 mr-1" />
+              Ekspor ke Excel
+            </Button>
+          </div>
           <Table>
             <TableHeader>
               <TableRow className="bg-gray-50">

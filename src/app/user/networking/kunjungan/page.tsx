@@ -11,6 +11,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { FileSpreadsheet } from "lucide-react"
+import { exportNetworkingToExcel } from "./exportExcel"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -801,7 +803,19 @@ export default function NetworkingPage() {
         </div>
       </div>
 
-      {/* Enhanced Table with Actions */}
+      {/* Ekspor & Enhanced Table with Actions */}
+      <div className="flex justify-end mb-2">
+        <Button
+          variant="outline"
+          className="bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded shadow flex items-center gap-2"
+          onClick={() => exportNetworkingToExcel(data)}
+          disabled={data.length === 0}
+          title={data.length === 0 ? 'Tidak ada data untuk diekspor' : 'Ekspor ke Excel'}
+        >
+          <FileSpreadsheet className="w-5 h-5 mr-1" />
+          Ekspor ke Excel
+        </Button>
+      </div>
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
           <div className="flex justify-between items-center">

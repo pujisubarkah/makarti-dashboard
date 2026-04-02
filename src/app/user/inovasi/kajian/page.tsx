@@ -9,6 +9,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { FileSpreadsheet } from "lucide-react"
+import { exportKajianToExcel } from "./exportExcel"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -47,8 +49,12 @@ interface KajianItem {
 const COLORS = ['#60a5fa', '#34d399', '#fbbf24', '#f472b6', '#8b5cf6', '#ef4444', '#06b6d4', '#84cc16']
 
 export default function KajianPage() {
-  const [showModal, setShowModal] = useState(false)
   const [data, setData] = useState<KajianItem[]>([])
+  // Filter tahun
+  const [filterTahun, setFilterTahun] = useState<string>('all');
+  // Ambil daftar tahun unik dari data
+  const tahunOptions = ['all', ...Array.from(new Set(data.map(item => item.created_at?.slice(0,4))).values()).filter(Boolean).sort()];
+  const [showModal, setShowModal] = useState(false)
   const [editingId, setEditingId] = useState<number | null>(null)
   const [currentPage, setCurrentPage] = useState(1)
   const [itemsPerPage] = useState(5)
@@ -147,11 +153,16 @@ else if (rataEfektivitas >= 50) kategoriEfektivitas = 'Cukup Efektif'
 else kategoriEfektivitas = 'Kurang Efektif'
 
 
+  // Filter data berdasarkan tahun
+  const filteredData = filterTahun === 'all'
+    ? data
+    : data.filter(item => item.created_at?.startsWith(filterTahun));
+
   // Pagination logic
   const indexOfLastItem = currentPage * itemsPerPage
   const indexOfFirstItem = indexOfLastItem - itemsPerPage
-  const currentItems = data.slice(indexOfFirstItem, indexOfLastItem)
-  const totalPages = Math.ceil(data.length / itemsPerPage)
+  const currentItems = filteredData.slice(indexOfFirstItem, indexOfLastItem)
+  const totalPages = Math.ceil(filteredData.length / itemsPerPage)
 
   const paginate = (pageNumber: number) => setCurrentPage(pageNumber)
 
@@ -634,7 +645,37 @@ else kategoriEfektivitas = 'Kurang Efektif'
         </div>
       </div>
 
-      {/* Enhanced Table with Pagination */}
+      {/* Filter Tahun & Ekspor */}
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-2 gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Label htmlFor="filter-tahun" className="text-sm text-gray-700">Tahun:</Label>
+          <Select value={filterTahun} onValueChange={setFilterTahun}>
+            <SelectTrigger id="filter-tahun" className="w-[120px]">
+              <SelectValue>{filterTahun === 'all' ? 'Semua Tahun' : filterTahun}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Tahun</SelectItem>
+              {tahunOptions.filter(t => t !== 'all').map(tahun => (
+                <SelectItem key={tahun} value={tahun}>{tahun}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          variant="outline"
+          className="bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded shadow flex items-center gap-2"
+          onClick={() => exportKajianToExcel(filteredData.map(item => ({
+            judul: item.judul,
+            jenis: item.jenis,
+            status: item.status ?? '',
+          })))}
+          disabled={filteredData.length === 0}
+          title={filteredData.length === 0 ? 'Tidak ada data untuk diekspor' : 'Ekspor ke Excel'}
+        >
+          <FileSpreadsheet className="w-5 h-5 mr-1" />
+          Ekspor ke Excel
+        </Button>
+      </div>
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
           <h2 className="text-xl font-bold">Data Produk Kajian & Analisis Kebijakan</h2>

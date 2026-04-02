@@ -9,6 +9,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { FileSpreadsheet } from "lucide-react"
+import { exportInovasiToExcel } from "./exportExcel"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -66,7 +68,12 @@ export default function InovasiPage() {
   const [editingId, setEditingId] = useState<number | null>(null)
   const [loading, setLoading] = useState(true)
   const [error, setError] = useState<string | null>(null)
-  
+
+  // Filter tahun
+  const [filterTahun, setFilterTahun] = useState<string>('all');
+  // Ambil daftar tahun unik dari data (berdasarkan tanggal)
+  const tahunOptions = ['all', ...Array.from(new Set(data.map(item => item.tanggal?.slice(0,4))).values()).filter(Boolean).sort()];
+
   // State for motivational popup
   const [showMotivationModal, setShowMotivationModal] = useState(false)
   const [motivationShown, setMotivationShown] = useState(false)
@@ -142,34 +149,39 @@ export default function InovasiPage() {
 
   const tahapOptions = ["Ide", "Perencanaan", "Uji Coba", "Implementasi"]
 
+  // Filter data berdasarkan tahun
+  const filteredData = filterTahun === 'all'
+    ? data
+    : data.filter(item => item.tanggal?.startsWith(filterTahun));
+
   // Calculate statistics
-  const totalInovasi = data.length
-  const implementasi = data.filter(item => item.tahap === 'Implementasi').length
-  const ujiCoba = data.filter(item => item.tahap === 'Uji Coba').length
-  const perencanaan = data.filter(item => item.tahap === 'Perencanaan').length
-  const ide = data.filter(item => item.tahap === 'Ide').length
+  const totalInovasi = filteredData.length;
+  const implementasi = filteredData.filter(item => item.tahap === 'Implementasi').length;
+  const ujiCoba = filteredData.filter(item => item.tahap === 'Uji Coba').length;
+  const perencanaan = filteredData.filter(item => item.tahap === 'Perencanaan').length;
+  const ide = filteredData.filter(item => item.tahap === 'Ide').length;
 
   // Data for charts
-  const tahapCount = data.reduce((acc, item) => {
-    acc[item.tahap] = (acc[item.tahap] || 0) + 1
-    return acc
-  }, {} as Record<string, number>)
+  const tahapCount = filteredData.reduce((acc, item) => {
+    acc[item.tahap] = (acc[item.tahap] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   const pieData = Object.entries(tahapCount).map(([key, value]) => ({
     name: key,
     value,
-  }))
+  }));
 
-  const monthlyData = data.reduce((acc, item) => {
-    const month = new Date(item.tanggal).toLocaleDateString('id-ID', { month: 'short' })
-    acc[month] = (acc[month] || 0) + 1
-    return acc
-  }, {} as Record<string, number>)
+  const monthlyData = filteredData.reduce((acc, item) => {
+    const month = new Date(item.tanggal).toLocaleDateString('id-ID', { month: 'short' });
+    acc[month] = (acc[month] || 0) + 1;
+    return acc;
+  }, {} as Record<string, number>);
 
   const barData = Object.entries(monthlyData).map(([month, count]) => ({
     month,
     inovasi: count,
-  }))
+  }));
 
   const summaryCards = [
     {
@@ -589,13 +601,45 @@ export default function InovasiPage() {
         </div>
       </div>
 
+      {/* Filter Tahun & Ekspor */}
+      <div className="flex flex-col sm:flex-row justify-between items-center mb-2 gap-2">
+        <div className="flex items-center gap-2 w-full sm:w-auto">
+          <Label htmlFor="filter-tahun" className="text-sm text-gray-700">Tahun:</Label>
+          <Select value={filterTahun} onValueChange={setFilterTahun}>
+            <SelectTrigger id="filter-tahun" className="w-[120px]">
+              <SelectValue>{filterTahun === 'all' ? 'Semua Tahun' : filterTahun}</SelectValue>
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">Semua Tahun</SelectItem>
+              {tahunOptions.filter(t => t !== 'all').map(tahun => (
+                <SelectItem key={tahun} value={tahun}>{tahun}</SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        </div>
+        <Button
+          variant="outline"
+          className="bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded shadow flex items-center gap-2"
+          onClick={() => exportInovasiToExcel(filteredData.map(item => ({
+            judul: item.judul,
+            tahap: item.tahap,
+            tanggal: item.tanggal,
+            indikator: item.indikator,
+            unit: item.unit,
+          })))}
+          disabled={filteredData.length === 0}
+          title={filteredData.length === 0 ? 'Tidak ada data untuk diekspor' : 'Ekspor ke Excel'}
+        >
+          <FileSpreadsheet className="w-5 h-5 mr-1" />
+          Ekspor ke Excel
+        </Button>
+      </div>
       {/* Enhanced Table */}
       <div className="bg-white rounded-xl shadow-lg overflow-hidden">
         <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
           <h2 className="text-xl font-bold">Data Inovasi Pelayanan</h2>
           <p className="text-blue-100 text-sm">Monitoring perkembangan inovasi di unit kerja</p>
         </div>
-        
         <div className="overflow-x-auto">
           <Table>
             <TableHeader>
@@ -609,7 +653,7 @@ export default function InovasiPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {data.map((item, index) => (
+              {filteredData.map((item, index) => (
                 <TableRow key={item.id} className="hover:bg-blue-50 transition-colors">
                   <TableCell className="text-gray-600">{index + 1}</TableCell>
                   <TableCell className="font-medium text-gray-800">{item.judul}</TableCell>

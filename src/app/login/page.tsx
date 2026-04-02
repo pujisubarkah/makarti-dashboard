@@ -91,20 +91,6 @@ export default function LoginPage() {
   
   return (
     <div className="flex h-screen m-0 p-0 bg-gradient-to-br from-blue-100 via-blue-50 to-white">
-      {/* Running text info */}
-      <div className="fixed top-0 left-0 right-0 z-50 bg-gradient-to-r from-amber-500 via-orange-500 to-amber-500 py-2.5 shadow-md overflow-hidden">
-        <div className="animate-marquee whitespace-nowrap">
-          <span className="text-white font-medium text-sm md:text-base mx-4 inline-block">
-            🎉 Masa hiatus sistemnya sudah selesai, silakan login kalau belum bisa mungkin sedang banyak yang akses
-          </span>
-          <span className="text-white font-medium text-sm md:text-base mx-4 inline-block">
-            🎉 Masa hiatus sistemnya sudah selesai, silakan login kalau belum bisa mungkin sedang banyak yang akses
-          </span>
-          <span className="text-white font-medium text-sm md:text-base mx-4 inline-block">
-            🎉 Masa hiatus sistemnya sudah selesai, silakan login kalau belum bisa mungkin sedang banyak yang akses
-          </span>
-        </div>
-      </div>
       
       {/* Kiri: Form Login */}
       <div className="w-full md:w-1/3 flex flex-col justify-center items-center p-8 min-h-screen relative overflow-hidden pt-20">

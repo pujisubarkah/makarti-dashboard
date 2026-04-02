@@ -2,6 +2,8 @@
 "use client"
 
 import React, { useState, useEffect } from "react"
+import { exportPublikasiToExcel } from "./exportExcel"
+import { FileSpreadsheet } from "lucide-react"
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
 import {
@@ -1095,7 +1097,19 @@ const handleDelete = async (id: number, judul: string) => {
         </div>
       </div>
 
-      {/* Table with Pagination */}
+      {/* Ekspor & Table with Pagination */}
+      <div className="flex justify-end mb-2">
+        <Button
+          variant="outline"
+          className="bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded shadow flex items-center gap-2"
+          onClick={() => exportPublikasiToExcel(data)}
+          disabled={data.length === 0 || !userUnit}
+          title={!userUnit ? 'Tunggu data unit...' : 'Ekspor ke Excel'}
+        >
+          <FileSpreadsheet className="w-5 h-5 mr-1" />
+          Ekspor ke Excel
+        </Button>
+      </div>
       <div className="bg-white rounded-xl shadow-lg overflow-hidden" id="publikasi-table">
         <div className="px-6 py-4 bg-gradient-to-r from-blue-500 to-indigo-600 text-white">
           <div className="flex justify-between items-center">

@@ -10,6 +10,8 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { FileSpreadsheet } from "lucide-react"
+import { exportPesertaToExcel } from "./exportExcel"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
@@ -848,6 +850,25 @@ export default function PenyelenggaraanBangkomPage() {
         </div>
         
         <div className="overflow-x-auto">
+          {/* Ekspor & Table */}
+          <div className="flex justify-end mb-2">
+            <Button
+              variant="outline"
+              className="bg-green-500 hover:bg-green-600 text-white font-semibold px-4 py-2 rounded shadow flex items-center gap-2"
+              onClick={() => exportPesertaToExcel(filteredData.map(item => ({
+                namaKegiatan: item.namaKegiatan,
+                tanggal: item.tanggal,
+                jenisBangkom: item.jenis_bangkom_non_pelatihan?.jenis_bangkom ?? 'Tidak diketahui',
+                jumlahPeserta: item.jumlahPeserta,
+                daftarHadir: item.daftar_hadir ?? '',
+              })))}
+              disabled={filteredData.length === 0}
+              title={filteredData.length === 0 ? 'Tidak ada data untuk diekspor' : 'Ekspor ke Excel'}
+            >
+              <FileSpreadsheet className="w-5 h-5 mr-1" />
+              Ekspor ke Excel
+            </Button>
+          </div>
           <Table>
             <TableHeader>              <TableRow className="bg-gray-50">
                 <TableHead className="font-medium">No</TableHead>

@@ -26,8 +26,14 @@ export async function GET(
     if (!json.data) return NextResponse.json([]);
 
     // 🔁 mapping ke struktur TAB Pelatihan kamu
+    interface KursusBKN {
+      namaKursus: string;
+      jumlahJam: number;
+      tahun: string;
+      [key: string]: unknown;
+    }
     return NextResponse.json(
-      json.data.map((k: any, i: number) => ({
+      (json.data as KursusBKN[]).map((k, i: number) => ({
         id: i,
         judul: k.namaKursus,
         jam: k.jumlahJam,

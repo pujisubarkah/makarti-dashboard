@@ -1,8 +1,14 @@
+
 "use client";
-import React, { useEffect, useState } from "react";
+
+import React, { useEffect, useState, useMemo } from "react";
 import { useParams } from "next/navigation";
 import ProfileHero from "@/components/ProfileHeroes";
 import { CareerInsight } from "@/components/CareerInsight";
+import TrainingHistory from "@/components/TrainingHistory";
+import { useEmployeeData } from "@/hooks/useEmployeeData";
+import { usePelatihanData } from "@/hooks/usePelatihanData";
+import { useAISuggestions } from "@/hooks/useAISuggestions";
 
 export default function ProfilPage() {
   const params = useParams() as Record<string, string | undefined>;
@@ -10,133 +16,20 @@ export default function ProfilPage() {
 
   useEffect(() => {
     if (typeof window !== "undefined") {
-      if (params?.id) {
-        setId(params.id);
+      if (params?.slug) {
+        setId(params.slug);
       } else {
         const username = localStorage.getItem('username');
         if (username) setId(username);
       }
     }
-  }, [params?.id]);
-  
-  type PegawaiDetailItem = {
-    id?: number;
-    pegawai_id?: number;
-    nip?: string;
-    email?: string;
-    unit_kerja?: string | null;
-    status_kepegawaian?: string;
-    alamat?: string;
-    pendidikan?: string;
-    tingkat_pendidikan?: string;
-    telp?: string;
-    tanggal_lahir?: string;
-    jenis_kelamin?: string;
-    nm_goldar?: string;
-    peg_cpns_tmt?: string;
-    photo_url?: string;
-    agama?: string;
-    peg_npwp?: string;
-    nik?: string;
-    tempat_lahir?: string;
-  };
-  
-  type PegawaiDetail = {
-    id: number;
-    created_at?: string;
-    nip: string;
-    nama: string;
-    unit_kerja_id?: number;
-    jabatan?: string;
-    golongan?: string;
-    eselon?: string;
-    users_pegawai_unit_kerja_idTousers?: { unit_kerja?: string };
-    pegawai_detail: PegawaiDetailItem[];
-    photo_url?: string;
-  };
+  }, [params?.slug]);
 
-  type Pelatihan = {
-    id: number;
-    judul: string;
-    jam?: number;
-    tanggal?: string;
-  };
+  const { data, loading, error } = useEmployeeData(id);
+  const { pelatihan, loading: loadingPelatihan } = usePelatihanData(id);
+  const { aiSuggestions, loading: loadingAI } = useAISuggestions(id);
 
-  interface AiGoal {
-    kompetensi: string;
-    target: string;
-    alasan: string;
-    indikator: string;
-  }
-
-  interface AiActivity {
-    judul: string;
-    jenis: string;
-    penyelenggara: string;
-  }
-
-  interface AiSuggestions {
-    ai_suggestions: {
-      goals: AiGoal[];
-      activities: AiActivity[];
-    };
-  }
-  
-  const [data, setData] = useState<PegawaiDetail | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [pelatihan, setPelatihan] = useState<Pelatihan[]>([]);
-  const [loadingPelatihan, setLoadingPelatihan] = useState(true);
-  const [aiSuggestions, setAiSuggestions] = useState<AiSuggestions | null>(null);
-  const [loadingAI, setLoadingAI] = useState(false);
-
-  useEffect(() => {
-    if (!id) return;
-    
-    setLoading(true);
-    fetch(`/api/employee/${id}`)
-      .then((res) => res.json())
-      .then((res) => {
-        setData(res);
-        setLoading(false);
-      })
-      .catch((error) => {
-        console.error('Error loading employee data:', error);
-        setError("Gagal memuat data pegawai");
-        setLoading(false);
-      });
-
-    setLoadingPelatihan(true);
-    fetch(`/api/employee/pelatihan/${id}`)
-      .then((res) => res.json())
-      .then((res) => {
-        setPelatihan(res);
-        setLoadingPelatihan(false);
-      })
-      .catch(() => {
-        setPelatihan([]);
-        setLoadingPelatihan(false);
-      });
-
-    setLoadingAI(true);
-    fetch(`/api/idp/${id}`)
-      .then((res) => {
-        if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
-        return res.json();
-      })
-      .then((res) => {
-        if (res && res.ai_suggestions) {
-          setAiSuggestions(res);
-        }
-        setLoadingAI(false);
-      })
-      .catch((error) => {
-        console.error('Error fetching AI suggestions:', error);
-        setLoadingAI(false);
-      });
-  }, [id]);
-
-  const detail = React.useMemo(() => {
+  const detail = useMemo(() => {
     return Array.isArray(data?.pegawai_detail) ? data.pegawai_detail[0] || {} : {};
   }, [data]);
 
@@ -171,63 +64,9 @@ export default function ProfilPage() {
             Histori Pelatihan
           </h2>
         </div>
-        
+
         <div className="p-6">
-          {loadingPelatihan ? (
-            <div className="flex items-center justify-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-              <span className="ml-3 text-gray-600">Memuat data pelatihan...</span>
-            </div>
-          ) : pelatihan.length === 0 ? (
-            <div className="text-center py-8">
-              <svg className="w-16 h-16 mx-auto text-gray-300 mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-              </svg>
-              <p className="text-gray-500">Belum ada data pelatihan</p>
-            </div>
-          ) : (
-            <>
-              <div className="mb-4 flex items-center justify-between bg-blue-50 rounded-lg p-4">
-                <span className="text-sm font-medium text-gray-700">Total Jam Pembelajaran</span>
-                <span className="text-2xl font-bold text-blue-600">
-                  {pelatihan.reduce((sum, p) => sum + (p.jam || 0), 0)} Jam
-                </span>
-              </div>
-              
-              <div className="overflow-x-auto">
-                <table className="w-full">
-                  <thead>
-                    <tr className="border-b-2 border-gray-200">
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-gray-50">No</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-gray-50">Judul Pelatihan</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-gray-50">Tanggal</th>
-                      <th className="px-4 py-3 text-left text-sm font-semibold text-gray-700 bg-gray-50">Jam</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {pelatihan.map((p, index) => (
-                      <tr key={p.id} className="border-b border-gray-100 hover:bg-gray-50 transition-colors">
-                        <td className="px-4 py-3 text-sm text-gray-600">{index + 1}</td>
-                        <td className="px-4 py-3 text-sm text-gray-900">{p.judul}</td>
-                        <td className="px-4 py-3 text-sm text-gray-600">
-                          {p.tanggal ? new Date(p.tanggal).toLocaleDateString('id-ID', { 
-                            day: 'numeric', 
-                            month: 'long', 
-                            year: 'numeric' 
-                          }) : '-'}
-                        </td>
-                        <td className="px-4 py-3 text-sm">
-                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
-                            {p.jam || 0} Jam
-                          </span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </>
-          )}
+          <TrainingHistory pelatihan={pelatihan} loading={loadingPelatihan} />
         </div>
       </div>
     </div>

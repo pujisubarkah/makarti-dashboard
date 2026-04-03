@@ -1,5 +1,5 @@
 export interface Pegawai {
-  id: number;
+  id?: number;
   nip?: string;
   nama?: string;
   jabatan?: string;
@@ -11,10 +11,10 @@ export interface Pegawai {
 }
 
 export interface PegawaiDetail {
-  id: number;
+  id?: number;
   pegawai_id: number;
   email?: string;
-  unit_kerja?: string;
+  unit_kerja?: string | null;
   status_kepegawaian?: string;
   alamat?: string;
   pendidikan?: string;

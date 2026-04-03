@@ -1,7 +1,7 @@
 import Image from "next/image";
 import type { Pegawai, PegawaiDetail } from "../../types/pegawai";
 
-export default function ProfileHero({ data, detail }: { data: Pegawai; detail: PegawaiDetail }) {
+export default function ProfileHero({ data, detail }: { data: Pegawai; detail: Partial<PegawaiDetail> }) {
   return (
     <div className="bg-white rounded-xl shadow p-6 flex gap-6">
       <Image
